@@ -1,7 +1,6 @@
-
-<center>
-<img src="public/icon-with-text-white.svg" width="300" style=" padding: 8px; margin-bottom:10px;"/>
-</center>
+<p align="center">
+  <img src="public/icon-with-text-white.svg" width="300" style=" padding: 8px; margin-bottom:10px;"/>
+</p>
 
 # 🚀 OpenSyte
 An open source all-in-one business management software.
