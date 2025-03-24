@@ -80,6 +80,50 @@ bun run dev
 
 Your app should now be running at [http://localhost:3000](http://localhost:3000)! 🎉
 
+## 🗺️ Features Roadmap
+
+OpenSyte aims to be an all-in-one business management solution with the following features:
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Customer Relationship Management (CRM)** | | |
+| Contact and Lead Management | ❌ Not implemented | Store and organize customer details, track leads |
+| Sales Pipeline Tracking | ❌ Not implemented | Visualize and manage your sales process with stages |
+| Customer Interaction History | ❌ Not implemented | Log emails, calls, and meetings for each customer |
+| Task Management | ❌ Not implemented | Assign and track sales-related tasks |
+| Analytics and Reporting | ❌ Not implemented | Gain insights into sales performance and forecasts |
+| **Project Management** | | |
+| Task Creation and Assignment | ❌ Not implemented | Break down projects into tasks with deadlines |
+| Visual Tools (Gantt/Kanban) | ❌ Not implemented | Use Gantt charts and Kanban boards for tracking |
+| Resource Management | ❌ Not implemented | Allocate team members to specific tasks |
+| Time Tracking | ❌ Not implemented | Record time spent on tasks |
+| Collaboration Features | ❌ Not implemented | Enable comments and file attachments within tasks |
+| **Finance and Accounting** | | |
+| Invoicing and Billing | ❌ Not implemented | Create, send, and automate invoices |
+| Expense Tracking | ❌ Not implemented | Log and categorize expenses |
+| Financial Reporting | ❌ Not implemented | Generate financial statements |
+| Bank Integration | ❌ Not implemented | Sync with bank accounts |
+| Multi-Currency Support | ❌ Not implemented | Handle transactions in different currencies |
+| **Collaboration Tools** | | |
+| Real-Time Chat | ❌ Not implemented | Communicate with your team |
+| Video Conferencing | ❌ Not implemented | Host built-in video meetings |
+| Document Sharing and Editing | ❌ Not implemented | Collaborate on documents |
+| Shared Calendars | ❌ Not implemented | Schedule with team-wide visibility |
+| Notifications | ❌ Not implemented | Stay updated with alerts |
+| **Human Resources (HR) Management** | | |
+| Employee Database | ❌ Not implemented | Store employee profiles |
+| Payroll Management | ❌ Not implemented | Automate salary calculations |
+| Performance Tracking | ❌ Not implemented | Record employee reviews and goals |
+| Time-Off Management | ❌ Not implemented | Track vacation and attendance |
+| Onboarding/Offboarding | ❌ Not implemented | Streamline processes for hiring/departures |
+| **Marketing Automation** | | |
+| Email Campaigns | ❌ Not implemented | Design and send bulk emails |
+| Social Media Management | ❌ Not implemented | Schedule posts across platforms |
+| Lead Nurturing | ❌ Not implemented | Automate follow-ups with leads |
+| Analytics | ❌ Not implemented | Measure campaign success |
+
+Want to contribute? Check out our [issues page](https://github.com/opensyte/opensyte/issues) to see what features we're currently working on!
+
 ## 📚 Available Scripts
 
 | Command | Description |
