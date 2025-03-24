@@ -6,11 +6,12 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "~/server/db";
+import { auth } from "~/lib/auth";
 
 /**
  * 1. CONTEXT
@@ -25,8 +26,13 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
+  const authSession = await auth.api.getSession({
+    headers: opts.headers,
+  });
+
   return {
     db,
+    user: authSession?.user,
     ...opts,
   };
 };
@@ -79,7 +85,11 @@ export const createTRPCRouter = t.router;
  * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
  * network latency that would occur in production but not in local development.
  */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
+const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
+  if (!ctx.user?.id) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+
   const start = Date.now();
 
   if (t._config.isDev) {
@@ -88,7 +98,11 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
 
-  const result = await next();
+  const result = await next({
+    ctx: {
+      user: ctx.user,
+    },
+  });
 
   const end = Date.now();
   console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
