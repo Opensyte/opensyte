@@ -1,6 +1,5 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
     provider = "prisma-client-js"
 }
@@ -10,11 +9,772 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+// ==============================
+// Core Organization Models
+// ==============================
 
-    @@index([name])
+model Organization {
+    id          String   @id @default(cuid())
+    name        String
+    logo        String?
+    website     String?
+    industry    String?
+    description String?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relations
+    users     UserOrganization[]
+    customers Customer[]
+    projects  Project[]
+    tasks     Task[]
+    invoices  Invoice[]
+    expenses  Expense[]
+    employees Employee[]
+    campaigns MarketingCampaign[]
+}
+
+model UserOrganization {
+    userId         String
+    organizationId String
+    role           UserRole
+    joinedAt       DateTime @default(now())
+
+    // Relations
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@id([userId, organizationId])
+    @@index([userId])
+    @@index([organizationId])
+}
+
+enum UserRole {
+    OWNER
+    ADMIN
+    MEMBER
+    VIEWER
+}
+
+// ==============================
+// CRM Models
+// ==============================
+
+model Customer {
+    id             String       @id @default(cuid())
+    organizationId String
+    type           CustomerType
+    status         LeadStatus?
+    firstName      String
+    lastName       String
+    email          String?
+    phone          String?
+    company        String?
+    position       String?
+    address        String?
+    city           String?
+    state          String?
+    country        String?
+    postalCode     String?
+    source         LeadSource?
+    notes          String?
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+
+    // Relations
+    organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    interactions CustomerInteraction[]
+    deals        Deal[]
+    invoices     Invoice[]
+
+    @@index([organizationId])
+    @@index([email])
+    @@index([status])
+}
+
+enum CustomerType {
+    LEAD
+    PROSPECT
+    CUSTOMER
+    FORMER
+}
+
+enum LeadStatus {
+    NEW
+    CONTACTED
+    QUALIFIED
+    PROPOSAL
+    NEGOTIATION
+    CLOSED_WON
+    CLOSED_LOST
+}
+
+enum LeadSource {
+    WEBSITE
+    REFERRAL
+    SOCIAL_MEDIA
+    EMAIL_CAMPAIGN
+    EVENT
+    COLD_CALL
+    OTHER
+}
+
+model CustomerInteraction {
+    id          String            @id @default(cuid())
+    customerId  String
+    type        InteractionType
+    medium      InteractionMedium
+    subject     String?
+    content     String?
+    scheduledAt DateTime?
+    completedAt DateTime?
+    createdById String?
+    createdAt   DateTime          @default(now())
+    updatedAt   DateTime          @updatedAt
+
+    // Relations
+    customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+    tasks    Task[]
+
+    @@index([customerId])
+    @@index([createdById])
+}
+
+enum InteractionType {
+    CALL
+    EMAIL
+    MEETING
+    NOTE
+    TASK
+}
+
+enum InteractionMedium {
+    IN_PERSON
+    PHONE
+    VIDEO
+    EMAIL
+    CHAT
+    OTHER
+}
+
+model Deal {
+    id                String     @id @default(cuid())
+    customerId        String
+    title             String
+    value             Decimal    @db.Decimal(10, 2)
+    currency          String     @default("USD")
+    status            LeadStatus
+    stage             Int
+    probability       Float?
+    expectedCloseDate DateTime?
+    actualCloseDate   DateTime?
+    description       String?
+    createdById       String?
+    createdAt         DateTime   @default(now())
+    updatedAt         DateTime   @updatedAt
+
+    // Relations
+    customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+    @@index([customerId])
+    @@index([status])
+    @@index([createdById])
+}
+
+// ==============================
+// Project Management Models
+// ==============================
+
+model Project {
+    id             String        @id @default(cuid())
+    organizationId String
+    name           String
+    description    String?
+    startDate      DateTime?
+    endDate        DateTime?
+    status         ProjectStatus
+    budget         Decimal?      @db.Decimal(10, 2)
+    currency       String        @default("USD")
+    createdById    String?
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
+
+    // Relations
+    organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    tasks        Task[]
+    resources    ProjectResource[]
+    timeEntries  TimeEntry[]
+
+    @@index([organizationId])
+    @@index([createdById])
+    @@index([status])
+}
+
+enum ProjectStatus {
+    PLANNED
+    IN_PROGRESS
+    ON_HOLD
+    COMPLETED
+    CANCELLED
+}
+
+model Task {
+    id             String     @id @default(cuid())
+    organizationId String
+    projectId      String?
+    parentTaskId   String?
+    title          String
+    description    String?
+    status         TaskStatus
+    priority       Priority
+    startDate      DateTime?
+    dueDate        DateTime?
+    completedAt    DateTime?
+    assignedToId   String?
+    createdById    String?
+    estimatedHours Float?
+    actualHours    Float?
+    createdAt      DateTime   @default(now())
+    updatedAt      DateTime   @updatedAt
+
+    // Relations
+    organization          Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    project               Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+    parentTask            Task?                @relation("TaskHierarchy", fields: [parentTaskId], references: [id], onDelete: SetNull)
+    subtasks              Task[]               @relation("TaskHierarchy")
+    timeEntries           TimeEntry[]
+    comments              Comment[]
+    attachments           Attachment[]
+    customerInteraction   CustomerInteraction? @relation(fields: [customerInteractionId], references: [id])
+    customerInteractionId String?
+
+    @@index([organizationId])
+    @@index([projectId])
+    @@index([parentTaskId])
+    @@index([assignedToId])
+    @@index([status])
+}
+
+enum TaskStatus {
+    BACKLOG
+    TODO
+    IN_PROGRESS
+    REVIEW
+    DONE
+    ARCHIVED
+}
+
+enum Priority {
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
+}
+
+model ProjectResource {
+    projectId  String
+    assigneeId String
+    role       String?
+    allocation Float? // Percentage allocation (0-100)
+    startDate  DateTime?
+    endDate    DateTime?
+    hourlyRate Decimal?  @db.Decimal(10, 2)
+    currency   String    @default("USD")
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @default(now())
+
+    // Relations
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    @@id([projectId, assigneeId])
+    @@index([projectId])
+    @@index([assigneeId])
+}
+
+model TimeEntry {
+    id          String    @id @default(cuid())
+    projectId   String?
+    taskId      String?
+    userId      String
+    description String?
+    startTime   DateTime
+    endTime     DateTime?
+    duration    Int? // Duration in minutes
+    billable    Boolean   @default(true)
+    invoiced    Boolean   @default(false)
+    invoiceId   String?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @default(now())
+
+    // Relations
+    project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+    task    Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+    @@index([projectId])
+    @@index([taskId])
+    @@index([userId])
+    @@index([invoiceId])
+}
+
+// ==============================
+// Finance Models
+// ==============================
+
+model Invoice {
+    id                 String        @id @default(cuid())
+    organizationId     String
+    customerId         String?
+    invoiceNumber      String
+    status             InvoiceStatus
+    issueDate          DateTime
+    dueDate            DateTime
+    subtotal           Decimal       @db.Decimal(10, 2)
+    taxAmount          Decimal       @db.Decimal(10, 2)
+    discountAmount     Decimal       @db.Decimal(10, 2)
+    totalAmount        Decimal       @db.Decimal(10, 2)
+    paidAmount         Decimal       @default(0) @db.Decimal(10, 2)
+    currency           String        @default("USD")
+    notes              String?
+    termsAndConditions String?
+    createdById        String?
+    createdAt          DateTime      @default(now())
+    updatedAt          DateTime      @default(now())
+
+    // Relations
+    organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+    items        InvoiceItem[]
+    payments     Payment[]
+
+    @@unique([organizationId, invoiceNumber])
+    @@index([organizationId])
+    @@index([customerId])
+    @@index([status])
+}
+
+enum InvoiceStatus {
+    DRAFT
+    SENT
+    VIEWED
+    PAID
+    PARTIALLY_PAID
+    OVERDUE
+    CANCELLED
+}
+
+model InvoiceItem {
+    id          String   @id @default(cuid())
+    invoiceId   String
+    description String
+    quantity    Decimal  @db.Decimal(10, 2)
+    unitPrice   Decimal  @db.Decimal(10, 2)
+    taxRate     Decimal  @default(0) @db.Decimal(5, 2)
+    subtotal    Decimal  @db.Decimal(10, 2)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @default(now())
+
+    // Relations
+    invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+    @@index([invoiceId])
+}
+
+model Payment {
+    id          String        @id @default(cuid())
+    invoiceId   String
+    amount      Decimal       @db.Decimal(10, 2)
+    currency    String        @default("USD")
+    method      PaymentMethod
+    reference   String?
+    paymentDate DateTime
+    notes       String?
+    createdById String?
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @default(now())
+
+    // Relations
+    invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+    @@index([invoiceId])
+}
+
+enum PaymentMethod {
+    CREDIT_CARD
+    BANK_TRANSFER
+    CASH
+    CHECK
+    PAYPAL
+    OTHER
+}
+
+model Expense {
+    id             String    @id @default(cuid())
+    organizationId String
+    category       String
+    amount         Decimal   @db.Decimal(10, 2)
+    currency       String    @default("USD")
+    date           DateTime
+    description    String?
+    receipt        String? // URL to receipt image
+    vendor         String?
+    reimbursable   Boolean   @default(false)
+    reimbursed     Boolean   @default(false)
+    createdById    String?
+    approvedById   String?
+    approvedAt     DateTime?
+    createdAt      DateTime  @default(now())
+    updatedAt      DateTime  @default(now())
+
+    // Relations
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@index([organizationId])
+    @@index([createdById])
+    @@index([category])
+}
+
+// ==============================
+// Collaboration Models
+// ==============================
+
+model Comment {
+    id        String   @id @default(cuid())
+    taskId    String
+    content   String
+    authorId  String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now())
+
+    // Relations
+    task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+    @@index([taskId])
+    @@index([authorId])
+}
+
+model Attachment {
+    id           String   @id @default(cuid())
+    taskId       String
+    name         String
+    fileUrl      String
+    fileType     String
+    fileSize     Int // Size in bytes
+    uploadedById String
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @default(now())
+
+    // Relations
+    task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+    @@index([taskId])
+    @@index([uploadedById])
+}
+
+model CalendarEvent {
+    id          String   @id @default(cuid())
+    title       String
+    description String?
+    startTime   DateTime
+    endTime     DateTime
+    allDay      Boolean  @default(false)
+    location    String?
+    organizerId String
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @default(now())
+
+    // Relations
+    attendees CalendarEventAttendee[]
+
+    @@index([organizerId])
+}
+
+model CalendarEventAttendee {
+    eventId   String
+    userId    String
+    status    AttendeeStatus
+    createdAt DateTime       @default(now())
+    updatedAt DateTime       @default(now())
+
+    // Relations
+    event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+    @@id([eventId, userId])
+    @@index([eventId])
+    @@index([userId])
+}
+
+enum AttendeeStatus {
+    PENDING
+    ACCEPTED
+    DECLINED
+    TENTATIVE
+}
+
+model Notification {
+    id        String           @id @default(cuid())
+    userId    String
+    title     String
+    content   String
+    type      NotificationType
+    read      Boolean          @default(false)
+    actionUrl String?
+    createdAt DateTime         @default(now())
+
+    @@index([userId])
+    @@index([read])
+}
+
+enum NotificationType {
+    TASK
+    COMMENT
+    MENTION
+    REMINDER
+    SYSTEM
+}
+
+// ==============================
+// HR Management Models
+// ==============================
+
+model Employee {
+    id                    String         @id @default(cuid())
+    organizationId        String
+    firstName             String
+    lastName              String
+    email                 String
+    phone                 String?
+    position              String?
+    department            String?
+    hireDate              DateTime?
+    terminationDate       DateTime?
+    status                EmployeeStatus @default(ACTIVE)
+    managerId             String?
+    address               String?
+    city                  String?
+    state                 String?
+    country               String?
+    postalCode            String?
+    birthDate             DateTime?
+    taxId                 String?
+    emergencyContactName  String?
+    emergencyContactPhone String?
+    createdAt             DateTime       @default(now())
+    updatedAt             DateTime       @default(now())
+
+    // Relations
+    organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    payrolls           Payroll[]
+    timeOff            TimeOff[]
+    performanceReviews PerformanceReview[]
+
+    @@index([organizationId])
+    @@index([email])
+    @@index([managerId])
+    @@index([status])
+}
+
+enum EmployeeStatus {
+    ACTIVE
+    ON_LEAVE
+    TERMINATED
+    PROBATION
+}
+
+model Payroll {
+    id             String        @id @default(cuid())
+    employeeId     String
+    payPeriodStart DateTime
+    payPeriodEnd   DateTime
+    payDate        DateTime
+    basicSalary    Decimal       @db.Decimal(10, 2)
+    overtime       Decimal       @default(0) @db.Decimal(10, 2)
+    bonus          Decimal       @default(0) @db.Decimal(10, 2)
+    tax            Decimal       @default(0) @db.Decimal(10, 2)
+    deductions     Decimal       @default(0) @db.Decimal(10, 2)
+    netAmount      Decimal       @db.Decimal(10, 2)
+    currency       String        @default("USD")
+    status         PayrollStatus
+    notes          String?
+    createdById    String?
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @default(now())
+
+    // Relations
+    employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+    @@index([employeeId])
+    @@index([status])
+}
+
+enum PayrollStatus {
+    DRAFT
+    APPROVED
+    PAID
+    CANCELLED
+}
+
+model TimeOff {
+    id           String        @id @default(cuid())
+    employeeId   String
+    type         TimeOffType
+    startDate    DateTime
+    endDate      DateTime
+    duration     Float // In days
+    reason       String?
+    status       TimeOffStatus
+    approvedById String?
+    approvedAt   DateTime?
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @default(now())
+
+    // Relations
+    employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+    @@index([employeeId])
+    @@index([status])
+}
+
+enum TimeOffType {
+    VACATION
+    SICK
+    PERSONAL
+    BEREAVEMENT
+    MATERNITY
+    PATERNITY
+    UNPAID
+}
+
+enum TimeOffStatus {
+    PENDING
+    APPROVED
+    DENIED
+    CANCELLED
+}
+
+model PerformanceReview {
+    id               String       @id @default(cuid())
+    employeeId       String
+    reviewerId       String
+    reviewPeriod     String
+    performanceScore Float?
+    strengths        String?
+    improvements     String?
+    goals            String?
+    comments         String?
+    reviewDate       DateTime
+    status           ReviewStatus
+    createdAt        DateTime     @default(now())
+    updatedAt        DateTime     @default(now())
+
+    // Relations
+    employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+    @@index([employeeId])
+    @@index([reviewerId])
+    @@index([status])
+}
+
+enum ReviewStatus {
+    DRAFT
+    SUBMITTED
+    ACKNOWLEDGED
+    COMPLETED
+}
+
+// ==============================
+// Marketing Automation Models
+// ==============================
+
+model MarketingCampaign {
+    id             String         @id @default(cuid())
+    organizationId String
+    name           String
+    description    String?
+    type           CampaignType
+    status         CampaignStatus
+    startDate      DateTime?
+    endDate        DateTime?
+    budget         Decimal?       @db.Decimal(10, 2)
+    currency       String         @default("USD")
+    targetAudience String?
+    createdById    String?
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @default(now())
+
+    // Relations
+    organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    emailCampaigns EmailCampaign[]
+    socialPosts    SocialMediaPost[]
+
+    @@index([organizationId])
+    @@index([status])
+    @@index([type])
+}
+
+enum CampaignType {
+    EMAIL
+    SOCIAL_MEDIA
+    PPC
+    CONTENT
+    EVENT
+    OTHER
+}
+
+enum CampaignStatus {
+    DRAFT
+    SCHEDULED
+    ACTIVE
+    PAUSED
+    COMPLETED
+    CANCELLED
+}
+
+model EmailCampaign {
+    id          String    @id @default(cuid())
+    campaignId  String
+    subject     String
+    content     String
+    sender      String
+    scheduledAt DateTime?
+    sentAt      DateTime?
+    opens       Int       @default(0)
+    clicks      Int       @default(0)
+    bounces     Int       @default(0)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @default(now())
+
+    // Relations
+    campaign MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    @@index([campaignId])
+}
+
+model SocialMediaPost {
+    id          String         @id @default(cuid())
+    campaignId  String
+    platform    SocialPlatform
+    content     String
+    mediaUrl    String?
+    scheduledAt DateTime?
+    publishedAt DateTime?
+    likes       Int            @default(0)
+    shares      Int            @default(0)
+    comments    Int            @default(0)
+    createdAt   DateTime       @default(now())
+    updatedAt   DateTime       @default(now())
+
+    // Relations
+    campaign MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    @@index([campaignId])
+    @@index([platform])
+}
+
+enum SocialPlatform {
+    FACEBOOK
+    TWITTER
+    LINKEDIN
+    INSTAGRAM
+    YOUTUBE
+    TIKTOK
+    PINTEREST
 }
