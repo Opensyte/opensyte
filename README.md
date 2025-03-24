@@ -5,15 +5,19 @@
 # 🚀 OpenSyte
 An open source all-in-one business management software.
 
-
 ## 🛠️ Installation
 
 Follow these steps to set up the project on your local machine:
 
-### 1. Clone the repository
+### 1. Fork and clone the repository
 
+1. **Fork the repository**
+   - Visit the [OpenSyte repository](https://github.com/opensyte/opensyte)
+   - Click on the "Fork" button in the upper right corner
+   - Follow the prompts to create a fork in your GitHub account
+2. **Clone your fork**
 ```bash
-git clone <repository-url>
+git clone https://github.com/your-username/opensyte.git
 cd opensyte
 ```
 
