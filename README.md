@@ -37,6 +37,26 @@ cp .env.example .env
 
 Update the database credentials in the `.env` file if needed.
 
+#### Setting up Google Authentication
+To enable Google sign-in, follow these steps:
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select an existing one
+3. Navigate to **APIs & Services** > **Credentials**
+4. Click **Create Credentials** > **OAuth client ID**
+5. Configure the OAuth consent screen if not already done
+6. For **Application Type**, choose **Web application**
+7. Add authorized redirect URIs:
+   - For development: `http://localhost:3000/api/auth/callback/google`
+   - For production: `https://your-domain.com/api/auth/callback/google`
+8. Click **Create** and note your credentials
+9. Add the following to your `.env` file:
+```bash
+# Google OAuth
+GOOGLE_CLIENT_ID="your-client-id"
+GOOGLE_CLIENT_SECRET="your-client-secret"
+```
+
 ### 4. Start up a database
 
 For Linux/macOS users:

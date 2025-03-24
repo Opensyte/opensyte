@@ -4,6 +4,9 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { headers } from "next/headers";
+import { auth } from "~/lib/auth";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -16,9 +19,14 @@ const geist = Geist({
   variable: "--font-geist-sans",
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) return redirect("/sign-in");
   return (
     <html lang="en" className={`${geist.variable} dark`}>
       <body>
