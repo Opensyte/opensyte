@@ -1,4 +1,3 @@
-import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
   Select,
@@ -7,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search } from "lucide-react";
 
 export default function LeadFilters() {
   return (
@@ -47,9 +46,6 @@ export default function LeadFilters() {
             <SelectItem value="OTHER">Other</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
       </div>
     </div>
   );
