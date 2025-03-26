@@ -34,18 +34,26 @@ export function NavMain({
 }) {
   const pathname = usePathname();
 
+  // Extract orgId from pathname
+  const orgId = pathname.split("/")[1];
+
+  // Replace [orgId] placeholder with actual orgId
+  const getUrl = (url: string) => {
+    return url.replace("[orgId]", orgId!);
+  };
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
+          const itemUrl = getUrl(item.url);
           // Check if this item or any of its children are active
-          const isItemActive = pathname.startsWith(item.url);
+          const isItemActive = pathname.startsWith(itemUrl);
           const hasActiveChild = item.items?.some(
-            (subItem) => pathname === subItem.url,
+            (subItem) => pathname === getUrl(subItem.url),
           );
           const isActive = isItemActive || hasActiveChild;
-
           return (
             <Collapsible
               key={item.title}
@@ -64,15 +72,15 @@ export function NavMain({
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => {
-                      const isSubItemActive = pathname === subItem.url;
-
+                      const subItemUrl = getUrl(subItem.url);
+                      const isSubItemActive = pathname === subItemUrl;
                       return (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
                             asChild
                             isActive={isSubItemActive}
                           >
-                            <Link href={subItem.url}>
+                            <Link href={subItemUrl}>
                               <span>{subItem.title}</span>
                             </Link>
                           </SidebarMenuSubButton>

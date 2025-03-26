@@ -40,134 +40,134 @@ const data = {
   navMain: [
     {
       title: "CRM",
-      url: "/crm",
+      url: "/[orgId]/crm",
       icon: Users,
       items: [
         {
           title: "Contacts",
-          url: "/crm/contacts",
+          url: "/[orgId]/crm/contacts",
         },
         {
           title: "Leads",
-          url: "/crm/leads",
+          url: "/[orgId]/crm/leads",
         },
         {
           title: "Sales Pipeline",
-          url: "/crm/pipeline",
+          url: "/[orgId]/crm/pipeline",
         },
       ],
     },
     {
       title: "Projects",
-      url: "/projects",
+      url: "/[orgId]/projects",
       icon: FileSpreadsheet,
       items: [
         {
           title: "Tasks",
-          url: "/projects/tasks",
+          url: "/[orgId]/projects/tasks",
         },
         {
           title: "Kanban Board",
-          url: "/projects/kanban",
+          url: "/[orgId]/projects/kanban",
         },
         {
           title: "Time Tracking",
-          url: "/projects/time-tracking",
+          url: "/[orgId]/projects/time-tracking",
         },
       ],
     },
     {
       title: "Finance",
-      url: "/finance",
+      url: "/[orgId]/finance",
       icon: CreditCard,
       items: [
         {
           title: "Invoices",
-          url: "/finance/invoices",
+          url: "/[orgId]/finance/invoices",
         },
         {
           title: "Expenses",
-          url: "/finance/expenses",
+          url: "/[orgId]/finance/expenses",
         },
         {
           title: "Reports",
-          url: "/finance/reports",
+          url: "/[orgId]/finance/reports",
         },
       ],
     },
     {
       title: "Collaboration",
-      url: "/collaboration",
+      url: "/[orgId]/collaboration",
       icon: MessageSquare,
       items: [
         {
           title: "Chat",
-          url: "/chat",
+          url: "/[orgId]/chat",
         },
         {
           title: "Calendar",
-          url: "/calendar",
+          url: "/[orgId]/calendar",
         },
         {
           title: "Documents",
-          url: "/collaboration/documents",
+          url: "/[orgId]/collaboration/documents",
         },
       ],
     },
     {
       title: "HR",
-      url: "/hr",
+      url: "/[orgId]/hr",
       icon: Users,
       items: [
         {
           title: "Employees",
-          url: "/hr/employees",
+          url: "/[orgId]/hr/employees",
         },
         {
           title: "Payroll",
-          url: "/hr/payroll",
+          url: "/[orgId]/hr/payroll",
         },
         {
           title: "Time Off",
-          url: "/hr/time-off",
+          url: "/[orgId]/hr/time-off",
         },
       ],
     },
     {
       title: "Marketing",
-      url: "/marketing",
+      url: "/[orgId]/marketing",
       icon: Mail,
       items: [
         {
           title: "Campaigns",
-          url: "/marketing/campaigns",
+          url: "/[orgId]/marketing/campaigns",
         },
         {
           title: "Social Media",
-          url: "/marketing/social",
+          url: "/[orgId]/marketing/social",
         },
         {
           title: "Analytics",
-          url: "/marketing/analytics",
+          url: "/[orgId]/marketing/analytics",
         },
       ],
     },
     {
       title: "Settings",
-      url: "/settings",
+      url: "/[orgId]/settings",
       icon: Settings2,
       items: [
         {
           title: "General",
-          url: "/settings/general",
+          url: "/[orgId]/settings/general",
         },
         {
           title: "Team",
-          url: "/settings/team",
+          url: "/[orgId]/settings/team",
         },
         {
           title: "Billing",
-          url: "/settings/billing",
+          url: "/[orgId]/settings/billing",
         },
       ],
     },
