@@ -65,7 +65,7 @@ export function OrganizationCard({
     : null;
 
   return (
-    <Card className="hover:border-primary/30 group flex h-full flex-col transition-all hover:shadow-md">
+    <Card className="hover:border-primary/30 group flex h-full flex-col gap-3 transition-all hover:shadow-md">
       <CardHeader className="space-y-2 pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">

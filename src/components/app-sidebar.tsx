@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  BarChart3,
   CreditCard,
   FileSpreadsheet,
   Mail,
@@ -48,8 +47,8 @@ const data = {
           url: "/[orgId]/crm/contacts",
         },
         {
-          title: "Leads",
-          url: "/[orgId]/crm/leads",
+          title: "interactions",
+          url: "/[orgId]/crm/interactions",
         },
         {
           title: "Sales Pipeline",
