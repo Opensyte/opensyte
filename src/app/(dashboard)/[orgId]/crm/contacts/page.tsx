@@ -1,3 +1,4 @@
+"use client";
 import {
   Card,
   CardContent,
@@ -10,6 +11,8 @@ import LeadFilters from "~/components/crm/contacts/lead-filters";
 import { Button } from "~/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+
+// TODO: Add log interaction history
 
 export default function CRMContactsPage() {
   return (

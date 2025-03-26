@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -28,6 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Badge } from "~/components/ui/badge";
+import InteractionDialog from "./interaction-dialog";
+import type { InteractionData } from "./interaction-dialog";
+import type { Interaction } from "./interaction-history";
+import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
 
 const dummyLeads = [
   {
@@ -89,6 +95,13 @@ const sourceIconMap = {
 };
 
 export default function LeadManagementTable() {
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [isInteractionDialogOpen, setIsInteractionDialogOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
@@ -96,6 +109,40 @@ export default function LeadManagementTable() {
       day: "numeric",
       year: "numeric",
     }).format(date);
+  };
+
+  const handleOpenInteractionDialog = (
+    leadId: string,
+    firstName: string,
+    lastName: string,
+  ) => {
+    setSelectedLead({
+      id: leadId,
+      name: `${firstName} ${lastName}`,
+    });
+    setIsInteractionDialogOpen(true);
+  };
+
+  const handleCloseInteractionDialog = () => {
+    setIsInteractionDialogOpen(false);
+    setSelectedLead(null);
+  };
+
+  const handleSaveInteraction = (data: InteractionData) => {
+    const newInteraction: Interaction = {
+      id: uuidv4(),
+      ...data,
+    };
+
+    // In a real application, you would send this to your API
+    // For now, we'll just add it to our local state
+    setInteractions((prev) => [...prev, newInteraction]);
+    setIsInteractionDialogOpen(false);
+
+    // Show success toast using Sonner
+    toast.success("Interaction logged", {
+      description: `${data.type.charAt(0) + data.type.slice(1).toLowerCase()} with ${selectedLead?.name} has been recorded.`,
+    });
   };
 
   return (
@@ -198,15 +245,17 @@ export default function LeadManagementTable() {
                       <DropdownMenuItem>
                         <Pencil className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handleOpenInteractionDialog(
+                            lead.id,
+                            lead.firstName,
+                            lead.lastName,
+                          )
+                        }
+                      >
                         <MessageSquare className="mr-2 h-4 w-4" /> Log
                         Interaction
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Phone className="mr-2 h-4 w-4" /> Call
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Mail className="mr-2 h-4 w-4" /> Email
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-red-600">
@@ -220,7 +269,16 @@ export default function LeadManagementTable() {
           ))}
         </TableBody>
       </Table>
+
+      {selectedLead && (
+        <InteractionDialog
+          isOpen={isInteractionDialogOpen}
+          leadId={selectedLead.id}
+          leadName={selectedLead.name}
+          onClose={handleCloseInteractionDialog}
+          onSave={handleSaveInteraction}
+        />
+      )}
     </div>
   );
-};
-
+}

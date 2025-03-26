@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
 import { DashboardNavbar } from "~/components/organizations/navbar";
 import { OrganizationCard } from "~/components/organizations/organization-card";
 import { EmptyOrganizations } from "~/components/organizations/empty-organizations";
@@ -61,8 +60,6 @@ const organizations = [
 ];
 
 export default function DashboardPage() {
-  const router = useRouter();
-
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <DashboardNavbar />

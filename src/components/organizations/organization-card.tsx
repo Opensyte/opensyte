@@ -4,13 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   BuildingIcon,
-  GlobeIcon,
   MoreHorizontal,
   PencilIcon,
   TrashIcon,
   Users,
   CalendarIcon,
-  BriefcaseIcon,
 } from "lucide-react";
 import {
   Card,
@@ -28,15 +26,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Separator } from "~/components/ui/separator";
 
 type OrganizationProps = {
   id: string;
   name: string;
   description: string;
   logo?: string | null;
-  website?: string;
-  industry?: string;
   membersCount: number;
   plan: string;
   createdAt?: string;
@@ -47,8 +42,6 @@ export function OrganizationCard({
   name,
   description,
   logo,
-  website,
-  industry,
   membersCount,
   plan,
   createdAt,

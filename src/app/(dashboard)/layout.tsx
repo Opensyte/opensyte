@@ -7,6 +7,7 @@ import { TRPCReactProvider } from "~/trpc/react";
 import { headers } from "next/headers";
 import { auth } from "~/lib/auth";
 import { redirect } from "next/navigation";
+import { Toaster } from "~/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Opensyte",
@@ -29,7 +30,10 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} dark`}>
       <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          {children}
+          <Toaster />
+        </TRPCReactProvider>
       </body>
     </html>
   );
