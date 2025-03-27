@@ -29,3 +29,42 @@ export interface PipelineMetrics {
   wonDeals: Deal[];
   wonValue: number;
 }
+
+export type Customer = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  notes?: string;
+};
+
+export type InteractionType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "TASK";
+export type InteractionMedium =
+  | "IN_PERSON"
+  | "PHONE"
+  | "VIDEO"
+  | "EMAIL"
+  | "CHAT"
+  | "OTHER";
+
+export interface CustomerInteraction {
+  id: string;
+  customerId: string;
+  type: InteractionType;
+  medium: InteractionMedium;
+  subject?: string;
+  content?: string;
+  scheduledAt?: Date;
+  completedAt?: Date;
+  createdById?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
