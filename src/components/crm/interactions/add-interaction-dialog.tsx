@@ -91,7 +91,7 @@ export function AddInteractionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add New Interaction</DialogTitle>
           <DialogDescription>
@@ -121,47 +121,52 @@ export function AddInteractionDialog({
             </Select>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="type">Interaction Type</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) =>
-                setFormData({ ...formData, type: value as InteractionType })
-              }
-            >
-              <SelectTrigger id="type" className="w-full">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="CALL">Call</SelectItem>
-                <SelectItem value="EMAIL">Email</SelectItem>
-                <SelectItem value="MEETING">Meeting</SelectItem>
-                <SelectItem value="NOTE">Note</SelectItem>
-                <SelectItem value="TASK">Task</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="type">Interaction Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, type: value as InteractionType })
+                }
+              >
+                <SelectTrigger id="type" className="w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CALL">Call</SelectItem>
+                  <SelectItem value="EMAIL">Email</SelectItem>
+                  <SelectItem value="MEETING">Meeting</SelectItem>
+                  <SelectItem value="NOTE">Note</SelectItem>
+                  <SelectItem value="TASK">Task</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="medium">Medium</Label>
-            <Select
-              value={formData.medium}
-              onValueChange={(value) =>
-                setFormData({ ...formData, medium: value as InteractionMedium })
-              }
-            >
-              <SelectTrigger id="medium" className="w-full">
-                <SelectValue placeholder="Select medium" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="IN_PERSON">In Person</SelectItem>
-                <SelectItem value="PHONE">Phone</SelectItem>
-                <SelectItem value="VIDEO">Video</SelectItem>
-                <SelectItem value="EMAIL">Email</SelectItem>
-                <SelectItem value="CHAT">Chat</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid gap-2">
+              <Label htmlFor="medium">Medium</Label>
+              <Select
+                value={formData.medium}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    medium: value as InteractionMedium,
+                  })
+                }
+              >
+                <SelectTrigger id="medium" className="w-full">
+                  <SelectValue placeholder="Select medium" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IN_PERSON">In Person</SelectItem>
+                  <SelectItem value="PHONE">Phone</SelectItem>
+                  <SelectItem value="VIDEO">Video</SelectItem>
+                  <SelectItem value="EMAIL">Email</SelectItem>
+                  <SelectItem value="CHAT">Chat</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -177,68 +182,70 @@ export function AddInteractionDialog({
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="scheduledAt">Scheduled Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.scheduledAt && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarClock className="mr-2 h-4 w-4" />
-                  {formData.scheduledAt ? (
-                    format(formData.scheduledAt, "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.scheduledAt ?? undefined}
-                  onSelect={(date) =>
-                    date && setFormData({ ...formData, scheduledAt: date })
-                  }
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="scheduledAt">Scheduled Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.scheduledAt && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    {formData.scheduledAt ? (
+                      format(formData.scheduledAt, "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.scheduledAt ?? undefined}
+                    onSelect={(date) =>
+                      date && setFormData({ ...formData, scheduledAt: date })
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="completedAt">Completion Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.completedAt && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarClock className="mr-2 h-4 w-4" />
-                  {formData.completedAt ? (
-                    format(formData.completedAt, "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.completedAt ?? undefined}
-                  onSelect={(date) =>
-                    date && setFormData({ ...formData, completedAt: date })
-                  }
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="grid gap-2">
+              <Label htmlFor="completedAt">Completion Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.completedAt && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    {formData.completedAt ? (
+                      format(formData.completedAt, "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.completedAt ?? undefined}
+                    onSelect={(date) =>
+                      date && setFormData({ ...formData, completedAt: date })
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -250,19 +257,24 @@ export function AddInteractionDialog({
                 setFormData({ ...formData, content: e.target.value })
               }
               placeholder="Detailed notes about the interaction"
-              className="min-h-[120px] w-full"
+              className="max-h-[200px] min-h-[80px] w-full sm:min-h-[120px]"
             />
           </div>
         </div>
-        <DialogFooter className="flex flex-row gap-2">
+        <DialogFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit}>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            className="w-full sm:w-auto"
+          >
             Save Interaction
           </Button>
         </DialogFooter>

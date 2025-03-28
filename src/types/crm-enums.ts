@@ -1,45 +1,45 @@
 // CRM Enum types that match our Prisma schema
 
 export enum CustomerType {
-  LEAD = "LEAD",
-  PROSPECT = "PROSPECT",
-  CUSTOMER = "CUSTOMER",
-  FORMER = "FORMER",
+  LEAD = "Lead",
+  PROSPECT = "Prospect",
+  CUSTOMER = "Customer",
+  FORMER = "Former",
 }
 
 export enum LeadStatus {
-  NEW = "NEW",
-  CONTACTED = "CONTACTED",
-  QUALIFIED = "QUALIFIED",
-  PROPOSAL = "PROPOSAL",
-  NEGOTIATION = "NEGOTIATION",
-  CLOSED_WON = "CLOSED_WON",
-  CLOSED_LOST = "CLOSED_LOST",
+  NEW = "New",
+  CONTACTED = "Contacted",
+  QUALIFIED = "Qualified",
+  PROPOSAL = "Proposal",
+  NEGOTIATION = "Negotiation",
+  CLOSED_WON = "Closed Won",
+  CLOSED_LOST = "Closed Lost",
 }
 
 export enum LeadSource {
-  WEBSITE = "WEBSITE",
-  REFERRAL = "REFERRAL",
-  SOCIAL_MEDIA = "SOCIAL_MEDIA",
-  EMAIL_CAMPAIGN = "EMAIL_CAMPAIGN",
-  EVENT = "EVENT",
-  COLD_CALL = "COLD_CALL",
-  OTHER = "OTHER",
+  WEBSITE = "Website",
+  REFERRAL = "Referral",
+  SOCIAL_MEDIA = "Social Media",
+  EMAIL_CAMPAIGN = "Email Campaign",
+  EVENT = "Event",
+  COLD_CALL = "Cold Call",
+  OTHER = "Other",
 }
 
 export enum InteractionType {
-  CALL = "CALL",
-  EMAIL = "EMAIL",
-  MEETING = "MEETING",
-  NOTE = "NOTE",
-  TASK = "TASK",
+  CALL = "Call",
+  EMAIL = "Email",
+  MEETING = "Meeting",
+  NOTE = "Note",
+  TASK = "Task",
 }
 
 export enum InteractionMedium {
-  IN_PERSON = "IN_PERSON",
-  PHONE = "PHONE",
-  VIDEO = "VIDEO",
-  EMAIL = "EMAIL",
-  CHAT = "CHAT",
-  OTHER = "OTHER",
+  IN_PERSON = "In Person",
+  PHONE = "Phone",
+  VIDEO = "Video",
+  EMAIL = "Email",
+  CHAT = "Chat",
+  OTHER = "Other",
 }

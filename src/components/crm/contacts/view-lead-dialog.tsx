@@ -12,32 +12,53 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { Mail, Phone, Building2, Calendar, Tag, Info } from "lucide-react";
-import type { Customer } from "~/types/crm";
+import type { LeadStatus, LeadSource } from "~/types/crm-enums";
+
+// Define Lead type without extending Customer to avoid conflict with createdAt type
+interface Lead {
+  id: string;
+  firstName: string;
+  lastName: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  notes?: string;
+  status?: LeadStatus;
+  source?: LeadSource;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+}
 
 interface ViewLeadDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  lead?: Customer;
+  lead?: Lead;
 }
 
 const statusColorMap = {
-  NEW: "bg-blue-100 text-blue-800",
-  CONTACTED: "bg-purple-100 text-purple-800",
-  QUALIFIED: "bg-green-100 text-green-800",
-  PROPOSAL: "bg-yellow-100 text-yellow-800",
-  NEGOTIATION: "bg-orange-100 text-orange-800",
-  CLOSED_WON: "bg-green-100 text-green-800",
-  CLOSED_LOST: "bg-red-100 text-red-800",
+  New: "bg-blue-100 text-blue-800",
+  Contacted: "bg-purple-100 text-purple-800",
+  Qualified: "bg-green-100 text-green-800",
+  Proposal: "bg-yellow-100 text-yellow-800",
+  Negotiation: "bg-orange-100 text-orange-800",
+  "Closed Won": "bg-green-100 text-green-800",
+  "Closed Lost": "bg-red-100 text-red-800",
 };
 
 const sourceIconMap = {
-  WEBSITE: "🌐",
-  REFERRAL: "👥",
-  SOCIAL_MEDIA: "📱",
-  EMAIL_CAMPAIGN: "📧",
-  EVENT: "🎫",
-  COLD_CALL: "📞",
-  OTHER: "📌",
+  Website: "🌐",
+  Referral: "👥",
+  "Social Media": "📱",
+  "Email Campaign": "📧",
+  Event: "🎫",
+  "Cold Call": "📞",
+  Other: "📌",
 };
 
 export default function ViewLeadDialog({
@@ -46,15 +67,6 @@ export default function ViewLeadDialog({
   lead,
 }: ViewLeadDialogProps) {
   if (!lead) return null;
-
-  const formatDate = (dateString: string | Date) => {
-    const date = dateString instanceof Date ? dateString : new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -157,11 +169,10 @@ export default function ViewLeadDialog({
                   <Badge
                     variant="secondary"
                     className={
-                      lead.status &&
-                      statusColorMap[lead.status as keyof typeof statusColorMap]
+                      lead.status ? statusColorMap[lead.status] : undefined
                     }
                   >
-                    {lead.status?.replace(/_/g, " ") || "N/A"}
+                    {lead.status?.replace(/_/g, " ") ?? "N/A"}
                   </Badge>
                 </div>
               </div>
@@ -171,17 +182,15 @@ export default function ViewLeadDialog({
                 <div className="flex items-center gap-2">
                   <span className="text-sm">Source:</span>
                   <span className="flex items-center text-sm">
-                    {lead.source && (
+                    {lead.source ? (
                       <>
                         <span className="mr-1">
-                          {
-                            sourceIconMap[
-                              lead.source as keyof typeof sourceIconMap
-                            ]
-                          }
+                          {sourceIconMap[lead.source]}
                         </span>
                         {lead.source.replace(/_/g, " ")}
                       </>
+                    ) : (
+                      "N/A"
                     )}
                   </span>
                 </div>

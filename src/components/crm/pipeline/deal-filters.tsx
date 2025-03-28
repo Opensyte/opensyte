@@ -114,7 +114,7 @@ export function DealFilters({
                     max={100}
                     step={1}
                     value={filters.probability ?? [0, 100]}
-                    onValueChange={(values: number[]) =>
+                    onValueChange={(values: [number, number]) =>
                       handleSliderChange("probability", values)
                     }
                   />

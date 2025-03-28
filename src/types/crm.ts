@@ -44,6 +44,8 @@ export type Customer = {
   country?: string;
   postalCode?: string;
   notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export type InteractionType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "TASK";

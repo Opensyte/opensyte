@@ -1,7 +1,5 @@
 "use client";
 
-// TODO: Fixing types and eslint errors for contacts feature
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,7 +29,9 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
-import { LeadSource, LeadStatus } from "~/types/crm-enums"
+import { LeadSource, LeadStatus } from "~/types/crm-enums";
+import { useEffect } from "react";
+import type { Customer } from "~/types/crm";
 
 // This schema matches our Prisma model
 const leadFormSchema = z.object({
@@ -44,23 +44,34 @@ const leadFormSchema = z.object({
   status: z.string(), // Using string instead of nativeEnum
   source: z.string(), // Using string instead of nativeEnum
   notes: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  postalCode: z.string().optional(),
 });
 
-type LeadFormValues = z.infer<typeof leadFormSchema>;
+export type LeadFormValues = z.infer<typeof leadFormSchema>;
 
-interface AddLeadDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: LeadFormValues) => void;
-  organizationId?: string;
+// Extended Lead interface with fields from Customer
+interface Lead extends Customer {
+  status?: LeadStatus;
+  source?: LeadSource;
 }
 
-export default function AddLeadDialog({
+interface EditLeadDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (id: string, data: LeadFormValues) => void;
+  lead?: Lead;
+}
+
+export default function EditLeadDialog({
   isOpen,
   onClose,
   onSave,
-  organizationId,
-}: AddLeadDialogProps) {
+  lead,
+}: EditLeadDialogProps) {
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
     defaultValues: {
@@ -73,30 +84,55 @@ export default function AddLeadDialog({
       status: LeadStatus.NEW,
       source: LeadSource.WEBSITE,
       notes: "",
+      address: "",
+      city: "",
+      state: "",
+      country: "",
+      postalCode: "",
     },
   });
 
+  // Update form when lead changes
+  useEffect(() => {
+    if (lead) {
+      form.reset({
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        email: lead.email ?? "",
+        phone: lead.phone ?? "",
+        company: lead.company ?? "",
+        position: lead.position ?? "",
+        status: lead.status ?? LeadStatus.NEW,
+        source: lead.source ?? LeadSource.WEBSITE,
+        notes: lead.notes ?? "",
+        address: lead.address ?? "",
+        city: lead.city ?? "",
+        state: lead.state ?? "",
+        country: lead.country ?? "",
+        postalCode: lead.postalCode ?? "",
+      });
+    }
+  }, [lead, form]);
+
   const handleSubmit = form.handleSubmit((data: LeadFormValues) => {
-    onSave(data);
-    form.reset();
+    if (lead) {
+      onSave(lead.id, data);
+    }
   });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Add New Lead</DialogTitle>
+          <DialogTitle>Edit Lead</DialogTitle>
           <DialogDescription>
-            Enter the details to create a new lead in your CRM.
+            Update the details for this lead in your CRM.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-4"
-          >
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="firstName"
@@ -126,7 +162,7 @@ export default function AddLeadDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="email"
@@ -160,7 +196,7 @@ export default function AddLeadDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="company"
@@ -190,17 +226,14 @@ export default function AddLeadDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select lead status" />
@@ -225,10 +258,7 @@ export default function AddLeadDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Source</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select lead source" />
@@ -242,6 +272,80 @@ export default function AddLeadDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="123 Main St" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="San Francisco" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>State/Province</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="CA" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="postalCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Postal Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="94105" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="USA" />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -270,7 +374,7 @@ export default function AddLeadDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">Add Lead</Button>
+              <Button type="submit">Save Changes</Button>
             </DialogFooter>
           </form>
         </Form>

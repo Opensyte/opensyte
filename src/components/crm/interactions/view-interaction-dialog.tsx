@@ -53,9 +53,9 @@ export function ViewInteractionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge
               className={cn(
                 "font-medium",
@@ -73,7 +73,7 @@ export function ViewInteractionDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
+          <div className="text-muted-foreground flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
             <div className="flex items-center gap-1.5">
               <Globe className="h-4 w-4" />
               <span>
@@ -130,24 +130,27 @@ export function ViewInteractionDialog({
 
           <div>
             <h4 className="mb-1 text-sm font-medium">Content</h4>
-            <div className="bg-muted/30 rounded-md border p-4 whitespace-pre-line">
+            <div className="bg-muted/30 max-h-[200px] overflow-y-auto rounded-md border p-4 whitespace-pre-line">
               {interaction.content ?? "No content available."}
             </div>
           </div>
         </div>
-        <DialogFooter className="flex gap-2 sm:justify-between">
+        <DialogFooter className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:space-y-0">
           <Button
             variant="destructive"
             onClick={() => {
               onDeleteInteraction(interaction.id);
               onOpenChange(false);
             }}
-            className="sm:order-2"
+            className="w-full sm:order-2 sm:w-auto"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
           </Button>
-          <Button onClick={() => onOpenChange(false)} className="sm:order-1">
+          <Button
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:order-1 sm:w-auto"
+          >
             Close
           </Button>
         </DialogFooter>

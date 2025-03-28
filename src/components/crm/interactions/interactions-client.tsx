@@ -30,6 +30,7 @@ import type {
   CustomerInteraction,
   InteractionType,
   InteractionMedium,
+  Customer,
 } from "~/types/crm";
 
 // Mock data for customers
@@ -217,7 +218,7 @@ export function InteractionsClient() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="flex flex-col gap-4 p-4 md:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -311,7 +312,7 @@ export function InteractionsClient() {
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAddInteraction={handleAddInteraction}
-        customers={mockCustomers}
+        customers={mockCustomers as Customer[]}
       />
 
       {/* View Interaction Dialog */}

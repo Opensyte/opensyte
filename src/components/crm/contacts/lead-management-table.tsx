@@ -29,38 +29,40 @@ import type { LeadStatus, LeadSource } from "~/types/crm-enums";
 interface Lead extends Customer {
   status?: LeadStatus;
   source?: LeadSource;
-  createdAt: string;
-  updatedAt?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface LeadManagementTableProps {
   leads: Lead[];
   onDeleteLead: (id: string) => void;
+  onEditLead: (lead: Lead) => void;
 }
 
 const statusColorMap = {
-  NEW: "bg-blue-100 text-blue-800",
-  CONTACTED: "bg-purple-100 text-purple-800",
-  QUALIFIED: "bg-green-100 text-green-800",
-  PROPOSAL: "bg-yellow-100 text-yellow-800",
-  NEGOTIATION: "bg-orange-100 text-orange-800",
-  CLOSED_WON: "bg-green-100 text-green-800",
-  CLOSED_LOST: "bg-red-100 text-red-800",
+  New: "bg-blue-100 text-blue-800",
+  Contacted: "bg-purple-100 text-purple-800",
+  Qualified: "bg-green-100 text-green-800",
+  Proposal: "bg-yellow-100 text-yellow-800",
+  Negotiation: "bg-orange-100 text-orange-800",
+  "Closed Won": "bg-green-100 text-green-800",
+  "Closed Lost": "bg-red-100 text-red-800",
 };
 
 const sourceIconMap = {
-  WEBSITE: "🌐",
-  REFERRAL: "👥",
-  SOCIAL_MEDIA: "📱",
-  EMAIL_CAMPAIGN: "📧",
-  EVENT: "🎫",
-  COLD_CALL: "📞",
-  OTHER: "📌",
+  Website: "🌐",
+  Referral: "👥",
+  "Social Media": "📱",
+  "Email Campaign": "📧",
+  Event: "🎫",
+  "Cold Call": "📞",
+  Other: "📌",
 };
 
 export default function LeadManagementTable({
   leads,
   onDeleteLead,
+  onEditLead,
 }: LeadManagementTableProps) {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -69,6 +71,10 @@ export default function LeadManagementTable({
   const handleViewLead = (lead: Lead) => {
     setSelectedLead(lead);
     setViewDialogOpen(true);
+  };
+
+  const handleEditLead = (lead: Lead) => {
+    onEditLead(lead);
   };
 
   const handleDeleteLead = (lead: Lead) => {
@@ -82,7 +88,7 @@ export default function LeadManagementTable({
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: Date) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
@@ -201,7 +207,7 @@ export default function LeadManagementTable({
                         <DropdownMenuItem onClick={() => handleViewLead(lead)}>
                           <Eye className="mr-2 h-4 w-4" /> View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditLead(lead)}>
                           <Pencil className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
