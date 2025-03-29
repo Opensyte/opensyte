@@ -1,3 +1,5 @@
+import type { LeadSource, LeadStatus } from "./crm-enums";
+
 export interface Deal {
   id: string;
   title: string;
@@ -46,6 +48,8 @@ export type Customer = {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  status?: LeadStatus;
+  source?: LeadSource;
 };
 
 export type InteractionType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "TASK";

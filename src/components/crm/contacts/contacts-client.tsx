@@ -15,47 +15,28 @@ import { Plus } from "lucide-react";
 import AddLeadDialog from "~/components/crm/contacts/add-lead-dialog";
 import EditLeadDialog from "~/components/crm/contacts/edit-lead-dialog";
 import { toast } from "sonner";
-import { customers } from "~/lib/sample-data";
-import { CustomerType, LeadStatus, LeadSource } from "~/types/crm-enums";
+import type { LeadStatus, LeadSource } from "~/types/crm-enums";
 import { v4 as uuidv4 } from "uuid";
-import type { LeadFormValues } from "~/components/crm/contacts/edit-lead-dialog";
+import type { LeadFormValues as LeadFormValuesEditDialog } from "~/components/crm/contacts/edit-lead-dialog";
+import type { LeadFormValues as LeadFormValuesAddDialog } from "~/components/crm/contacts/add-lead-dialog";
+
+import type { Customer } from "~/types/crm";
+import { useLeadsStore } from "~/store/crm/leads";
 
 // Convert sample data to Customer format for CRM
-const initialLeads = customers.map((customer) => ({
-  id: customer.id || uuidv4(),
-  organizationId: "org_default",
-  type: CustomerType.LEAD,
-  status: LeadStatus.NEW,
-  firstName: customer.firstName,
-  lastName: customer.lastName,
-  email: customer.email,
-  phone: "",
-  company: customer.company,
-  position: "",
-  address: "",
-  city: "",
-  state: "",
-  country: "",
-  postalCode: "",
-  source: LeadSource.WEBSITE,
-  notes: "",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}));
 
 export function ContactsClient() {
-  const [leads, setLeads] = useState(initialLeads);
+  const { leads, updateLead, addLead, removeLead } = useLeadsStore();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<
-    (typeof initialLeads)[0] | undefined
-  >(undefined);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sourceFilter, setSourceFilter] = useState("all");
+  const [selectedLead, setSelectedLead] = useState<Customer | undefined>(
+    undefined,
+  );
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   // Filter leads based on filters
-  // TODO: Solve these types errors
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
       // Search filter
@@ -63,36 +44,34 @@ export function ContactsClient() {
         searchQuery === "" ||
         lead.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lead.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (lead.email &&
-          lead.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (lead.company &&
-          lead.company.toLowerCase().includes(searchQuery.toLowerCase()));
+        (lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+          false) ||
+        (lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+          false);
 
       // Status filter
       const matchesStatus =
-        statusFilter === "all" || lead.status === statusFilter;
+        statusFilter === "all" || lead.status === (statusFilter as LeadStatus);
 
       // Source filter
       const matchesSource =
-        sourceFilter === "all" || lead.source === sourceFilter;
+        sourceFilter === "all" || lead.source === (sourceFilter as LeadSource);
 
       return matchesSearch && matchesStatus && matchesSource;
     });
   }, [leads, searchQuery, statusFilter, sourceFilter]);
 
-  const handleAddLead = (data: LeadFormValues) => {
-    const newLead = {
+  const handleAddLead = (data: LeadFormValuesAddDialog) => {
+    const newLead: Customer = {
       id: uuidv4(),
-      organizationId: "org_default",
-      type: CustomerType.LEAD,
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email ?? "",
       phone: data.phone ?? "",
       company: data.company ?? "",
       position: data.position ?? "",
-      status: data.status as LeadStatus,
-      source: data.source as LeadSource,
+      status: data.status,
+      source: data.source,
       notes: data.notes ?? "",
       address: data.address ?? "",
       city: data.city ?? "",
@@ -103,37 +82,13 @@ export function ContactsClient() {
       updatedAt: new Date(),
     };
 
-    setLeads([newLead, ...leads]);
+    addLead(newLead);
     setAddDialogOpen(false);
     toast.success(`Lead "${data.firstName} ${data.lastName}" has been added.`);
   };
 
-  const handleEditLead = (id: string, data: LeadFormValues) => {
-    setLeads(
-      leads.map((lead) => {
-        if (lead.id === id) {
-          return {
-            ...lead,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email ?? "",
-            phone: data.phone ?? "",
-            company: data.company ?? "",
-            position: data.position ?? "",
-            status: data.status as LeadStatus,
-            source: data.source as LeadSource,
-            notes: data.notes ?? "",
-            address: data.address ?? "",
-            city: data.city ?? "",
-            state: data.state ?? "",
-            country: data.country ?? "",
-            postalCode: data.postalCode ?? "",
-            updatedAt: new Date(),
-          };
-        }
-        return lead;
-      }),
-    );
+  const handleEditLead = (id: string, data: LeadFormValuesEditDialog) => {
+    updateLead(id, data);
     setEditDialogOpen(false);
     toast.success(
       `Lead "${data.firstName} ${data.lastName}" has been updated.`,
@@ -141,16 +96,10 @@ export function ContactsClient() {
   };
 
   const handleDeleteLead = (id: string) => {
-    const leadToDelete = leads.find((lead) => lead.id === id);
-    if (leadToDelete) {
-      setLeads(leads.filter((lead) => lead.id !== id));
-      toast.success(
-        `Lead "${leadToDelete.firstName} ${leadToDelete.lastName}" has been deleted.`,
-      );
-    }
+    removeLead(id);
   };
 
-  const openEditDialog = (lead: (typeof leads)[0]) => {
+  const openEditDialog = (lead: Customer) => {
     setSelectedLead(lead);
     setEditDialogOpen(true);
   };

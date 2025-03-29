@@ -41,8 +41,8 @@ const leadFormSchema = z.object({
   phone: z.string().optional(),
   company: z.string().optional(),
   position: z.string().optional(),
-  status: z.string(), // Using string instead of nativeEnum
-  source: z.string(), // Using string instead of nativeEnum
+  status: z.nativeEnum(LeadStatus), // Using string instead of nativeEnum
+  source: z.nativeEnum(LeadSource), // Using string instead of nativeEnum
   notes: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -92,6 +92,11 @@ export default function EditLeadDialog({
     },
   });
 
+  const handleDialogClose = () => {
+    form.reset();
+    onClose();
+  };
+
   // Update form when lead changes
   useEffect(() => {
     if (lead) {
@@ -121,7 +126,7 @@ export default function EditLeadDialog({
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Lead</DialogTitle>
@@ -371,7 +376,7 @@ export default function EditLeadDialog({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={handleDialogClose}>
                 Cancel
               </Button>
               <Button type="submit">Save Changes</Button>

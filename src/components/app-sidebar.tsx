@@ -47,7 +47,7 @@ const data = {
           url: "/[orgId]/crm/contacts",
         },
         {
-          title: "interactions",
+          title: "Interactions",
           url: "/[orgId]/crm/interactions",
         },
         {

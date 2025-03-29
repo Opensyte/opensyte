@@ -30,137 +30,26 @@ import type {
   CustomerInteraction,
   InteractionType,
   InteractionMedium,
-  Customer,
 } from "~/types/crm";
-
-// Mock data for customers
-const mockCustomers = [
-  {
-    id: "cust1",
-    firstName: "John",
-    lastName: "Doe",
-    company: "Acme Inc.",
-    email: "john@acme.com",
-  },
-  {
-    id: "cust2",
-    firstName: "Jane",
-    lastName: "Smith",
-    company: "Globex Corp",
-    email: "jane@globex.com",
-  },
-  {
-    id: "cust3",
-    firstName: "Robert",
-    lastName: "Johnson",
-    company: "Initech",
-    email: "robert@initech.com",
-  },
-  {
-    id: "cust4",
-    firstName: "Sarah",
-    lastName: "Williams",
-    company: "Umbrella Corp",
-    email: "sarah@umbrella.com",
-  },
-  {
-    id: "cust5",
-    firstName: "Michael",
-    lastName: "Brown",
-    company: "Stark Industries",
-    email: "michael@stark.com",
-  },
-];
-
-// Mock data for interactions
-const initialInteractions: CustomerInteraction[] = [
-  {
-    id: "int1",
-    customerId: "cust1",
-    type: "CALL",
-    medium: "PHONE",
-    subject: "Initial Sales Call",
-    content:
-      "Discussed product features and pricing options. Client seemed interested in our premium plan.",
-    scheduledAt: new Date("2023-04-10T10:00:00"),
-    completedAt: new Date("2023-04-10T10:45:00"),
-    createdAt: new Date("2023-04-09T14:30:00"),
-    updatedAt: new Date("2023-04-10T11:00:00"),
-  },
-  {
-    id: "int2",
-    customerId: "cust2",
-    type: "EMAIL",
-    medium: "EMAIL",
-    subject: "Follow-up on Demo",
-    content:
-      "Sent a follow-up email after the product demonstration with additional resources and pricing details.",
-    completedAt: new Date("2023-04-15T09:15:00"),
-    createdAt: new Date("2023-04-15T09:15:00"),
-    updatedAt: new Date("2023-04-15T09:15:00"),
-  },
-  {
-    id: "int3",
-    customerId: "cust3",
-    type: "MEETING",
-    medium: "VIDEO",
-    subject: "Product Demo",
-    content:
-      "Walked through our platform features and showed how our solution addresses their specific needs.",
-    scheduledAt: new Date("2023-04-18T14:00:00"),
-    completedAt: new Date("2023-04-18T15:30:00"),
-    createdAt: new Date("2023-04-16T11:20:00"),
-    updatedAt: new Date("2023-04-18T16:00:00"),
-  },
-  {
-    id: "int4",
-    customerId: "cust1",
-    type: "NOTE",
-    medium: "OTHER",
-    subject: "Client Requirements",
-    content:
-      "Client needs integration with their existing ERP system. Need to check with the engineering team about feasibility.",
-    createdAt: new Date("2023-04-12T16:45:00"),
-    updatedAt: new Date("2023-04-12T16:45:00"),
-  },
-  {
-    id: "int5",
-    customerId: "cust4",
-    type: "TASK",
-    medium: "OTHER",
-    subject: "Prepare Proposal",
-    content:
-      "Create a customized proposal based on the requirements discussed in the meeting.",
-    scheduledAt: new Date("2023-04-22T00:00:00"),
-    createdAt: new Date("2023-04-19T10:30:00"),
-    updatedAt: new Date("2023-04-19T10:30:00"),
-  },
-];
+import { useInteractionsStore } from "~/store/crm/interactions";
+import { useLeadsStore } from "~/store/crm/leads";
 
 export function InteractionsClient() {
-  const [interactions, setInteractions] =
-    useState<CustomerInteraction[]>(initialInteractions);
+  const { addInteraction, deleteInteraction, getFilteredInteractions } =
+    useInteractionsStore();
+  const { leads } = useLeadsStore();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [currentInteraction, setCurrentInteraction] =
     useState<CustomerInteraction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | InteractionType>("ALL");
 
   // Filter interactions based on search term and type filter
-  const filteredInteractions = interactions.filter((interaction) => {
-    const customer = mockCustomers.find((c) => c.id === interaction.customerId);
-    const customerName = customer
-      ? `${customer.firstName} ${customer.lastName}`
-      : "";
-    const matchesSearch =
-      interaction.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ??
-      interaction.content?.toLowerCase().includes(searchTerm.toLowerCase()) ??
-      customerName.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesType = filterType === "ALL" || interaction.type === filterType;
-
-    return matchesSearch && matchesType;
+  const filteredInteractions = getFilteredInteractions({
+    customers: leads,
+    searchTerm,
+    type: filterType,
   });
 
   // Handle adding new interaction
@@ -186,7 +75,7 @@ export function InteractionsClient() {
       updatedAt: new Date(),
     };
 
-    setInteractions([...interactions, newInteraction]);
+    addInteraction(newInteraction);
 
     toast.success("Interaction added", {
       description: `${newInteraction.type.charAt(0) + newInteraction.type.slice(1).toLowerCase()} has been recorded.`,
@@ -195,9 +84,7 @@ export function InteractionsClient() {
 
   // Handle deleting an interaction
   const handleDeleteInteraction = (id: string) => {
-    setInteractions(
-      interactions.filter((interaction) => interaction.id !== id),
-    );
+    deleteInteraction(id);
     toast.success("Interaction deleted", {
       description: "The interaction has been removed.",
     });
@@ -205,7 +92,7 @@ export function InteractionsClient() {
 
   // Get customer name by ID
   const getCustomerName = (customerId: string) => {
-    const customer = mockCustomers.find((c) => c.id === customerId);
+    const customer = leads.find((c) => c.id === customerId);
     return customer
       ? `${customer.firstName} ${customer.lastName}`
       : "Unknown Customer";
@@ -256,7 +143,12 @@ export function InteractionsClient() {
               </div>
             </div>
             <div className="w-full md:w-[200px]">
-              <Select value={filterType} onValueChange={setFilterType}>
+              <Select
+                value={filterType}
+                onValueChange={(value: "ALL" | InteractionType) =>
+                  setFilterType(value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
@@ -312,7 +204,7 @@ export function InteractionsClient() {
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAddInteraction={handleAddInteraction}
-        customers={mockCustomers as Customer[]}
+        customers={leads}
       />
 
       {/* View Interaction Dialog */}

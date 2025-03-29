@@ -1,7 +1,5 @@
 "use client";
 
-// TODO: Fixing types and eslint errors for contacts feature
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,7 +29,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
-import { LeadSource, LeadStatus } from "~/types/crm-enums"
+import { LeadSource, LeadStatus } from "~/types/crm-enums";
 
 // This schema matches our Prisma model
 const leadFormSchema = z.object({
@@ -41,25 +39,28 @@ const leadFormSchema = z.object({
   phone: z.string().optional(),
   company: z.string().optional(),
   position: z.string().optional(),
-  status: z.string(), // Using string instead of nativeEnum
-  source: z.string(), // Using string instead of nativeEnum
+  status: z.nativeEnum(LeadStatus),
+  source: z.nativeEnum(LeadSource),
   notes: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  postalCode: z.string().optional(),
 });
 
-type LeadFormValues = z.infer<typeof leadFormSchema>;
+export type LeadFormValues = z.infer<typeof leadFormSchema>;
 
 interface AddLeadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: LeadFormValues) => void;
-  organizationId?: string;
 }
 
 export default function AddLeadDialog({
   isOpen,
   onClose,
   onSave,
-  organizationId,
 }: AddLeadDialogProps) {
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -73,6 +74,11 @@ export default function AddLeadDialog({
       status: LeadStatus.NEW,
       source: LeadSource.WEBSITE,
       notes: "",
+      address: "",
+      city: "",
+      state: "",
+      country: "",
+      postalCode: "",
     },
   });
 
@@ -81,8 +87,14 @@ export default function AddLeadDialog({
     form.reset();
   });
 
+  // Handle dialog close with form reset
+  const handleDialogClose = () => {
+    form.reset();
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
@@ -92,10 +104,7 @@ export default function AddLeadDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-4"
-          >
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -248,6 +257,83 @@ export default function AddLeadDialog({
               />
             </div>
 
+            {/* Address information section */}
+            <div className="space-y-3">
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="123 Main St" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="San Francisco" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State/Province</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="CA" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="USA" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="postalCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Postal Code</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="94103" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
             <FormField
               control={form.control}
               name="notes"
@@ -267,7 +353,11 @@ export default function AddLeadDialog({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDialogClose}
+              >
                 Cancel
               </Button>
               <Button type="submit">Add Lead</Button>

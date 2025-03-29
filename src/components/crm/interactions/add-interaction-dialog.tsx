@@ -88,6 +88,7 @@ export function AddInteractionDialog({
     onOpenChange(false);
     resetForm();
   };
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>

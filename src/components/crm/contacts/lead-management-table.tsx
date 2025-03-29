@@ -23,20 +23,13 @@ import { Badge } from "~/components/ui/badge";
 import ViewLeadDialog from "./view-lead-dialog";
 import DeleteLeadDialog from "./delete-lead-dialog";
 import type { Customer } from "~/types/crm";
-import type { LeadStatus, LeadSource } from "~/types/crm-enums";
 
 // Extended Customer type for the CRM leads
-interface Lead extends Customer {
-  status?: LeadStatus;
-  source?: LeadSource;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 interface LeadManagementTableProps {
-  leads: Lead[];
+  leads: Customer[];
   onDeleteLead: (id: string) => void;
-  onEditLead: (lead: Lead) => void;
+  onEditLead: (lead: Customer) => void;
 }
 
 const statusColorMap = {
@@ -66,18 +59,18 @@ export default function LeadManagementTable({
 }: LeadManagementTableProps) {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Customer | null>(null);
 
-  const handleViewLead = (lead: Lead) => {
+  const handleViewLead = (lead: Customer) => {
     setSelectedLead(lead);
     setViewDialogOpen(true);
   };
 
-  const handleEditLead = (lead: Lead) => {
+  const handleEditLead = (lead: Customer) => {
     onEditLead(lead);
   };
 
-  const handleDeleteLead = (lead: Lead) => {
+  const handleDeleteLead = (lead: Customer) => {
     setSelectedLead(lead);
     setDeleteDialogOpen(true);
   };
