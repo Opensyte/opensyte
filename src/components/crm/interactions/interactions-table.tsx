@@ -2,7 +2,13 @@ import React from "react";
 import { Trash2, Eye } from "lucide-react";
 
 import type { CustomerInteraction } from "~/types/crm";
-import { Card, CardContent } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -48,10 +54,23 @@ export function InteractionsTable({
     }
   };
 
+  const capitalizeFirstLetter = (text: string) => {
+    const loweredCaseString = text.toLowerCase();
+    return (
+      loweredCaseString.charAt(0).toUpperCase() + loweredCaseString.slice(1)
+    );
+  };
+
   return (
-    <Card className="border shadow-sm">
-      <CardContent className="p-0">
-        <div className="relative w-full overflow-auto">
+    <Card className="col-span-full">
+      <CardHeader>
+        <CardTitle>Customer Interactions</CardTitle>
+        <CardDescription>
+          Manage and track all communications with your customers.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -98,7 +117,7 @@ export function InteractionsTable({
                           getInteractionTypeColor(interaction.type),
                         )}
                       >
-                        {interaction.type}
+                        {capitalizeFirstLetter(interaction.type)}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-2.5 font-medium">

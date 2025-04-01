@@ -7,14 +7,14 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { DealCard } from "./deal-card";
-import type { Deal, DealUpdateFunction } from "~/types/crm";
+import type { Deal } from "~/types/crm";
 
 interface PipelineColumnProps {
   id: string;
   title: string;
   color: string;
   deals: Deal[];
-  onDealUpdate: DealUpdateFunction;
+  onDealUpdate: (deal: Deal) => void;
 }
 
 export function PipelineColumn({
@@ -60,7 +60,7 @@ export function PipelineColumn({
         >
           <div className="flex flex-col gap-2">
             {deals.map((deal) => (
-              <DealCard key={deal.id} deal={deal} onUpdate={onDealUpdate} />
+              <DealCard key={deal.id} deal={deal} onDealUpdate={onDealUpdate} />
             ))}
 
             {deals.length === 0 && (

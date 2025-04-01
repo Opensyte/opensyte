@@ -1,56 +1,61 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { DealBoard } from "./deal-board";
-import { DealFilters } from "./deal-filters";
-import { getDeals, filterDeals } from "~/lib/sample-data";
-import type { Deal, DealFilters as DealFiltersType } from "~/types/crm";
+import { DealFilters as DealFiltersComponent } from "./deal-filters";
+import { usePipelineStore } from "~/store/crm/pipeline";
+import type { Deal, DealFilters } from "~/types/crm";
 
 export function Pipeline() {
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [filteredDeals, setFilteredDeals] = useState<Deal[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<DealFiltersType>({
-    dateRange: null,
-    valueRange: null,
-    probability: null,
-  });
+  const {
+    deals,
+    loading,
+    filters,
+    setDeals,
+    setLoading,
+    setError,
+    updateDeal,
+    setFilters,
+  } = usePipelineStore();
 
-  // Load deals on mount
+  // Handle deal updates
+  const handleDealUpdate = (updatedDeal: Deal) => {
+    updateDeal(updatedDeal);
+  };
+
+  // Apply filters helper
+  const handleApplyFilters = (newFilters: Partial<DealFilters>) => {
+    setFilters(newFilters);
+  };
+
+  // Load deals on mount if not already loaded
   useEffect(() => {
-    const loadedDeals = getDeals();
-    setDeals(loadedDeals);
-    setFilteredDeals(loadedDeals);
-  }, []);
-
-  // Apply filters when deals, searchQuery or filters change
-  useEffect(() => {
-    const filtered = filterDeals({
-      searchQuery,
-      valueRange: filters.valueRange,
-      probability: filters.probability,
-      dealsArray: deals,
-    });
-    setFilteredDeals(filtered);
-  }, [searchQuery, filters, deals]);
-
-  // Handle deal updates - memoized to prevent recreation on every render
-  const handleDealUpdate = useCallback((updatedDeal: Deal) => {
-    setDeals(prevDeals => 
-      prevDeals.map(deal => deal.id === updatedDeal.id ? updatedDeal : deal)
-    );
-  }, []);
+    if (deals.length === 0 && !loading) {
+      setLoading(true);
+      try {
+        // In a real app, this would be an API call
+        setDeals(deals);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to load deals";
+        setError(errorMessage);
+        console.error("Failed to load deals:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [deals.length, loading, setDeals, setLoading, setError, deals]);
 
   // Calculate pipeline metrics
-  const totalValue = filteredDeals.reduce((sum, deal) => sum + deal.value, 0);
-  const totalDeals = filteredDeals.length;
-  const wonDeals = filteredDeals.filter((deal) => deal.status === "CLOSED_WON");
+  const totalValue = deals.reduce((sum, deal) => sum + deal.value, 0);
+  const totalDeals = deals.length;
+  const wonDeals = deals.filter((deal) => deal.status === "CLOSED_WON");
   const wonValue = wonDeals.reduce((sum, deal) => sum + deal.value, 0);
 
   return (
     <>
       {/* Pipeline metrics */}
-      <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-4 md:px-6">
+      <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 md:grid-cols-4 md:px-6">
         <div className="bg-card rounded-lg border p-3 shadow-sm">
           <div className="text-muted-foreground text-sm">
             Total Pipeline Value
@@ -85,15 +90,25 @@ export function Pipeline() {
         </div>
       </div>
 
-      <DealFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
+      <div className="px-4 pt-4 md:px-6">
+        <DealFiltersComponent
+          filters={filters}
+          onApplyFilters={handleApplyFilters}
+        />
+      </div>
 
       <div className="flex-1 overflow-auto p-4 md:p-6">
-        <DealBoard deals={filteredDeals} onDealUpdate={handleDealUpdate} />
+        {loading ? (
+          <div className="flex h-64 items-center justify-center">
+            <div className="text-muted-foreground">Loading deals...</div>
+          </div>
+        ) : (
+          <DealBoard
+            deals={deals}
+            filters={filters}
+            onDealUpdate={handleDealUpdate}
+          />
+        )}
       </div>
     </>
   );

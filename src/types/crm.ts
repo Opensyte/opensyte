@@ -21,6 +21,7 @@ export interface DealFilters {
   dateRange: null | [Date, Date];
   valueRange: null | [number, number];
   probability: null | [number, number];
+  searchQuery?: string;
 }
 
 export type DealUpdateFunction = (deal: Deal) => void;

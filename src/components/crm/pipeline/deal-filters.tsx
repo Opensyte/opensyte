@@ -10,27 +10,19 @@ import {
 } from "~/components/ui/popover";
 import { Slider } from "~/components/ui/slider";
 import { SlidersHorizontal } from "lucide-react";
-import type { DealFilters as DealFiltersType } from "~/types/crm";
+import type { DealFilters } from "~/types/crm";
 
 interface DealFiltersProps {
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  filters: DealFiltersType;
-  onFiltersChange: (filters: DealFiltersType) => void;
+  filters: DealFilters;
+  onApplyFilters: (filters: Partial<DealFilters>) => void;
 }
 
-export function DealFilters({
-  searchQuery,
-  onSearchChange,
-  filters,
-  onFiltersChange,
-}: DealFiltersProps) {
-  const handleFilterChange = (
-    key: keyof DealFiltersType,
-    value: DealFiltersType[keyof DealFiltersType],
+export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
+  const handleFilterChange = <K extends keyof DealFilters>(
+    key: K,
+    value: DealFilters[K],
   ) => {
-    onFiltersChange({
-      ...filters,
+    onApplyFilters({
       [key]: value,
     });
   };
@@ -43,7 +35,16 @@ export function DealFilters({
     const second = values[1];
     // Type guard to ensure both values are defined numbers
     if (typeof first !== "number" || typeof second !== "number") return;
-    handleFilterChange(key, values)
+    handleFilterChange(key, values);
+  };
+
+  const handleResetFilters = () => {
+    onApplyFilters({
+      dateRange: null,
+      valueRange: null,
+      probability: null,
+      searchQuery: "",
+    });
   };
 
   return (
@@ -54,8 +55,8 @@ export function DealFilters({
           <Input
             placeholder="Search deals..."
             className="pl-8"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            value={filters.searchQuery ?? ""}
+            onChange={(e) => handleFilterChange("searchQuery", e.target.value)}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -127,16 +128,7 @@ export function DealFilters({
             </PopoverContent>
           </Popover>
 
-          <Button
-            variant="outline"
-            onClick={() => {
-              onFiltersChange({
-                dateRange: null,
-                valueRange: null,
-                probability: null,
-              });
-            }}
-          >
+          <Button variant="outline" size="sm" onClick={handleResetFilters}>
             Reset Filters
           </Button>
         </div>

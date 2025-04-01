@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -16,12 +16,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { PipelineColumn } from "./pipeline-column";
 import { DealCard } from "./deal-card";
-import type { Deal, DealUpdateFunction } from "~/types/crm";
-
-interface DealBoardProps {
-  deals: Deal[];
-  onDealUpdate: DealUpdateFunction;
-}
+import type { Deal, DealFilters } from "~/types/crm";
 
 interface Column {
   id: string;
@@ -39,8 +34,51 @@ const COLUMNS: Column[] = [
   { id: "CLOSED_LOST", title: "Closed Lost", color: "bg-red-500" },
 ];
 
-export function DealBoard({ deals, onDealUpdate }: DealBoardProps) {
+interface DealBoardProps {
+  deals: Deal[];
+  filters: DealFilters;
+  onDealUpdate: (deal: Deal) => void;
+}
+
+export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Apply filters to deals
+  const filteredDeals = useMemo(() => {
+    console.log("Filtering deals", deals.length);
+    return deals.filter((deal) => {
+      // Apply search filter
+      if (
+        filters.searchQuery &&
+        !deal.title.toLowerCase().includes(filters.searchQuery.toLowerCase()) &&
+        !deal.customerName
+          .toLowerCase()
+          .includes(filters.searchQuery.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Apply value range filter
+      if (
+        filters.valueRange &&
+        (deal.value < filters.valueRange[0] * 1000 ||
+          deal.value > filters.valueRange[1] * 1000)
+      ) {
+        return false;
+      }
+
+      // Apply probability filter
+      if (
+        filters.probability &&
+        deal.probability !== undefined &&
+        (deal.probability < filters.probability[0] ||
+          deal.probability > filters.probability[1])
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [deals, filters]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -57,9 +95,9 @@ export function DealBoard({ deals, onDealUpdate }: DealBoardProps) {
   // Memoize these functions to prevent recreation on each render
   const getColumnDeals = useCallback(
     (columnId: string): Deal[] => {
-      return deals.filter((deal) => deal.status === columnId);
+      return filteredDeals.filter((deal) => deal.status === columnId);
     },
-    [deals],
+    [filteredDeals],
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -80,7 +118,10 @@ export function DealBoard({ deals, onDealUpdate }: DealBoardProps) {
       if (!activeDeal) return;
 
       // Get the type and status from the over element
-      const overType = over.data?.current?.type as 'column' | 'deal' | undefined;
+      const overType = over.data?.current?.type as
+        | "column"
+        | "deal"
+        | undefined;
 
       // If dropped on a column directly
       if (overType === "column") {
@@ -91,6 +132,7 @@ export function DealBoard({ deals, onDealUpdate }: DealBoardProps) {
           const updatedDeal = {
             ...activeDeal,
             status: newStatus,
+            updatedAt: new Date().toISOString(),
           };
           onDealUpdate(updatedDeal);
         }
@@ -109,6 +151,7 @@ export function DealBoard({ deals, onDealUpdate }: DealBoardProps) {
           const updatedDeal = {
             ...activeDeal,
             status: newStatus,
+            updatedAt: new Date().toISOString(),
           };
           onDealUpdate(updatedDeal);
         }
@@ -129,7 +172,7 @@ export function DealBoard({ deals, onDealUpdate }: DealBoardProps) {
     const deal = deals.find((deal) => deal.id === activeId);
     if (!deal) return null;
 
-    return <DealCard deal={deal} onUpdate={onDealUpdate} isOverlay />;
+    return <DealCard deal={deal} isOverlay onDealUpdate={onDealUpdate} />;
   }, [activeId, deals, onDealUpdate]);
 
   return (
@@ -141,18 +184,21 @@ export function DealBoard({ deals, onDealUpdate }: DealBoardProps) {
       onDragCancel={handleDragCancel}
       modifiers={[restrictToWindowEdges]}
     >
-      <div className="hide-scrollbar flex h-auto min-h-[calc(100vh-200px)] overflow-x-auto pb-4">
+      <div className="hide-scrollbar flex h-auto min-h-[calc(100vh-350px)] overflow-x-auto pb-4">
         <div className="flex flex-wrap gap-4">
-          {COLUMNS.map((column) => (
-            <PipelineColumn
-              key={column.id}
-              id={column.id}
-              title={column.title}
-              color={column.color}
-              deals={getColumnDeals(column.id)}
-              onDealUpdate={onDealUpdate}
-            />
-          ))}
+          {COLUMNS.map((column) => {
+            const columnDeals = getColumnDeals(column.id);
+            return (
+              <PipelineColumn
+                key={column.id}
+                id={column.id}
+                title={column.title}
+                color={column.color}
+                deals={columnDeals}
+                onDealUpdate={onDealUpdate}
+              />
+            );
+          })}
         </div>
       </div>
       <DragOverlay>{getDragOverlay()}</DragOverlay>

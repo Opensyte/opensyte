@@ -1,23 +1,22 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { type Deal, type DealFilters } from '~/types/crm';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { type Deal, type DealFilters } from "~/types/crm";
 
 interface PipelineState {
   deals: Deal[];
-  filters: DealFilters;
+  filters: DealFilters & { searchQuery?: string };
   loading: boolean;
   error: string | null;
   setDeals: (deals: Deal[]) => void;
   updateDeal: (deal: Deal) => void;
   addDeal: (deal: Deal) => void;
   removeDeal: (id: string) => void;
-  setFilters: (filters: Partial<DealFilters>) => void;
+  setFilters: (filters: Partial<PipelineState["filters"]>) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 }
 
-// TODO: Remove persist function on syncing prisma
-
+// Create the store with persistence
 export const usePipelineStore = create<PipelineState>()(
   persist(
     (set) => ({
@@ -26,6 +25,7 @@ export const usePipelineStore = create<PipelineState>()(
         dateRange: null,
         valueRange: null,
         probability: null,
+        searchQuery: "",
       },
       loading: false,
       error: null,
@@ -33,10 +33,13 @@ export const usePipelineStore = create<PipelineState>()(
       updateDeal: (updatedDeal) =>
         set((state) => ({
           deals: state.deals.map((deal) =>
-            deal.id === updatedDeal.id ? updatedDeal : deal
+            deal.id === updatedDeal.id ? updatedDeal : deal,
           ),
         })),
-      addDeal: (deal) => set((state) => ({ deals: [deal, ...state.deals] })),
+      addDeal: (deal) =>
+        set((state) => ({
+          deals: [deal, ...state.deals],
+        })),
       removeDeal: (id) =>
         set((state) => ({
           deals: state.deals.filter((deal) => deal.id !== id),
@@ -47,7 +50,7 @@ export const usePipelineStore = create<PipelineState>()(
       setError: (error) => set({ error }),
     }),
     {
-      name: 'pipeline-storage',
-    }
-  )
+      name: "pipeline-storage",
+    },
+  ),
 );

@@ -1,6 +1,5 @@
-import { Plus } from "lucide-react";
 import { Pipeline } from "~/components/crm/pipeline/pipeline";
-import { Button } from "~/components/ui/button";
+import { AddDealDialog } from "~/components/crm/pipeline/add-deal-dialog";
 
 export default function PipelinePage() {
   return (
@@ -12,9 +11,7 @@ export default function PipelinePage() {
             Manage and track your sales opportunities
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Add New Deal
-        </Button>
+        <AddDealDialog />
       </div>
       <Pipeline />
     </div>
