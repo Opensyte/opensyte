@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="public/icon-with-text-white.svg" width="300" style=" padding: 8px; margin-bottom:10px;"/>
+  <img src="public/icon-with-text-white.svg#gh-dark-mode-only" width="300" style=" padding: 8px; margin-bottom:10px;"/>
+  <img src="public/icon-with-text-black.svg#gh-light-mode-only" width="300" style=" padding: 8px; margin-bottom:10px;"/>
 </p>
 
 # 🚀 OpenSyte
