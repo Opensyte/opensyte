@@ -71,7 +71,7 @@ export function InteractionsTimeline({
 
   // Sort interactions by created date (newest first)
   const sortedInteractions = [...interactions].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   return (
