@@ -1,10 +1,10 @@
 import { createTRPCRouter, publicProcedure } from "../../trpc";
-import { CustomerModel } from "zod-schema";
+import { CustomerCreateInputSchema } from "prisma/generated/zod";
 import { db } from "~/server/db";
 
 export const contactsCrmRoutes = createTRPCRouter({
   createContact: publicProcedure
-    .input(CustomerModel)
+    .input(CustomerCreateInputSchema)
     .mutation(async ({ input }) => {
       const contact = await db.customer.create({
         data: input,

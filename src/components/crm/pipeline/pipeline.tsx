@@ -11,9 +11,6 @@ export function Pipeline() {
     deals,
     loading,
     filters,
-    setDeals,
-    setLoading,
-    setError,
     updateDeal,
     setFilters,
   } = usePipelineStore();
@@ -28,8 +25,7 @@ export function Pipeline() {
     setFilters(newFilters);
   };
 
-  // Load deals on mount if not already loaded
-  useEffect(() => {
+  /* useEffect(() => {
     if (deals.length === 0 && !loading) {
       setLoading(true);
       try {
@@ -44,7 +40,7 @@ export function Pipeline() {
         setLoading(false);
       }
     }
-  }, [deals.length, loading, setDeals, setLoading, setError, deals]);
+  }, [deals.length, loading, setDeals, setLoading, setError, deals]); */
 
   // Calculate pipeline metrics
   const totalValue = deals.reduce((sum, deal) => sum + deal.value, 0);

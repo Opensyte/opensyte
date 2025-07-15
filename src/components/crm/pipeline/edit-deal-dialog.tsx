@@ -176,7 +176,7 @@ export function EditDealDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
@@ -199,7 +199,7 @@ export function EditDealDialog({
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
 
               <FormField
                 control={form.control}
