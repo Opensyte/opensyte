@@ -55,12 +55,14 @@ interface AddLeadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: LeadFormValues) => void;
+  isLoading?: boolean;
 }
 
 export default function AddLeadDialog({
   isOpen,
   onClose,
   onSave,
+  isLoading = false,
 }: AddLeadDialogProps) {
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -84,7 +86,9 @@ export default function AddLeadDialog({
 
   const handleSubmit = form.handleSubmit((data: LeadFormValues) => {
     onSave(data);
-    form.reset();
+    if (!isLoading) {
+      form.reset();
+    }
   });
 
   // Handle dialog close with form reset
@@ -218,7 +222,10 @@ export default function AddLeadDialog({
                       <SelectContent>
                         {Object.entries(LeadStatus).map(([key, value]) => (
                           <SelectItem key={key} value={value}>
-                            {value.replace(/_/g, " ")}
+                            {value
+                              .replace(/_/g, " ")
+                              .toLowerCase()
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -357,10 +364,13 @@ export default function AddLeadDialog({
                 type="button"
                 variant="outline"
                 onClick={handleDialogClose}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit">Add Lead</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Adding..." : "Add Lead"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

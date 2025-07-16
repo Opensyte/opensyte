@@ -54,9 +54,9 @@ const leadFormSchema = z.object({
 export type LeadFormValues = z.infer<typeof leadFormSchema>;
 
 // Extended Lead interface with fields from Customer
-interface Lead extends Customer {
-  status?: LeadStatus;
-  source?: LeadSource;
+interface Lead extends Omit<Customer, "status" | "source"> {
+  status?: Customer["status"] | undefined;
+  source?: Customer["source"] | undefined;
 }
 
 interface EditLeadDialogProps {
@@ -64,6 +64,7 @@ interface EditLeadDialogProps {
   onClose: () => void;
   onSave: (id: string, data: LeadFormValues) => void;
   lead?: Lead;
+  isLoading?: boolean;
 }
 
 export default function EditLeadDialog({
@@ -71,6 +72,7 @@ export default function EditLeadDialog({
   onClose,
   onSave,
   lead,
+  isLoading = false,
 }: EditLeadDialogProps) {
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -107,8 +109,8 @@ export default function EditLeadDialog({
         phone: lead.phone ?? "",
         company: lead.company ?? "",
         position: lead.position ?? "",
-        status: lead.status ?? LeadStatus.NEW,
-        source: lead.source ?? LeadSource.WEBSITE,
+        status: (lead.status ?? LeadStatus.NEW) as LeadStatus,
+        source: (lead.source ?? LeadSource.WEBSITE) as LeadSource,
         notes: lead.notes ?? "",
         address: lead.address ?? "",
         city: lead.city ?? "",
@@ -247,7 +249,10 @@ export default function EditLeadDialog({
                       <SelectContent>
                         {Object.entries(LeadStatus).map(([key, value]) => (
                           <SelectItem key={key} value={value}>
-                            {value.replace(/_/g, " ")}
+                            {value
+                              .replace(/_/g, " ")
+                              .toLowerCase()
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -376,10 +381,17 @@ export default function EditLeadDialog({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleDialogClose}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDialogClose}
+                disabled={isLoading}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Changes"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

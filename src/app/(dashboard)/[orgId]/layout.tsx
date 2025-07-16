@@ -4,10 +4,45 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "~/components/ui/sidebar";
+import { auth } from "~/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { db } from "~/server/db";
 
-export default function OrgLayout({
+export default async function OrgLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+  params,
+}: Readonly<{
+  children: React.ReactNode;
+  params: Promise<{ orgId: string }>;
+}>) {
+  const { orgId } = await params;
+
+  // Get user session
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user?.id) {
+    redirect("/sign-in");
+  }
+
+  // Check if organization exists and user has access
+  const organization = await db.organization.findFirst({
+    where: {
+      id: orgId,
+      users: {
+        some: {
+          userId: session.user.id,
+        },
+      },
+    },
+  });
+
+  if (!organization) {
+    redirect("/");
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

@@ -6,9 +6,9 @@ import {
   FileSpreadsheet,
   Mail,
   MessageSquare,
-  PieChart,
   Settings2,
   Users,
+  Building2,
 } from "lucide-react";
 
 import { NavMain } from "~/components/nav-main";
@@ -20,7 +20,12 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
 } from "~/components/ui/sidebar";
+import { api } from "~/trpc/react";
+import { authClient } from "~/lib/auth-client";
 
 // Sample data for the sidebar
 const data = {
@@ -29,13 +34,6 @@ const data = {
     email: "user@example.com",
     avatar: "/avatars/user.jpg",
   },
-  teams: [
-    {
-      name: "OpenSyte Inc",
-      logo: PieChart,
-      plan: "Enterprise",
-    },
-  ],
   navMain: [
     {
       title: "CRM",
@@ -174,10 +172,51 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = authClient.useSession();
+
+  const { data: organizations, isLoading } = api.organization.getAll.useQuery(
+    { userId: session?.user?.id ?? "" },
+    { enabled: !!session?.user?.id },
+  );
+
+  // Transform organizations to teams format for TeamSwitcher
+  const teams = React.useMemo(() => {
+    if (!organizations) return [];
+
+    return organizations.map((org) => ({
+      id: org.id,
+      name: org.name,
+      logo: Building2, // Using Building2 as default icon for all orgs
+      plan: org.userRole, // Using user role as plan
+    }));
+  }, [organizations]);
+
+  // Show loading state
+  if (isLoading || !session?.user?.id) {
+    return (
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuSkeleton showIcon />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain items={data.navMain} />
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={data.user} />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    );
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher teams={teams} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

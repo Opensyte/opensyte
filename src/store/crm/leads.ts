@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type { Customer } from "~/types/crm";
 import type { CustomerType, LeadSource, LeadStatus } from "~/types/crm-enums";
-import { persist } from "zustand/middleware";
 
 interface ContactsState {
   leads: Customer[];
@@ -20,10 +19,8 @@ interface ContactsState {
   setLoading: (loading: boolean) => void;
 }
 
-// TODO: Remove persist function on syncing prisma
 
 export const useLeadsStore = create<ContactsState>()(
-  persist(
     (set) => ({
       leads: [],
       filters: {},
@@ -49,8 +46,4 @@ export const useLeadsStore = create<ContactsState>()(
         })),
       setLoading: (loading) => set({ loading }),
     }),
-    {
-      name: "leads-storage",
-    },
-  ),
 );

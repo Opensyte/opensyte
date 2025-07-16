@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { type Deal, type DealFilters } from "~/types/crm";
 
 interface PipelineState {
@@ -17,40 +16,33 @@ interface PipelineState {
 }
 
 // Create the store with persistence
-export const usePipelineStore = create<PipelineState>()(
-  persist(
-    (set) => ({
-      deals: [],
-      filters: {
-        dateRange: null,
-        valueRange: null,
-        probability: null,
-        searchQuery: "",
-      },
-      loading: false,
-      error: null,
-      setDeals: (deals) => set({ deals }),
-      updateDeal: (updatedDeal) =>
-        set((state) => ({
-          deals: state.deals.map((deal) =>
-            deal.id === updatedDeal.id ? updatedDeal : deal,
-          ),
-        })),
-      addDeal: (deal) =>
-        set((state) => ({
-          deals: [deal, ...state.deals],
-        })),
-      removeDeal: (id) =>
-        set((state) => ({
-          deals: state.deals.filter((deal) => deal.id !== id),
-        })),
-      setFilters: (filters) =>
-        set((state) => ({ filters: { ...state.filters, ...filters } })),
-      setLoading: (loading) => set({ loading }),
-      setError: (error) => set({ error }),
-    }),
-    {
-      name: "pipeline-storage",
-    },
-  ),
-);
+export const usePipelineStore = create<PipelineState>()((set) => ({
+  deals: [],
+  filters: {
+    dateRange: null,
+    valueRange: null,
+    probability: null,
+    searchQuery: "",
+  },
+  loading: false,
+  error: null,
+  setDeals: (deals) => set({ deals }),
+  updateDeal: (updatedDeal) =>
+    set((state) => ({
+      deals: state.deals.map((deal) =>
+        deal.id === updatedDeal.id ? updatedDeal : deal,
+      ),
+    })),
+  addDeal: (deal) =>
+    set((state) => ({
+      deals: [deal, ...state.deals],
+    })),
+  removeDeal: (id) =>
+    set((state) => ({
+      deals: state.deals.filter((deal) => deal.id !== id),
+    })),
+  setFilters: (filters) =>
+    set((state) => ({ filters: { ...state.filters, ...filters } })),
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error }),
+}));

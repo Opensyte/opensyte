@@ -30,32 +30,34 @@ interface LeadManagementTableProps {
   leads: Customer[];
   onDeleteLead: (id: string) => void;
   onEditLead: (lead: Customer) => void;
+  isDeleting?: boolean;
 }
 
 const statusColorMap = {
-  New: "bg-blue-100 text-blue-800",
-  Contacted: "bg-purple-100 text-purple-800",
-  Qualified: "bg-green-100 text-green-800",
-  Proposal: "bg-yellow-100 text-yellow-800",
-  Negotiation: "bg-orange-100 text-orange-800",
-  "Closed Won": "bg-green-100 text-green-800",
-  "Closed Lost": "bg-red-100 text-red-800",
+  NEW: "bg-blue-100 text-blue-800",
+  CONTACTED: "bg-purple-100 text-purple-800",
+  QUALIFIED: "bg-green-100 text-green-800",
+  PROPOSAL: "bg-yellow-100 text-yellow-800",
+  NEGOTIATION: "bg-orange-100 text-orange-800",
+  CLOSED_WON: "bg-green-100 text-green-800",
+  CLOSED_LOST: "bg-red-100 text-red-800",
 };
 
 const sourceIconMap = {
-  Website: "🌐",
-  Referral: "👥",
-  "Social Media": "📱",
-  "Email Campaign": "📧",
-  Event: "🎫",
-  "Cold Call": "📞",
-  Other: "📌",
+  WEBSITE: "🌐",
+  REFERRAL: "👥",
+  SOCIAL_MEDIA: "📱",
+  EMAIL_CAMPAIGN: "📧",
+  EVENT: "🎫",
+  COLD_CALL: "📞",
+  OTHER: "📌",
 };
 
 export default function LeadManagementTable({
   leads,
   onDeleteLead,
   onEditLead,
+  isDeleting = false,
 }: LeadManagementTableProps) {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -78,6 +80,7 @@ export default function LeadManagementTable({
   const confirmDeleteLead = () => {
     if (selectedLead) {
       onDeleteLead(selectedLead.id);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -165,7 +168,9 @@ export default function LeadManagementTable({
                 <TableCell>
                   <Badge
                     variant="secondary"
-                    className={lead.status && statusColorMap[lead.status]}
+                    className={
+                      lead.status ? statusColorMap[lead.status] : undefined
+                    }
                   >
                     {lead.status?.replace(/_/g, " ") ?? "N/A"}
                   </Badge>
@@ -173,7 +178,7 @@ export default function LeadManagementTable({
                 <TableCell>
                   <div className="flex items-center">
                     <span className="mr-1">
-                      {lead.source && sourceIconMap[lead.source]}
+                      {lead.source ? sourceIconMap[lead.source] : null}
                     </span>
                     <span>{lead.source?.replace(/_/g, " ") ?? "N/A"}</span>
                   </div>
@@ -190,7 +195,11 @@ export default function LeadManagementTable({
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={isDeleting}
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -200,13 +209,17 @@ export default function LeadManagementTable({
                         <DropdownMenuItem onClick={() => handleViewLead(lead)}>
                           <Eye className="mr-2 h-4 w-4" /> View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditLead(lead)}>
+                        <DropdownMenuItem
+                          onClick={() => handleEditLead(lead)}
+                          disabled={isDeleting}
+                        >
                           <Pencil className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600"
                           onClick={() => handleDeleteLead(lead)}
+                          disabled={isDeleting}
                         >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
@@ -236,6 +249,7 @@ export default function LeadManagementTable({
             ? `${selectedLead.firstName} ${selectedLead.lastName}`
             : ""
         }
+        isLoading={isDeleting}
       />
     </>
   );

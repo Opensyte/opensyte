@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import type {
   CustomerInteraction,
@@ -30,7 +29,6 @@ interface InteractionsState {
 // TODO: Remove persist function on syncing prisma
 
 export const useInteractionsStore = create<InteractionsState>()(
-  persist(
     (set, get) => ({
       // Initial state
       interactions: [],
@@ -123,9 +121,4 @@ export const useInteractionsStore = create<InteractionsState>()(
         });
       },
     }),
-    {
-      name: "crm-interactions-storage",
-      partialize: (state) => ({ interactions: state.interactions }),
-    },
-  ),
 );

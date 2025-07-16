@@ -7,7 +7,7 @@ const compat = new FlatCompat({
 
 export default tseslint.config(
   {
-    ignores: [".next"],
+    ignores: [".next", "prisma/generated/**/*"],
   },
   ...compat.extends("next/core-web-vitals"),
   {
@@ -17,9 +17,7 @@ export default tseslint.config(
       ...tseslint.configs.recommendedTypeChecked,
       ...tseslint.configs.stylisticTypeChecked,
     ],
-    ignores:[
-      'zod-schema/**/*'
-    ],
+    ignores: ["zod-schema/**/*", "prisma/generated/**/*"],
     rules: {
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-definitions": "off",

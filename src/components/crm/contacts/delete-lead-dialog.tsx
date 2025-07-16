@@ -16,6 +16,7 @@ interface DeleteLeadDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   leadName: string;
+  isLoading?: boolean;
 }
 
 export default function DeleteLeadDialog({
@@ -23,6 +24,7 @@ export default function DeleteLeadDialog({
   onClose,
   onConfirm,
   leadName,
+  isLoading = false,
 }: DeleteLeadDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -36,15 +38,17 @@ export default function DeleteLeadDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={onClose} disabled={isLoading}>
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
               onConfirm();
-              onClose();
             }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={isLoading}
           >
-            Delete
+            {isLoading ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

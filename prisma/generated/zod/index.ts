@@ -1,3 +1,4 @@
+/* eslint no-use-before-define: 0 */
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 

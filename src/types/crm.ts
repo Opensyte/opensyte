@@ -1,4 +1,10 @@
-import type { LeadSource, LeadStatus } from "./crm-enums";
+import type { Customer as PrismaCustomer } from "@prisma/client";
+
+// Re-export the Prisma Customer type with proper date handling
+export type Customer = Omit<PrismaCustomer, "createdAt" | "updatedAt"> & {
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export interface Deal {
   id: string;
@@ -32,26 +38,6 @@ export interface PipelineMetrics {
   wonDeals: Deal[];
   wonValue: number;
 }
-
-export type Customer = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  company?: string;
-  email?: string;
-  phone?: string;
-  position?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  postalCode?: string;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  status?: LeadStatus;
-  source?: LeadSource;
-};
 
 export type InteractionType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "TASK";
 export type InteractionMedium =

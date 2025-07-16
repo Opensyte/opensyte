@@ -47,7 +47,10 @@ export default function LeadFilters({
             <SelectItem value="all">All Statuses</SelectItem>
             {Object.values(LeadStatus).map((status) => (
               <SelectItem key={status} value={status}>
-                {status.replace(/_/g, " ")}
+                {status
+                  .replace(/_/g, " ")
+                  .toLowerCase()
+                  .replace(/\b\w/g, (l) => l.toUpperCase())}
               </SelectItem>
             ))}
           </SelectContent>

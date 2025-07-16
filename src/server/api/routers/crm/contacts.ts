@@ -2,17 +2,9 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import {
   CustomerUncheckedCreateInputSchema,
-  CustomerWhereInputSchema,
   CustomerUpdateInputSchema,
-  CustomerOrderByWithRelationInputSchema,
 } from "prisma/generated/zod";
 import { db } from "~/server/db";
-
-// Input schema for filtering contacts
-const GetContactsInputSchema = z.object({
-  where: CustomerWhereInputSchema.optional(),
-  orderBy: CustomerOrderByWithRelationInputSchema.optional(),
-});
 
 export const contactsCrmRoutes = createTRPCRouter({
   // Create a new contact
@@ -34,37 +26,6 @@ export const contactsCrmRoutes = createTRPCRouter({
         return contact;
       } catch {
         throw new Error("Failed to create contact");
-      }
-    }),
-
-  // Get all contacts with optional filtering
-  getAllContacts: publicProcedure
-    .input(GetContactsInputSchema)
-    .query(async ({ input }) => {
-      try {
-        const contacts = await db.customer.findMany({
-          where: input?.where,
-          orderBy: input?.orderBy ?? { createdAt: "desc" },
-          include: {
-            organization: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            _count: {
-              select: {
-                interactions: true,
-                deals: true,
-                invoices: true,
-              },
-            },
-          },
-        });
-
-        return contacts;
-      } catch {
-        throw new Error("Failed to fetch contacts");
       }
     }),
 
@@ -145,21 +106,6 @@ export const contactsCrmRoutes = createTRPCRouter({
         return { success: true, deletedId: contact.id };
       } catch {
         throw new Error("Failed to delete contact");
-      }
-    }),
-
-  // Get contacts count for analytics
-  getContactsCount: publicProcedure
-    .input(CustomerWhereInputSchema.optional())
-    .query(async ({ input }) => {
-      try {
-        const count = await db.customer.count({
-          where: input,
-        });
-
-        return { count };
-      } catch {
-        throw new Error("Failed to get contacts count");
       }
     }),
 

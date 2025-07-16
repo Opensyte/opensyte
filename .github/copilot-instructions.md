@@ -49,6 +49,13 @@
 - Consider Zustand or Jotai for global state when needed
 - Implement proper loading states and error handling
 
+### UI Components & Dialogs
+- All dialogs and modals must be responsive and mobile-friendly
+- Use `max-h-[90vh] overflow-y-auto` for dialog content to ensure proper scrolling on mobile devices
+- Implement responsive button layouts in dialog footers: `flex flex-col gap-2 sm:flex-row sm:gap-0`
+- Use `w-full sm:w-auto` for buttons to make them full-width on mobile and auto-width on desktop
+- Ensure form fields are properly spaced and responsive with grid layouts that adapt to screen size
+
 ## Performance
 - Use proper code splitting and lazy loading
 - Optimize images with Next.js Image component

@@ -1,0 +1,365 @@
+import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "../trpc";
+import { db } from "~/server/db";
+import { UserRole } from "@prisma/client";
+
+// Input schemas
+const createOrganizationSchema = z.object({
+  name: z.string().min(1, "Organization name is required"),
+  description: z.string().optional(),
+  website: z.string().url().optional().or(z.literal("")),
+  industry: z.string().optional(),
+  logo: z.string().optional(),
+});
+
+const updateOrganizationSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Organization name is required").optional(),
+  description: z.string().optional(),
+  website: z.string().url().optional().or(z.literal("")),
+  industry: z.string().optional(),
+  logo: z.string().optional(),
+});
+
+export const organizationRouter = createTRPCRouter({
+  // Get all organizations for a user
+  getAll: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input }) => {
+      try {
+        const organizations = await db.organization.findMany({
+          where: {
+            users: {
+              some: {
+                userId: input.userId,
+              },
+            },
+          },
+          include: {
+            users: {
+              select: {
+                userId: true,
+                role: true,
+                joinedAt: true,
+              },
+            },
+            _count: {
+              select: {
+                users: true,
+                customers: true,
+                projects: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+
+        return organizations.map((org) => ({
+          id: org.id,
+          name: org.name,
+          description: org.description,
+          logo: org.logo,
+          website: org.website,
+          industry: org.industry,
+          membersCount: org._count.users,
+          customersCount: org._count.customers,
+          projectsCount: org._count.projects,
+          createdAt: org.createdAt.toISOString(),
+          updatedAt: org.updatedAt.toISOString(),
+          userRole:
+            org.users.find((u) => u.userId === input.userId)?.role ??
+            UserRole.VIEWER,
+        }));
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+        throw new Error("Failed to fetch organizations");
+      }
+    }),
+
+  // Get organization by ID
+  getById: publicProcedure
+    .input(z.object({ id: z.string(), userId: z.string() }))
+    .query(async ({ input }) => {
+      try {
+        const organization = await db.organization.findFirst({
+          where: {
+            id: input.id,
+            users: {
+              some: {
+                userId: input.userId,
+              },
+            },
+          },
+          include: {
+            users: {
+              select: {
+                userId: true,
+                role: true,
+                joinedAt: true,
+              },
+            },
+            _count: {
+              select: {
+                users: true,
+                customers: true,
+                projects: true,
+                tasks: true,
+                invoices: true,
+                expenses: true,
+              },
+            },
+          },
+        });
+
+        if (!organization) {
+          throw new Error("Organization not found or access denied");
+        }
+
+        return {
+          id: organization.id,
+          name: organization.name,
+          description: organization.description,
+          logo: organization.logo,
+          website: organization.website,
+          industry: organization.industry,
+          membersCount: organization._count.users,
+          customersCount: organization._count.customers,
+          projectsCount: organization._count.projects,
+          tasksCount: organization._count.tasks,
+          invoicesCount: organization._count.invoices,
+          expensesCount: organization._count.expenses,
+          createdAt: organization.createdAt.toISOString(),
+          updatedAt: organization.updatedAt.toISOString(),
+          userRole:
+            organization.users.find((u) => u.userId === input.userId)?.role ??
+            UserRole.VIEWER,
+        };
+      } catch (error) {
+        console.error("Error fetching organization:", error);
+        throw new Error("Failed to fetch organization");
+      }
+    }),
+
+  // Create new organization
+  create: publicProcedure
+    .input(createOrganizationSchema.extend({ userId: z.string() }))
+    .mutation(async ({ input }) => {
+      try {
+        const organization = await db.organization.create({
+          data: {
+            name: input.name,
+            description: input.description,
+            website: input.website,
+            industry: input.industry,
+            logo: input.logo,
+            users: {
+              create: {
+                userId: input.userId,
+                role: UserRole.OWNER,
+              },
+            },
+          },
+          include: {
+            users: {
+              select: {
+                userId: true,
+                role: true,
+                joinedAt: true,
+              },
+            },
+            _count: {
+              select: {
+                users: true,
+                customers: true,
+                projects: true,
+              },
+            },
+          },
+        });
+
+        return {
+          id: organization.id,
+          name: organization.name,
+          description: organization.description,
+          logo: organization.logo,
+          website: organization.website,
+          industry: organization.industry,
+          membersCount: organization._count.users,
+          customersCount: organization._count.customers,
+          projectsCount: organization._count.projects,
+          createdAt: organization.createdAt.toISOString(),
+          updatedAt: organization.updatedAt.toISOString(),
+          userRole: UserRole.OWNER,
+        };
+      } catch (error) {
+        console.error("Error creating organization:", error);
+        throw new Error("Failed to create organization");
+      }
+    }),
+
+  // Update organization
+  update: publicProcedure
+    .input(updateOrganizationSchema.extend({ userId: z.string() }))
+    .mutation(async ({ input }) => {
+      try {
+        // Check if user has permission to update
+        const userOrg = await db.userOrganization.findFirst({
+          where: {
+            userId: input.userId,
+            organizationId: input.id,
+            role: {
+              in: [UserRole.OWNER, UserRole.ADMIN],
+            },
+          },
+        });
+
+        if (!userOrg) {
+          throw new Error("Insufficient permissions to update organization");
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, userId: _userId, ...updateData } = input;
+        const organization = await db.organization.update({
+          where: { id },
+          data: updateData,
+          include: {
+            users: {
+              select: {
+                userId: true,
+                role: true,
+                joinedAt: true,
+              },
+            },
+            _count: {
+              select: {
+                users: true,
+                customers: true,
+                projects: true,
+              },
+            },
+          },
+        });
+
+        return {
+          id: organization.id,
+          name: organization.name,
+          description: organization.description,
+          logo: organization.logo,
+          website: organization.website,
+          industry: organization.industry,
+          membersCount: organization._count.users,
+          customersCount: organization._count.customers,
+          projectsCount: organization._count.projects,
+          createdAt: organization.createdAt.toISOString(),
+          updatedAt: organization.updatedAt.toISOString(),
+          userRole: userOrg.role,
+        };
+      } catch (error) {
+        console.error("Error updating organization:", error);
+        throw new Error("Failed to update organization");
+      }
+    }),
+
+  // Delete organization
+  delete: publicProcedure
+    .input(z.object({ id: z.string(), userId: z.string() }))
+    .mutation(async ({ input }) => {
+      try {
+        // Check if user is owner
+        const userOrg = await db.userOrganization.findFirst({
+          where: {
+            userId: input.userId,
+            organizationId: input.id,
+            role: UserRole.OWNER,
+          },
+        });
+
+        if (!userOrg) {
+          throw new Error("Only organization owners can delete organizations");
+        }
+
+        await db.organization.delete({
+          where: { id: input.id },
+        });
+
+        return { success: true };
+      } catch (error) {
+        console.error("Error deleting organization:", error);
+        throw new Error("Failed to delete organization");
+      }
+    }),
+
+  // Get organization stats
+  getStats: publicProcedure
+    .input(z.object({ organizationId: z.string(), userId: z.string() }))
+    .query(async ({ input }) => {
+      try {
+        // Verify user has access
+        const userOrg = await db.userOrganization.findFirst({
+          where: {
+            userId: input.userId,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!userOrg) {
+          throw new Error("Access denied");
+        }
+
+        const [
+          totalCustomers,
+          totalProjects,
+          totalTasks,
+          totalInvoices,
+          totalExpenses,
+          activeDeals,
+        ] = await Promise.all([
+          db.customer.count({
+            where: { organizationId: input.organizationId },
+          }),
+          db.project.count({
+            where: { organizationId: input.organizationId },
+          }),
+          db.task.count({
+            where: { organizationId: input.organizationId },
+          }),
+          db.invoice.count({
+            where: { organizationId: input.organizationId },
+          }),
+          db.expense.count({
+            where: { organizationId: input.organizationId },
+          }),
+          db.deal.count({
+            where: {
+              customer: {
+                organizationId: input.organizationId,
+              },
+              status: {
+                in: [
+                  "NEW",
+                  "CONTACTED",
+                  "QUALIFIED",
+                  "PROPOSAL",
+                  "NEGOTIATION",
+                ],
+              },
+            },
+          }),
+        ]);
+
+        return {
+          totalCustomers,
+          totalProjects,
+          totalTasks,
+          totalInvoices,
+          totalExpenses,
+          activeDeals,
+        };
+      } catch (error) {
+        console.error("Error fetching organization stats:", error);
+        throw new Error("Failed to fetch organization stats");
+      }
+    }),
+});
