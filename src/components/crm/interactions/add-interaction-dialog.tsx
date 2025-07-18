@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { format } from "date-fns";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -41,8 +42,9 @@ interface AddInteractionDialogProps {
     content: string;
     scheduledAt: Date | null;
     completedAt: Date | null;
-  }) => void;
+  }) => Promise<void>;
   customers: Customer[];
+  isLoading: boolean;
 }
 
 export function AddInteractionDialog({
@@ -50,6 +52,7 @@ export function AddInteractionDialog({
   onOpenChange,
   onAddInteraction,
   customers,
+  isLoading,
 }: AddInteractionDialogProps) {
   const [formData, setFormData] = useState({
     customerId: "",
@@ -60,6 +63,9 @@ export function AddInteractionDialog({
     scheduledAt: null as Date | null,
     completedAt: null as Date | null,
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form data on close
   const handleOpenChange = (open: boolean) => {
@@ -80,13 +86,49 @@ export function AddInteractionDialog({
       scheduledAt: null,
       completedAt: null,
     });
+    setErrors({});
+    setIsSubmitting(false);
+  };
+
+  // Validate form data
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.customerId) {
+      newErrors.customerId = "Please select a customer";
+    }
+
+    if (!formData.subject.trim()) {
+      newErrors.subject = "Subject is required";
+    }
+
+    if (!formData.content.trim()) {
+      newErrors.content = "Content is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // Handle form submission
-  const handleSubmit = () => {
-    onAddInteraction(formData);
-    onOpenChange(false);
-    resetForm();
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error("Please fix the validation errors");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onAddInteraction(formData);
+      toast.success("Interaction added successfully");
+      onOpenChange(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error adding interaction:", error);
+      toast.error("Failed to add interaction. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
 
@@ -101,25 +143,43 @@ export function AddInteractionDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="customerId">Customer</Label>
+            <Label htmlFor="customerId">Customer *</Label>
             <Select
               value={formData.customerId}
-              onValueChange={(value) =>
-                setFormData({ ...formData, customerId: value })
-              }
+              onValueChange={(value) => {
+                setFormData({ ...formData, customerId: value });
+                if (errors.customerId) {
+                  setErrors({ ...errors, customerId: "" });
+                }
+              }}
             >
-              <SelectTrigger id="customerId" className="w-full">
+              <SelectTrigger 
+                id="customerId" 
+                className={`w-full ${errors.customerId ? "border-destructive" : ""}`}
+              >
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
               <SelectContent>
-                {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id}>
-                    {customer.firstName} {customer.lastName}{" "}
-                    {customer.company ? `(${customer.company})` : ""}
-                  </SelectItem>
-                ))}
+                {customers.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground">
+                    No customers available. Please add customers first.
+                  </div>
+                ) : (
+                  customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.firstName} {customer.lastName}{" "}
+                      {customer.company ? `(${customer.company})` : ""}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {errors.customerId && (
+              <div className="flex items-center gap-1 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                {errors.customerId}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -171,16 +231,25 @@ export function AddInteractionDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="subject">Subject *</Label>
             <Input
               id="subject"
               value={formData.subject}
-              onChange={(e) =>
-                setFormData({ ...formData, subject: e.target.value })
-              }
+              onChange={(e) => {
+                setFormData({ ...formData, subject: e.target.value });
+                if (errors.subject) {
+                  setErrors({ ...errors, subject: "" });
+                }
+              }}
               placeholder="Brief subject of interaction"
-              className="w-full"
+              className={`w-full ${errors.subject ? "border-destructive" : ""}`}
             />
+            {errors.subject && (
+              <div className="flex items-center gap-1 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                {errors.subject}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -250,16 +319,25 @@ export function AddInteractionDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="content">Content</Label>
+            <Label htmlFor="content">Content *</Label>
             <Textarea
               id="content"
               value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
+              onChange={(e) => {
+                setFormData({ ...formData, content: e.target.value });
+                if (errors.content) {
+                  setErrors({ ...errors, content: "" });
+                }
+              }}
               placeholder="Detailed notes about the interaction"
-              className="max-h-[200px] min-h-[80px] w-full sm:min-h-[120px]"
+              className={`max-h-[200px] min-h-[80px] w-full sm:min-h-[120px] ${errors.content ? "border-destructive" : ""}`}
             />
+            {errors.content && (
+              <div className="flex items-center gap-1 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                {errors.content}
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
@@ -271,12 +349,20 @@ export function AddInteractionDialog({
           >
             Cancel
           </Button>
-          <Button
+          <Button 
             type="button"
-            onClick={handleSubmit}
+            onClick={handleSubmit} 
             className="w-full sm:w-auto"
+            disabled={isLoading || isSubmitting || customers.length === 0}
           >
-            Save Interaction
+            {(isLoading || isSubmitting) ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              'Add Interaction'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

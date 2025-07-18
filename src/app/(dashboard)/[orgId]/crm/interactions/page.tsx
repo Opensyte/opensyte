@@ -5,6 +5,13 @@ import { InteractionsClient } from "~/components/crm/interactions/interactions-c
 
 // TODO: Adding edit functionality for interactions feature
 
-export default function InteractionsPage() {
-  return <InteractionsClient />;
+interface InteractionsPageProps {
+  params: Promise<{
+    orgId: string;
+  }>;
+}
+
+export default function InteractionsPage({ params }: InteractionsPageProps) {
+  const { orgId } = React.use(params);
+  return <InteractionsClient organizationId={orgId} />;
 }

@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { v4 as uuidv4 } from "uuid";
-import { PlusCircle, Search } from "lucide-react";
+import { PlusCircle, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
@@ -26,18 +25,19 @@ import { InteractionsTable } from "~/components/crm/interactions/interactions-ta
 import { InteractionsTimeline } from "~/components/crm/interactions/interactions-timeline";
 import { AddInteractionDialog } from "~/components/crm/interactions/add-interaction-dialog";
 import { ViewInteractionDialog } from "~/components/crm/interactions/view-interaction-dialog";
+import { InteractionsSkeleton } from "~/components/crm/interactions/interactions-skeleton";
 import type {
   CustomerInteraction,
   InteractionType,
   InteractionMedium,
 } from "~/types/crm";
-import { useInteractionsStore } from "~/store/crm/interactions";
-import { useLeadsStore } from "~/store/crm/leads";
+import { api } from "~/trpc/react";
 
-export function InteractionsClient() {
-  const { addInteraction, deleteInteraction, getFilteredInteractions } =
-    useInteractionsStore();
-  const { leads } = useLeadsStore();
+interface InteractionsClientProps {
+  organizationId: string;
+}
+
+export function InteractionsClient({ organizationId }: InteractionsClientProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [currentInteraction, setCurrentInteraction] =
@@ -45,15 +45,75 @@ export function InteractionsClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | InteractionType>("ALL");
 
+  // tRPC queries and mutations
+  const { data: interactions = [], isLoading, error } = api.interactions.getByOrganization.useQuery(
+    { organizationId },
+    {
+      refetchOnWindowFocus: false,
+      enabled: !!organizationId, // Only run query if organizationId is provided
+    }
+  ) as { data: CustomerInteraction[], isLoading: boolean, error: Error | null };
+
+  // Fetch customers for the organization
+  const { data: customers = [], isLoading: customersLoading } = api.contactsCrm.getContactsByOrganization.useQuery(
+    { organizationId },
+    {
+      refetchOnWindowFocus: false,
+      enabled: !!organizationId, // Only run query if organizationId is provided
+    }
+  );
+  
+  const createInteraction = api.interactions.createInteraction.useMutation({
+    onSuccess: () => {
+      toast.success("Interaction added");
+      utils.interactions.invalidate();
+    },
+    onError: (error) => {
+      toast.error("Failed to add interaction", {
+        description: error.message,
+      });
+    },
+  });
+
+  const updateInteraction = api.interactions.updateInteraction.useMutation({
+    onSuccess: () => {
+      toast.success("Interaction updated");
+      utils.interactions.invalidate();
+    },
+    onError: (error) => {
+      toast.error("Failed to update interaction", {
+        description: error.message,
+      });
+    },
+  });
+
+  const deleteInteraction = api.interactions.deleteInteraction.useMutation({
+    onSuccess: () => {
+      toast.success("Interaction deleted");
+      utils.interactions.invalidate();
+    },
+    onError: (error) => {
+      toast.error("Failed to delete interaction", {
+        description: error.message,
+      });
+    },
+  });
+
+  const utils = api.useUtils();
+
   // Filter interactions based on search term and type filter
-  const filteredInteractions = getFilteredInteractions({
-    customers: leads,
-    searchTerm,
-    type: filterType,
+  const filteredInteractions = interactions.filter((interaction) => {
+    const matchesSearch = searchTerm === '' || 
+      (interaction.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      interaction.content?.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesType = filterType === 'ALL' || interaction.type === filterType;
+    
+    return matchesSearch && matchesType;
   });
 
   // Handle adding new interaction
-  const handleAddInteraction = (formData: {
+  const handleAddInteraction = async (formData: {
     customerId: string;
     type: InteractionType;
     medium: InteractionMedium;
@@ -62,37 +122,37 @@ export function InteractionsClient() {
     scheduledAt: Date | null;
     completedAt: Date | null;
   }) => {
-    const newInteraction: CustomerInteraction = {
-      id: uuidv4(),
-      customerId: formData.customerId,
-      type: formData.type,
-      medium: formData.medium,
-      subject: formData.subject,
-      content: formData.content,
-      scheduledAt: formData.scheduledAt!,
-      completedAt: formData.completedAt!,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    addInteraction(newInteraction);
-
-    toast.success("Interaction added", {
-      description: `${newInteraction.type.charAt(0) + newInteraction.type.slice(1).toLowerCase()} has been recorded.`,
-    });
+    try {
+      await createInteraction.mutateAsync({
+        customerId: formData.customerId,
+        type: formData.type,
+        medium: formData.medium,
+        subject: formData.subject,
+        content: formData.content,
+        scheduledAt: formData.scheduledAt,
+        completedAt: formData.completedAt,
+      });
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
   // Handle deleting an interaction
-  const handleDeleteInteraction = (id: string) => {
-    deleteInteraction(id);
-    toast.success("Interaction deleted", {
-      description: "The interaction has been removed.",
-    });
+  const handleDeleteInteraction = async (id: string) => {
+    try {
+      await deleteInteraction.mutateAsync({ id });
+      setIsViewDialogOpen(false);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
+
+
 
   // Get customer name by ID
   const getCustomerName = (customerId: string) => {
-    const customer = leads.find((c) => c.id === customerId);
+    const customer = customers.find((c) => c.id === customerId);
     return customer
       ? `${customer.firstName} ${customer.lastName}`
       : "Unknown Customer";
@@ -101,8 +161,29 @@ export function InteractionsClient() {
   // Format date for display
   const formatDate = (date?: Date) => {
     if (!date) return "N/A";
-    return format(date, "MMM d, yyyy h:mm a");
+    return format(date, "PPp");
   };
+
+  // Show skeleton loading while data is being fetched
+  if (isLoading) {
+    return <InteractionsSkeleton />;
+  }
+
+  // Show error state if query failed
+  if (error) {
+    return (
+      <div className="flex flex-col gap-4 p-4 md:p-8">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-destructive mb-2">Failed to load interactions</p>
+              <p className="text-sm text-muted-foreground">{error?.message || "An unexpected error occurred"}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4 md:p-8">
@@ -204,7 +285,8 @@ export function InteractionsClient() {
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAddInteraction={handleAddInteraction}
-        customers={leads}
+        customers={customers}
+        isLoading={createInteraction.isPending}
       />
 
       {/* View Interaction Dialog */}
@@ -214,7 +296,6 @@ export function InteractionsClient() {
         interaction={currentInteraction}
         getCustomerName={getCustomerName}
         formatDate={formatDate}
-        onDeleteInteraction={handleDeleteInteraction}
       />
     </div>
   );

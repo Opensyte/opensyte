@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, Globe, Clock, RotateCcw, Calendar } from "lucide-react";
+import { Globe, Clock, RotateCcw, Calendar } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -20,7 +20,6 @@ interface ViewInteractionDialogProps {
   interaction: CustomerInteraction | null;
   getCustomerName: (customerId: string) => string;
   formatDate: (date?: Date) => string;
-  onDeleteInteraction: (id: string) => void;
 }
 
 export function ViewInteractionDialog({
@@ -28,8 +27,7 @@ export function ViewInteractionDialog({
   onOpenChange,
   interaction,
   getCustomerName,
-  formatDate,
-  onDeleteInteraction,
+  formatDate
 }: ViewInteractionDialogProps) {
   if (!interaction) return null;
 
@@ -136,17 +134,6 @@ export function ViewInteractionDialog({
           </div>
         </div>
         <DialogFooter className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:space-y-0">
-          <Button
-            variant="destructive"
-            onClick={() => {
-              onDeleteInteraction(interaction.id);
-              onOpenChange(false);
-            }}
-            className="w-full sm:order-2 sm:w-auto"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
           <Button
             onClick={() => onOpenChange(false)}
             className="w-full sm:order-1 sm:w-auto"

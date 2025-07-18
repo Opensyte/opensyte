@@ -1,6 +1,7 @@
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { contactsCrmRoutes } from "./routers/crm/contacts";
 import { organizationRouter } from "./routers/organization";
+import { interactionsRouter } from "./routers/crm/interactions";
 
 /**
  * This is the primary router for your server.
@@ -10,6 +11,7 @@ import { organizationRouter } from "./routers/organization";
 export const appRouter = createTRPCRouter({
   contactsCrm: contactsCrmRoutes,
   organization: organizationRouter,
+  interactions: interactionsRouter,
 });
 
 // export type definition of API
