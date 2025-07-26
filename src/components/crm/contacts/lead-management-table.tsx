@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Badge } from "~/components/ui/badge";
-import ViewLeadDialog from "./view-lead-dialog";
+import { CustomerDetailsDialog } from "~/components/shared/customer-details-dialog";
 import DeleteLeadDialog from "./delete-lead-dialog";
 import type { Customer } from "~/types/crm";
 
@@ -234,10 +234,15 @@ export default function LeadManagementTable({
       </Table>
 
       {/* Dialogs */}
-      <ViewLeadDialog
-        isOpen={viewDialogOpen}
-        onClose={() => setViewDialogOpen(false)}
-        lead={selectedLead ?? undefined}
+      <CustomerDetailsDialog
+        customerName={
+          selectedLead
+            ? `${selectedLead.firstName} ${selectedLead.lastName}`
+            : ""
+        }
+        customerId={selectedLead?.id ?? ""}
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
       />
 
       <DeleteLeadDialog

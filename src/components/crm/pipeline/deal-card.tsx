@@ -31,18 +31,20 @@ import { useState } from "react";
 // Import dialogs
 import { EditDealDialog } from "./edit-deal-dialog";
 import { DeleteDealDialog } from "./delete-deal-dialog";
-import { ViewCustomerDialog } from "./view-customer-dialog";
+import { CustomerDetailsDialog } from "~/components/shared/customer-details-dialog";
 import { usePipelineStore } from "~/store/crm/pipeline";
 
 interface DealCardProps {
   deal: Deal;
   isOverlay?: boolean;
+  organizationId: string;
   onDealUpdate: (deal: Deal) => void;
 }
 
 export function DealCard({
   deal,
   isOverlay = false,
+  organizationId,
   onDealUpdate,
 }: DealCardProps) {
   // Dialog visibility states
@@ -189,7 +191,7 @@ export function DealCard({
           deal={deal}
           open={isEditOpen}
           onOpenChange={setIsEditOpen}
-          onSave={handleEditDeal}
+          organizationId={organizationId}
         />
       )}
       {isDeleteOpen && (
@@ -198,11 +200,11 @@ export function DealCard({
           dealTitle={deal.title}
           open={isDeleteOpen}
           onOpenChange={setIsDeleteOpen}
-          onDelete={handleDeleteDeal}
+          organizationId={organizationId}
         />
       )}
       {isViewCustomerOpen && (
-        <ViewCustomerDialog
+        <CustomerDetailsDialog
           customerName={deal.customerName}
           customerId={deal.customerId}
           open={isViewCustomerOpen}

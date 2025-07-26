@@ -1,7 +1,11 @@
 import { Pipeline } from "~/components/crm/pipeline/pipeline";
 import { AddDealDialog } from "~/components/crm/pipeline/add-deal-dialog";
 
-export default function PipelinePage() {
+interface PipelinePageProps {
+  params: { orgId: string };
+}
+
+export default function PipelinePage({ params }: PipelinePageProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-6">
@@ -11,9 +15,9 @@ export default function PipelinePage() {
             Manage and track your sales opportunities
           </p>
         </div>
-        <AddDealDialog />
+        <AddDealDialog organizationId={params.orgId} />
       </div>
-      <Pipeline />
+      <Pipeline organizationId={params.orgId} />
     </div>
   );
 }

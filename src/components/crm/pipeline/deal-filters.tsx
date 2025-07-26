@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { Search } from "lucide-react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
@@ -18,34 +19,45 @@ interface DealFiltersProps {
 }
 
 export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
-  const handleFilterChange = <K extends keyof DealFilters>(
-    key: K,
-    value: DealFilters[K],
-  ) => {
-    onApplyFilters({
-      [key]: value,
-    });
-  };
+  const handleFilterChange = useCallback(
+    <K extends keyof DealFilters>(key: K, value: DealFilters[K]) => {
+      onApplyFilters({
+        [key]: value,
+      });
+    },
+    [onApplyFilters],
+  );
 
-  const handleSliderChange = (
-    key: "valueRange" | "probability",
-    values: [number, number],
-  ) => {
-    const first = values[0];
-    const second = values[1];
-    // Type guard to ensure both values are defined numbers
-    if (typeof first !== "number" || typeof second !== "number") return;
-    handleFilterChange(key, values);
-  };
+  const handleSliderChange = useCallback(
+    (key: "valueRange" | "probability", values: [number, number]) => {
+      const first = values[0];
+      const second = values[1];
+      // Type guard to ensure both values are defined numbers
+      if (typeof first !== "number" || typeof second !== "number") return;
 
-  const handleResetFilters = () => {
+      // Prevent unnecessary updates if values haven't actually changed
+      const currentValues = filters[key];
+      if (
+        currentValues &&
+        currentValues[0] === first &&
+        currentValues[1] === second
+      ) {
+        return;
+      }
+
+      handleFilterChange(key, values);
+    },
+    [filters, handleFilterChange],
+  );
+
+  const handleResetFilters = useCallback(() => {
     onApplyFilters({
       dateRange: null,
       valueRange: null,
       probability: null,
       searchQuery: "",
     });
-  };
+  }, [onApplyFilters]);
 
   return (
     <div className="bg-background sticky top-0 z-10 border-b">
@@ -60,40 +72,6 @@ export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
-                <SlidersHorizontal className="mr-2 h-4 w-4" />
-                Value Range
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="leading-none font-medium">Deal Value</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Filter deals by their value range
-                  </p>
-                </div>
-                <div className="space-y-4 px-1">
-                  <Slider
-                    defaultValue={[0, 100]}
-                    max={100}
-                    step={1}
-                    value={filters.valueRange ?? [0, 100]}
-                    onValueChange={(values: [number, number]) =>
-                      handleSliderChange("valueRange", values)
-                    }
-                  />
-                  <div className="text-muted-foreground mt-2 flex justify-between text-xs">
-                    <span>$0</span>
-                    <span>$100k+</span>
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
@@ -115,8 +93,11 @@ export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
                     max={100}
                     step={1}
                     value={filters.probability ?? [0, 100]}
-                    onValueChange={(values: [number, number]) =>
-                      handleSliderChange("probability", values)
+                    onValueChange={(values) =>
+                      handleSliderChange(
+                        "probability",
+                        values as [number, number],
+                      )
                     }
                   />
                   <div className="text-muted-foreground mt-2 flex justify-between text-xs">

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,13 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
+import { api } from "~/trpc/react";
 
 interface DeleteDealDialogProps {
   dealId: string;
   dealTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDelete: (id: string) => void;
+  organizationId: string;
 }
 
 export function DeleteDealDialog({
@@ -24,13 +27,27 @@ export function DeleteDealDialog({
   dealTitle,
   open,
   onOpenChange,
-  onDelete,
+  organizationId,
 }: DeleteDealDialogProps) {
+  const utils = api.useUtils();
+
+  const deleteDealMutation = api.dealsCrm.deleteDeal.useMutation({
+    onSuccess: () => {
+      toast.success("Deal deleted successfully");
+      onOpenChange(false);
+      // Invalidate the deals query to refresh the pipeline
+      void utils.dealsCrm.getDealsByOrganization.invalidate({ organizationId });
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete deal: ${error.message}`);
+    },
+  });
 
   const handleDelete = () => {
-    // Use the callback if provided, otherwise call store directly
-    onDelete(dealId);
-    onOpenChange(false);
+    deleteDealMutation.mutate({
+      id: dealId,
+      organizationId,
+    });
   };
 
   return (
@@ -43,9 +60,20 @@ export function DeleteDealDialog({
             This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+        <AlertDialogFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+          <AlertDialogCancel
+            disabled={deleteDealMutation.isPending}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={deleteDealMutation.isPending}
+            className="w-full sm:w-auto"
+          >
+            {deleteDealMutation.isPending ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

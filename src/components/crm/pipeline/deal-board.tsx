@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -37,15 +37,30 @@ const COLUMNS: Column[] = [
 interface DealBoardProps {
   deals: Deal[];
   filters: DealFilters;
+  organizationId: string;
   onDealUpdate: (deal: Deal) => void;
 }
 
-export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
+export function DealBoard({
+  deals,
+  filters,
+  organizationId,
+  onDealUpdate,
+}: DealBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  // Apply filters to deals
+  // Local deals state for optimistic UI updates
+  const [localDeals, setLocalDeals] = useState<Deal[]>(deals);
+
+  // Update local deals when props change (only if not currently dragging)
+  useEffect(() => {
+    if (!activeId) {
+      setLocalDeals(deals);
+    }
+  }, [deals, activeId]);
+  // Apply filters to deals (using localDeals for optimistic UI)
   const filteredDeals = useMemo(() => {
-    console.log("Filtering deals", deals.length);
-    return deals.filter((deal) => {
+    console.log("Filtering deals", localDeals.length);
+    return localDeals.filter((deal) => {
       // Apply search filter
       if (
         filters.searchQuery &&
@@ -53,15 +68,6 @@ export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
         !deal.customerName
           .toLowerCase()
           .includes(filters.searchQuery.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Apply value range filter
-      if (
-        filters.valueRange &&
-        (deal.value < filters.valueRange[0] * 1000 ||
-          deal.value > filters.valueRange[1] * 1000)
       ) {
         return false;
       }
@@ -78,7 +84,7 @@ export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
 
       return true;
     });
-  }, [deals, filters]);
+  }, [localDeals, filters]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -108,14 +114,20 @@ export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
     (event: DragEndEvent) => {
       const { active, over } = event;
 
-      if (!over) return;
+      if (!over) {
+        setActiveId(null);
+        return;
+      }
 
       const activeId = active.id;
       const overId = over.id;
 
-      // Find the active deal
-      const activeDeal = deals.find((deal) => deal.id === activeId);
-      if (!activeDeal) return;
+      // Find the active deal from localDeals for current UI state
+      const activeDeal = localDeals.find((deal) => deal.id === activeId);
+      if (!activeDeal) {
+        setActiveId(null);
+        return;
+      }
 
       // Get the type and status from the over element
       const overType = over.data?.current?.type as
@@ -123,43 +135,48 @@ export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
         | "deal"
         | undefined;
 
+      let newStatus = activeDeal.status;
+
       // If dropped on a column directly
       if (overType === "column") {
-        const newStatus = overId as string;
-
-        // If status has changed, update the deal
-        if (activeDeal.status !== newStatus) {
-          const updatedDeal = {
-            ...activeDeal,
-            status: newStatus,
-            updatedAt: new Date().toISOString(),
-          };
-          onDealUpdate(updatedDeal);
-        }
+        newStatus = overId as string;
       }
       // If dropped on another deal
       else if (overType === "deal") {
         // Find the target deal
-        const overDeal = deals.find((deal) => deal.id === overId);
-        if (!overDeal) return;
+        const overDeal = localDeals.find((deal) => deal.id === overId);
+        if (!overDeal) {
+          setActiveId(null);
+          return;
+        }
 
         // Use the target deal's status for the active deal
-        const newStatus = overDeal.status;
-
-        // If status has changed, update the deal
-        if (activeDeal.status !== newStatus) {
-          const updatedDeal = {
-            ...activeDeal,
-            status: newStatus,
-            updatedAt: new Date().toISOString(),
-          };
-          onDealUpdate(updatedDeal);
-        }
+        newStatus = overDeal.status;
       }
 
+      // Clear active state immediately
       setActiveId(null);
+
+      // If status has changed, update the deal
+      if (activeDeal.status !== newStatus) {
+        // INSTANT OPTIMISTIC UPDATE: Update local state immediately for instant UI feedback
+        const updatedDeal = {
+          ...activeDeal,
+          status: newStatus,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Update local state first for instant visual feedback
+        setLocalDeals((prevDeals) =>
+          prevDeals.map((deal) =>
+            deal.id === activeDeal.id ? updatedDeal : deal,
+          ),
+        );
+
+        onDealUpdate(updatedDeal);
+      }
     },
-    [deals, onDealUpdate],
+    [localDeals, onDealUpdate],
   );
 
   const handleDragCancel = useCallback(() => {
@@ -169,11 +186,18 @@ export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
   const getDragOverlay = useCallback(() => {
     if (!activeId) return null;
 
-    const deal = deals.find((deal) => deal.id === activeId);
+    const deal = localDeals.find((deal) => deal.id === activeId);
     if (!deal) return null;
 
-    return <DealCard deal={deal} isOverlay onDealUpdate={onDealUpdate} />;
-  }, [activeId, deals, onDealUpdate]);
+    return (
+      <DealCard
+        deal={deal}
+        isOverlay
+        organizationId={organizationId}
+        onDealUpdate={onDealUpdate}
+      />
+    );
+  }, [activeId, localDeals, organizationId, onDealUpdate]);
 
   return (
     <DndContext
@@ -195,6 +219,7 @@ export function DealBoard({ deals, filters, onDealUpdate }: DealBoardProps) {
                 title={column.title}
                 color={column.color}
                 deals={columnDeals}
+                organizationId={organizationId}
                 onDealUpdate={onDealUpdate}
               />
             );

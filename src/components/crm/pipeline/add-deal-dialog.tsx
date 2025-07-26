@@ -4,7 +4,6 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { v4 as uuidv4 } from "uuid";
 import { CalendarIcon, PlusCircle } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
@@ -27,7 +26,6 @@ import {
 } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { usePipelineStore } from "~/store/crm/pipeline";
 import {
   Select,
   SelectContent,
@@ -45,25 +43,66 @@ import { Calendar } from "~/components/ui/calendar";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useLeadsStore } from "~/store/crm/leads";
+import { api } from "~/trpc/react";
 
-// Schema for form validation
+// Schema for form validation with enhanced validation rules
 const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  customerId: z.string().min(1, "Customer is required"),
-  value: z.coerce.number().positive("Value must be positive"),
-  status: z.string().min(1, "Status is required"),
-  probability: z.coerce.number().min(0).max(100).optional(),
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .min(3, "Title must be at least 3 characters")
+    .max(100, "Title must be less than 100 characters"),
+  customerId: z.string().min(1, "Please select a customer"),
+  value: z.coerce
+    .number({ invalid_type_error: "Value must be a number" })
+    .positive("Value must be greater than 0")
+    .max(999999999, "Value cannot exceed $999,999,999"),
+  status: z.string().min(1, "Please select a status"),
+  probability: z.coerce
+    .number({ invalid_type_error: "Probability must be a number" })
+    .min(0, "Probability cannot be less than 0%")
+    .max(100, "Probability cannot exceed 100%")
+    .optional(),
   expectedCloseDate: z.date().optional(),
-  description: z.string().optional(),
+  description: z
+    .string()
+    .max(500, "Description must be less than 500 characters")
+    .optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function AddDealDialog() {
+interface AddDealDialogProps {
+  organizationId: string;
+}
+
+export function AddDealDialog({ organizationId }: AddDealDialogProps) {
   const [open, setOpen] = useState(false);
-  const addDeal = usePipelineStore((state) => state.addDeal);
-  const { leads: customers } = useLeadsStore();
+
+  // tRPC queries and mutations
+  const utils = api.useUtils();
+  const { data: customers = [], isLoading: customersLoading } =
+    api.contactsCrm.getContactsByOrganization.useQuery(
+      { organizationId },
+      {
+        refetchOnWindowFocus: false,
+        enabled: !!organizationId,
+      },
+    );
+
+  const createDeal = api.dealsCrm.createDeal.useMutation({
+    onSuccess: () => {
+      toast.success("Deal created successfully");
+      utils.dealsCrm.invalidate();
+      setOpen(false);
+      form.reset(defaultValues);
+    },
+    onError: (error) => {
+      toast.error("Failed to create deal", {
+        description: error.message,
+      });
+    },
+  });
 
   const defaultValues: Partial<FormValues> = {
     title: "",
@@ -80,58 +119,39 @@ export function AddDealDialog() {
   });
 
   const onSubmit = (data: FormValues) => {
-    console.log("Form submitted", data);
-
-    // Create a customer name from the selected customer
-    const customer = customers.find((c) => c.id === data.customerId);
-    const customerName = customer
-      ? `${customer.firstName} ${customer.lastName} - ${customer.company}`
-      : "Unknown Customer";
-
-    // Create a new deal with a unique ID and current timestamp
-    const newDeal = {
-      id: uuidv4(),
-      title: data.title,
+    createDeal.mutate({
       customerId: data.customerId,
-      customerName,
+      title: data.title,
       value: data.value,
-      status: data.status,
+      status: data.status as
+        | "NEW"
+        | "CONTACTED"
+        | "QUALIFIED"
+        | "PROPOSAL"
+        | "NEGOTIATION"
+        | "CLOSED_WON"
+        | "CLOSED_LOST",
       stage: getStageFromStatus(data.status),
       probability: data.probability,
-      description: data.description ?? "",
-      expectedCloseDate: data.expectedCloseDate
-        ? data.expectedCloseDate.toISOString()
-        : undefined,
       currency: "USD",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    console.log("Adding new deal to store:", newDeal);
-
-    // Add the new deal to the store
-    addDeal(newDeal);
-
-    // Show success message
-    toast.success(`New deal "${data.title}" added successfully`);
-
-    // Close the dialog and reset form
-    setOpen(false);
-    form.reset(defaultValues);
+      expectedCloseDate: data.expectedCloseDate,
+      description: data.description,
+    });
   };
 
   // Helper function to map status to stage number
+  // Note: Stage must be at least 1 to match backend validation
   const getStageFromStatus = (status: string): number => {
     const stageMap: Record<string, number> = {
-      NEW: 0,
-      CONTACTED: 1,
-      QUALIFIED: 2,
-      PROPOSAL: 3,
-      NEGOTIATION: 4,
-      CLOSED_WON: 5,
-      CLOSED_LOST: 6,
+      NEW: 1, // Changed from 0 to 1
+      CONTACTED: 2, // Incremented all stages by 1
+      QUALIFIED: 3,
+      PROPOSAL: 4,
+      NEGOTIATION: 5,
+      CLOSED_WON: 6,
+      CLOSED_LOST: 7,
     };
-    return stageMap[status] ?? 0;
+    return stageMap[status] ?? 1; // Default to 1 instead of 0
   };
 
   return (
@@ -315,15 +335,23 @@ export function AddDealDialog() {
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
+                className="w-full sm:w-auto"
+                disabled={createDeal.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit">Add Deal</Button>
+              <Button
+                type="submit"
+                className="w-full sm:w-auto"
+                disabled={createDeal.isPending}
+              >
+                {createDeal.isPending ? "Adding Deal..." : "Add Deal"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

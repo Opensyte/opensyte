@@ -1,28 +1,82 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { DealBoard } from "./deal-board";
 import { DealFilters as DealFiltersComponent } from "./deal-filters";
-import { usePipelineStore } from "~/store/crm/pipeline";
+import { PipelineSkeleton } from "./pipeline-skeleton";
+import { api } from "~/trpc/react";
 import type { Deal, DealFilters } from "~/types/crm";
 
-export function Pipeline() {
+interface PipelineProps {
+  organizationId: string;
+}
+
+export function Pipeline({ organizationId }: PipelineProps) {
+  const [filters, setFilters] = useState<
+    DealFilters & { searchQuery?: string }
+  >({
+    dateRange: null,
+    valueRange: null,
+    probability: null,
+    searchQuery: "",
+  });
+
+  // tRPC queries and mutations
+  const utils = api.useUtils();
   const {
-    deals,
-    loading,
-    filters,
-    updateDeal,
-    setFilters,
-  } = usePipelineStore();
+    data: deals = [],
+    isLoading,
+    error,
+  } = api.dealsCrm.getDealsByOrganization.useQuery(
+    { organizationId },
+    {
+      refetchOnWindowFocus: false,
+      enabled: !!organizationId, // Only run query if organizationId is provided
+    },
+  );
+
+  const updateDeal = api.dealsCrm.updateDeal.useMutation({
+    onSuccess: () => {
+      toast.success("Deal updated successfully");
+      utils.dealsCrm.invalidate();
+    },
+    onError: (error) => {
+      toast.error("Failed to update deal", {
+        description: error.message,
+      });
+    },
+  });
 
   // Handle deal updates
   const handleDealUpdate = (updatedDeal: Deal) => {
-    updateDeal(updatedDeal);
+    updateDeal.mutate({
+      id: updatedDeal.id,
+      organizationId: organizationId,
+      title: updatedDeal.title,
+      value: Number(updatedDeal.value),
+      customerId: updatedDeal.customerId,
+      customerName: updatedDeal.customerName,
+      status: updatedDeal.status as
+        | "NEW"
+        | "CONTACTED"
+        | "QUALIFIED"
+        | "PROPOSAL"
+        | "NEGOTIATION"
+        | "CLOSED_WON"
+        | "CLOSED_LOST",
+      stage: updatedDeal.stage,
+      probability: updatedDeal.probability,
+      expectedCloseDate: updatedDeal.expectedCloseDate
+        ? new Date(updatedDeal.expectedCloseDate)
+        : undefined,
+      description: updatedDeal.description,
+    });
   };
 
   // Apply filters helper
   const handleApplyFilters = (newFilters: Partial<DealFilters>) => {
-    setFilters(newFilters);
+    setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
   /* useEffect(() => {
@@ -43,10 +97,27 @@ export function Pipeline() {
   }, [deals.length, loading, setDeals, setLoading, setError, deals]); */
 
   // Calculate pipeline metrics
-  const totalValue = deals.reduce((sum, deal) => sum + deal.value, 0);
+  const totalValue = deals.reduce((sum, deal) => sum + Number(deal.value), 0);
   const totalDeals = deals.length;
   const wonDeals = deals.filter((deal) => deal.status === "CLOSED_WON");
-  const wonValue = wonDeals.reduce((sum, deal) => sum + deal.value, 0);
+  const wonValue = wonDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
+
+  // Transform deals data to match expected Deal type
+  const transformedDeals: Deal[] = deals.map((deal) => ({
+    ...deal,
+    value: Number(deal.value),
+    probability: deal.probability ?? undefined,
+    description: deal.description ?? "",
+    customerName: `${deal.customer.firstName} ${deal.customer.lastName}`,
+    expectedCloseDate: deal.expectedCloseDate
+      ? deal.expectedCloseDate.toISOString()
+      : undefined,
+    actualCloseDate: deal.actualCloseDate
+      ? deal.actualCloseDate.toISOString()
+      : undefined,
+    createdAt: deal.createdAt.toISOString(),
+    updatedAt: deal.updatedAt.toISOString(),
+  }));
 
   return (
     <>
@@ -94,14 +165,19 @@ export function Pipeline() {
       </div>
 
       <div className="flex-1 overflow-auto p-4 md:p-6">
-        {loading ? (
+        {isLoading ? (
+          <PipelineSkeleton />
+        ) : error ? (
           <div className="flex h-64 items-center justify-center">
-            <div className="text-muted-foreground">Loading deals...</div>
+            <div className="text-destructive">
+              Failed to load deals: {error.message}
+            </div>
           </div>
         ) : (
           <DealBoard
-            deals={deals}
+            deals={transformedDeals}
             filters={filters}
+            organizationId={organizationId}
             onDealUpdate={handleDealUpdate}
           />
         )}

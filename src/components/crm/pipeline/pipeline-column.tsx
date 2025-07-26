@@ -14,6 +14,7 @@ interface PipelineColumnProps {
   title: string;
   color: string;
   deals: Deal[];
+  organizationId: string;
   onDealUpdate: (deal: Deal) => void;
 }
 
@@ -22,6 +23,7 @@ export function PipelineColumn({
   title,
   color,
   deals,
+  organizationId,
   onDealUpdate,
 }: PipelineColumnProps) {
   const columnId = useId();
@@ -60,7 +62,12 @@ export function PipelineColumn({
         >
           <div className="flex flex-col gap-2">
             {deals.map((deal) => (
-              <DealCard key={deal.id} deal={deal} onDealUpdate={onDealUpdate} />
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                organizationId={organizationId}
+                onDealUpdate={onDealUpdate}
+              />
             ))}
 
             {deals.length === 0 && (
