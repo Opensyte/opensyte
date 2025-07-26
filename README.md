@@ -109,8 +109,8 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 |---------|--------|-------------|
 | **Customer Relationship Management (CRM)** | | |
 | Contact and Lead Management | ✅ Implemented | Store and organize customer details, track leads |
-| Sales Pipeline Tracking | ✅ Not implemented | Visualize and manage your sales process with stages |
-| Customer Interaction History | ✅ Not implemented | Log emails, calls, and meetings for each customer |
+| Sales Pipeline Tracking | ✅ Implemented | Visualize and manage your sales process with stages |
+| Customer Interaction History | ✅ Implemented | Log emails, calls, and meetings for each customer |
 | Analytics and Reporting | ❌ Not implemented | Gain insights into sales performance and forecasts |
 | **Project Management** | | |
 | Task Creation and Assignment | ❌ Not implemented | Break down projects into tasks with deadlines |
