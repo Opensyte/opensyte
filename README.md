@@ -113,9 +113,9 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | Customer Interaction History | ✅ Implemented | Log emails, calls, and meetings for each customer |
 | Analytics and Reporting | ❌ Not implemented | Gain insights into sales performance and forecasts |
 | **Project Management** | | |
-| Task Creation and Assignment | ✅ Not implemented | Break down projects into tasks with deadlines |
+| Task Creation and Assignment | ✅ Implemented | Break down projects into tasks with deadlines |
 | Visual Tools (Gantt/Kanban) | ❌ Not implemented | Use Gantt charts and Kanban boards for tracking |
-| Resource Management | ✅ Not implemented | Allocate team members to specific tasks |
+| Resource Management | ✅ Implemented | Allocate team members to specific tasks |
 | Time Tracking | ❌ Not implemented | Record time spent on tasks |
 | Collaboration Features | ❌ Not implemented | Enable comments and file attachments within tasks |
 | **Finance and Accounting** | | |
