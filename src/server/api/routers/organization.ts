@@ -291,6 +291,54 @@ export const organizationRouter = createTRPCRouter({
       }
     }),
 
+  // Get organization members for assignment
+  getMembers: publicProcedure
+    .input(z.object({ organizationId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      try {
+        // First get the user organization relationships
+        const userOrgs = await ctx.db.userOrganization.findMany({
+          where: {
+            organizationId: input.organizationId,
+          },
+        });
+
+        // Then get the user details for each member
+        const userIds = userOrgs.map(uo => uo.userId);
+        const users = await ctx.db.user.findMany({
+          where: {
+            id: {
+              in: userIds,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        });
+
+        // Combine the data
+        return userOrgs.map(member => {
+          const user = users.find(u => u.id === member.userId);
+          return {
+            id: member.userId,
+            userId: member.userId,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            user: user ?? {
+              id: member.userId,
+              name: "Unknown User",
+              email: "unknown@example.com",
+            },
+          };
+        });
+      } catch (error) {
+        console.error("Error fetching organization members:", error);
+        throw new Error("Failed to fetch organization members");
+      }
+    }),
+
   // Get organization stats
   getStats: publicProcedure
     .input(z.object({ organizationId: z.string(), userId: z.string() }))

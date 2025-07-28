@@ -6,7 +6,7 @@ generator client {
 }
 
 generator zod {
-  provider       = "npx zod-prisma-types"
+  provider = "npx zod-prisma-types"
 }
 
 datasource db {
@@ -238,6 +238,7 @@ model Task {
   createdById    String?
   estimatedHours Float?
   actualHours    Float?
+  order          Int        @default(0)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 

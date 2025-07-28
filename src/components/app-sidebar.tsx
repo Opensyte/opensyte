@@ -9,6 +9,8 @@ import {
   Settings2,
   Users,
   Building2,
+  Plus,
+  Folder,
 } from "lucide-react";
 
 import { NavMain } from "~/components/nav-main";
@@ -26,9 +28,12 @@ import {
 } from "~/components/ui/sidebar";
 import { api } from "~/trpc/react";
 import { authClient } from "~/lib/auth-client";
+import { useParams } from "next/navigation";
+import { useState } from "react";
+import { ProjectCreateDialog } from "~/components/projects/project-create-dialog";
 
 // Sample data for the sidebar
-const data = {
+const getNavData = (setIsCreateProjectDialogOpen: (open: boolean) => void) => ({
   user: {
     name: "User",
     email: "user@example.com",
@@ -58,20 +63,12 @@ const data = {
       title: "Projects",
       url: "/[orgId]/projects",
       icon: FileSpreadsheet,
-      items: [
-        {
-          title: "Tasks",
-          url: "/[orgId]/projects/tasks",
-        },
-        {
-          title: "Kanban Board",
-          url: "/[orgId]/projects/kanban",
-        },
-        {
-          title: "Time Tracking",
-          url: "/[orgId]/projects/time-tracking",
-        },
-      ],
+      action: {
+        icon: Plus,
+        onClick: () => setIsCreateProjectDialogOpen(true),
+        tooltip: "Create new project",
+      },
+      items: [],
     },
     {
       title: "Finance",
@@ -169,14 +166,26 @@ const data = {
       ],
     },
   ],
-};
+});
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
+  const params = useParams();
+  const orgId = params?.orgId as string;
+  const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
 
   const { data: organizations, isLoading } = api.organization.getAll.useQuery(
     { userId: session?.user?.id ?? "" },
     { enabled: !!session?.user?.id },
+  );
+
+  // Get navigation data with the state setter
+  const data = getNavData(setIsCreateProjectDialogOpen);
+
+  // Fetch projects for the current organization
+  const { data: projects } = api.project.getAll.useQuery(
+    { organizationId: orgId },
+    { enabled: !!orgId },
   );
 
   // Transform organizations to teams format for TeamSwitcher
@@ -191,6 +200,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }));
   }, [organizations]);
 
+  // Create dynamic navigation with projects
+  const dynamicNavMain = React.useMemo(() => {
+    const baseNav = [...data.navMain];
+    
+    // Find the Projects section and update it with dynamic project items
+    const projectsIndex = baseNav.findIndex(item => item.title === "Projects");
+    if (projectsIndex !== -1 && projects) {
+      const projectItems = projects.map(project => ({
+        title: project.name,
+        url: `/[orgId]/projects/${project.id}`,
+        icon: Folder,
+      }));
+      
+      const currentProjectSection = baseNav[projectsIndex]!;
+      // Type-safe way to update the items
+      baseNav[projectsIndex] = {
+        ...currentProjectSection,
+        items: projectItems,
+      } as typeof currentProjectSection; // Ensure type compatibility
+    }
+    
+    return baseNav;
+  }, [projects, data.navMain]);
+
   // Show loading state
   if (isLoading || !session?.user?.id) {
     return (
@@ -203,12 +236,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <NavMain items={data.navMain} />
+          <NavMain items={dynamicNavMain} />
         </SidebarContent>
         <SidebarFooter>
           <NavUser user={data.user} />
         </SidebarFooter>
         <SidebarRail />
+        
+        {/* Project Creation Dialog */}
+        {orgId && (
+          <ProjectCreateDialog
+            open={isCreateProjectDialogOpen}
+            onOpenChange={setIsCreateProjectDialogOpen}
+            organizationId={orgId}
+          />
+        )}
       </Sidebar>
     );
   }
@@ -219,12 +261,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={dynamicNavMain} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />
+      
+      {/* Project Creation Dialog */}
+      {orgId && (
+        <ProjectCreateDialog
+          open={isCreateProjectDialogOpen}
+          onOpenChange={setIsCreateProjectDialogOpen}
+          organizationId={orgId}
+        />
+      )}
     </Sidebar>
   );
 }

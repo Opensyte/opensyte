@@ -128,7 +128,7 @@ export default function EditLeadDialog({
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Lead</DialogTitle>

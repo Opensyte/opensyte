@@ -1,4 +1,3 @@
-/* eslint no-use-before-define: 0 */
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 
@@ -46,7 +45,7 @@ export const DealScalarFieldEnumSchema = z.enum(['id','customerId','title','valu
 
 export const ProjectScalarFieldEnumSchema = z.enum(['id','organizationId','name','description','startDate','endDate','status','budget','currency','createdById','createdAt','updatedAt']);
 
-export const TaskScalarFieldEnumSchema = z.enum(['id','organizationId','projectId','parentTaskId','title','description','status','priority','startDate','dueDate','completedAt','assignedToId','createdById','estimatedHours','actualHours','createdAt','updatedAt','customerInteractionId']);
+export const TaskScalarFieldEnumSchema = z.enum(['id','organizationId','projectId','parentTaskId','title','description','status','priority','startDate','dueDate','completedAt','assignedToId','createdById','estimatedHours','actualHours','order','createdAt','updatedAt','customerInteractionId']);
 
 export const ProjectResourceScalarFieldEnumSchema = z.enum(['projectId','assigneeId','role','allocation','startDate','endDate','hourlyRate','currency','createdAt','updatedAt']);
 
@@ -328,6 +327,7 @@ export const TaskSchema = z.object({
   createdById: z.string().nullable(),
   estimatedHours: z.number().nullable(),
   actualHours: z.number().nullable(),
+  order: z.number().int(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
   customerInteractionId: z.string().nullable(),
@@ -1079,6 +1079,7 @@ export const TaskSelectSchema: z.ZodType<Prisma.TaskSelect> = z.object({
   createdById: z.boolean().optional(),
   estimatedHours: z.boolean().optional(),
   actualHours: z.boolean().optional(),
+  order: z.boolean().optional(),
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
   customerInteractionId: z.boolean().optional(),
@@ -2361,6 +2362,7 @@ export const TaskWhereInputSchema: z.ZodType<Prisma.TaskWhereInput> = z.object({
   createdById: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   estimatedHours: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   actualHours: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
+  order: z.union([ z.lazy(() => IntFilterSchema),z.number() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   customerInteractionId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -2390,6 +2392,7 @@ export const TaskOrderByWithRelationInputSchema: z.ZodType<Prisma.TaskOrderByWit
   createdById: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   estimatedHours: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   actualHours: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  order: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
   customerInteractionId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -2425,6 +2428,7 @@ export const TaskWhereUniqueInputSchema: z.ZodType<Prisma.TaskWhereUniqueInput> 
   createdById: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   estimatedHours: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   actualHours: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
+  order: z.union([ z.lazy(() => IntFilterSchema),z.number().int() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   customerInteractionId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -2454,6 +2458,7 @@ export const TaskOrderByWithAggregationInputSchema: z.ZodType<Prisma.TaskOrderBy
   createdById: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   estimatedHours: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   actualHours: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  order: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
   customerInteractionId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -2483,6 +2488,7 @@ export const TaskScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.TaskScal
   createdById: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   estimatedHours: z.union([ z.lazy(() => FloatNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
   actualHours: z.union([ z.lazy(() => FloatNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  order: z.union([ z.lazy(() => IntWithAggregatesFilterSchema),z.number() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
   customerInteractionId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
@@ -5224,6 +5230,7 @@ export const TaskCreateInputSchema: z.ZodType<Prisma.TaskCreateInput> = z.object
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -5252,6 +5259,7 @@ export const TaskUncheckedCreateInputSchema: z.ZodType<Prisma.TaskUncheckedCreat
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -5274,6 +5282,7 @@ export const TaskUpdateInputSchema: z.ZodType<Prisma.TaskUpdateInput> = z.object
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -5302,6 +5311,7 @@ export const TaskUncheckedUpdateInputSchema: z.ZodType<Prisma.TaskUncheckedUpdat
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -5327,6 +5337,7 @@ export const TaskCreateManyInputSchema: z.ZodType<Prisma.TaskCreateManyInput> = 
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable()
@@ -5345,6 +5356,7 @@ export const TaskUpdateManyMutationInputSchema: z.ZodType<Prisma.TaskUpdateManyM
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -5365,6 +5377,7 @@ export const TaskUncheckedUpdateManyInputSchema: z.ZodType<Prisma.TaskUncheckedU
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -8459,6 +8472,7 @@ export const TaskCountOrderByAggregateInputSchema: z.ZodType<Prisma.TaskCountOrd
   createdById: z.lazy(() => SortOrderSchema).optional(),
   estimatedHours: z.lazy(() => SortOrderSchema).optional(),
   actualHours: z.lazy(() => SortOrderSchema).optional(),
+  order: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
   customerInteractionId: z.lazy(() => SortOrderSchema).optional()
@@ -8466,7 +8480,8 @@ export const TaskCountOrderByAggregateInputSchema: z.ZodType<Prisma.TaskCountOrd
 
 export const TaskAvgOrderByAggregateInputSchema: z.ZodType<Prisma.TaskAvgOrderByAggregateInput> = z.object({
   estimatedHours: z.lazy(() => SortOrderSchema).optional(),
-  actualHours: z.lazy(() => SortOrderSchema).optional()
+  actualHours: z.lazy(() => SortOrderSchema).optional(),
+  order: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
 export const TaskMaxOrderByAggregateInputSchema: z.ZodType<Prisma.TaskMaxOrderByAggregateInput> = z.object({
@@ -8485,6 +8500,7 @@ export const TaskMaxOrderByAggregateInputSchema: z.ZodType<Prisma.TaskMaxOrderBy
   createdById: z.lazy(() => SortOrderSchema).optional(),
   estimatedHours: z.lazy(() => SortOrderSchema).optional(),
   actualHours: z.lazy(() => SortOrderSchema).optional(),
+  order: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
   customerInteractionId: z.lazy(() => SortOrderSchema).optional()
@@ -8506,6 +8522,7 @@ export const TaskMinOrderByAggregateInputSchema: z.ZodType<Prisma.TaskMinOrderBy
   createdById: z.lazy(() => SortOrderSchema).optional(),
   estimatedHours: z.lazy(() => SortOrderSchema).optional(),
   actualHours: z.lazy(() => SortOrderSchema).optional(),
+  order: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
   customerInteractionId: z.lazy(() => SortOrderSchema).optional()
@@ -8513,7 +8530,8 @@ export const TaskMinOrderByAggregateInputSchema: z.ZodType<Prisma.TaskMinOrderBy
 
 export const TaskSumOrderByAggregateInputSchema: z.ZodType<Prisma.TaskSumOrderByAggregateInput> = z.object({
   estimatedHours: z.lazy(() => SortOrderSchema).optional(),
-  actualHours: z.lazy(() => SortOrderSchema).optional()
+  actualHours: z.lazy(() => SortOrderSchema).optional(),
+  order: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
 export const EnumTaskStatusWithAggregatesFilterSchema: z.ZodType<Prisma.EnumTaskStatusWithAggregatesFilter> = z.object({
@@ -12644,6 +12662,7 @@ export const TaskCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.TaskCrea
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   project: z.lazy(() => ProjectCreateNestedOneWithoutTasksInputSchema).optional(),
@@ -12670,6 +12689,7 @@ export const TaskUncheckedCreateWithoutOrganizationInputSchema: z.ZodType<Prisma
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -13037,6 +13057,7 @@ export const TaskScalarWhereInputSchema: z.ZodType<Prisma.TaskScalarWhereInput> 
   createdById: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   estimatedHours: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   actualHours: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
+  order: z.union([ z.lazy(() => IntFilterSchema),z.number() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   customerInteractionId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -13662,6 +13683,7 @@ export const TaskCreateWithoutCustomerInteractionInputSchema: z.ZodType<Prisma.T
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -13689,6 +13711,7 @@ export const TaskUncheckedCreateWithoutCustomerInteractionInputSchema: z.ZodType
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   subtasks: z.lazy(() => TaskUncheckedCreateNestedManyWithoutParentTaskInputSchema).optional(),
@@ -13948,6 +13971,7 @@ export const TaskCreateWithoutProjectInputSchema: z.ZodType<Prisma.TaskCreateWit
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -13974,6 +13998,7 @@ export const TaskUncheckedCreateWithoutProjectInputSchema: z.ZodType<Prisma.Task
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -14290,6 +14315,7 @@ export const TaskCreateWithoutSubtasksInputSchema: z.ZodType<Prisma.TaskCreateWi
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -14317,6 +14343,7 @@ export const TaskUncheckedCreateWithoutSubtasksInputSchema: z.ZodType<Prisma.Tas
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -14343,6 +14370,7 @@ export const TaskCreateWithoutParentTaskInputSchema: z.ZodType<Prisma.TaskCreate
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -14369,6 +14397,7 @@ export const TaskUncheckedCreateWithoutParentTaskInputSchema: z.ZodType<Prisma.T
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -14635,6 +14664,7 @@ export const TaskUpdateWithoutSubtasksInputSchema: z.ZodType<Prisma.TaskUpdateWi
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -14662,6 +14692,7 @@ export const TaskUncheckedUpdateWithoutSubtasksInputSchema: z.ZodType<Prisma.Tas
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -14936,6 +14967,7 @@ export const TaskCreateWithoutTimeEntriesInputSchema: z.ZodType<Prisma.TaskCreat
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -14963,6 +14995,7 @@ export const TaskUncheckedCreateWithoutTimeEntriesInputSchema: z.ZodType<Prisma.
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -15045,6 +15078,7 @@ export const TaskUpdateWithoutTimeEntriesInputSchema: z.ZodType<Prisma.TaskUpdat
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -15072,6 +15106,7 @@ export const TaskUncheckedUpdateWithoutTimeEntriesInputSchema: z.ZodType<Prisma.
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -15721,6 +15756,7 @@ export const TaskCreateWithoutCommentsInputSchema: z.ZodType<Prisma.TaskCreateWi
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -15748,6 +15784,7 @@ export const TaskUncheckedCreateWithoutCommentsInputSchema: z.ZodType<Prisma.Tas
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -15785,6 +15822,7 @@ export const TaskUpdateWithoutCommentsInputSchema: z.ZodType<Prisma.TaskUpdateWi
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -15812,6 +15850,7 @@ export const TaskUncheckedUpdateWithoutCommentsInputSchema: z.ZodType<Prisma.Tas
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -15833,6 +15872,7 @@ export const TaskCreateWithoutAttachmentsInputSchema: z.ZodType<Prisma.TaskCreat
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutTasksInputSchema),
@@ -15860,6 +15900,7 @@ export const TaskUncheckedCreateWithoutAttachmentsInputSchema: z.ZodType<Prisma.
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable(),
@@ -15897,6 +15938,7 @@ export const TaskUpdateWithoutAttachmentsInputSchema: z.ZodType<Prisma.TaskUpdat
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -15924,6 +15966,7 @@ export const TaskUncheckedUpdateWithoutAttachmentsInputSchema: z.ZodType<Prisma.
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -17476,6 +17519,7 @@ export const TaskCreateManyOrganizationInputSchema: z.ZodType<Prisma.TaskCreateM
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable()
@@ -17708,6 +17752,7 @@ export const TaskUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.TaskUpda
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   project: z.lazy(() => ProjectUpdateOneWithoutTasksNestedInputSchema).optional(),
@@ -17734,6 +17779,7 @@ export const TaskUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -17758,6 +17804,7 @@ export const TaskUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodType<Pr
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -18232,6 +18279,7 @@ export const TaskCreateManyCustomerInteractionInputSchema: z.ZodType<Prisma.Task
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional()
 }).strict();
@@ -18249,6 +18297,7 @@ export const TaskUpdateWithoutCustomerInteractionInputSchema: z.ZodType<Prisma.T
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -18276,6 +18325,7 @@ export const TaskUncheckedUpdateWithoutCustomerInteractionInputSchema: z.ZodType
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   subtasks: z.lazy(() => TaskUncheckedUpdateManyWithoutParentTaskNestedInputSchema).optional(),
@@ -18300,6 +18350,7 @@ export const TaskUncheckedUpdateManyWithoutCustomerInteractionInputSchema: z.Zod
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -18319,6 +18370,7 @@ export const TaskCreateManyProjectInputSchema: z.ZodType<Prisma.TaskCreateManyPr
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable()
@@ -18364,6 +18416,7 @@ export const TaskUpdateWithoutProjectInputSchema: z.ZodType<Prisma.TaskUpdateWit
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -18390,6 +18443,7 @@ export const TaskUncheckedUpdateWithoutProjectInputSchema: z.ZodType<Prisma.Task
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -18414,6 +18468,7 @@ export const TaskUncheckedUpdateManyWithoutProjectInputSchema: z.ZodType<Prisma.
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -18515,6 +18570,7 @@ export const TaskCreateManyParentTaskInputSchema: z.ZodType<Prisma.TaskCreateMan
   createdById: z.string().optional().nullable(),
   estimatedHours: z.number().optional().nullable(),
   actualHours: z.number().optional().nullable(),
+  order: z.number().int().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   customerInteractionId: z.string().optional().nullable()
@@ -18567,6 +18623,7 @@ export const TaskUpdateWithoutParentTaskInputSchema: z.ZodType<Prisma.TaskUpdate
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutTasksNestedInputSchema).optional(),
@@ -18593,6 +18650,7 @@ export const TaskUncheckedUpdateWithoutParentTaskInputSchema: z.ZodType<Prisma.T
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -18617,6 +18675,7 @@ export const TaskUncheckedUpdateManyWithoutParentTaskInputSchema: z.ZodType<Pris
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   estimatedHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   actualHours: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  order: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   customerInteractionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),

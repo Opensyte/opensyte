@@ -37,9 +37,9 @@ export function Pipeline({ organizationId }: PipelineProps) {
   );
 
   const updateDeal = api.dealsCrm.updateDeal.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Deal updated successfully");
-      utils.dealsCrm.invalidate();
+      await utils.dealsCrm.invalidate();
     },
     onError: (error) => {
       toast.error("Failed to update deal", {

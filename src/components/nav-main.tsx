@@ -18,19 +18,26 @@ import {
   SidebarMenuSubItem,
 } from "~/components/ui/sidebar";
 
+interface NavItem {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  isActive?: boolean;
+  action?: {
+    icon: LucideIcon;
+    onClick: () => void;
+    tooltip?: string;
+  };
+  items?: {
+    title: string;
+    url: string;
+  }[];
+}
+
 export function NavMain({
   items,
 }: {
-  items: {
-    title: string;
-    url: string;
-    icon?: LucideIcon;
-    isActive?: boolean;
-    items?: {
-      title: string;
-      url: string;
-    }[];
-  }[];
+  items: NavItem[];
 }) {
   const pathname = usePathname();
 
@@ -62,13 +69,30 @@ export function NavMain({
               className="group/collapsible"
             >
               <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title} isActive={isActive}>
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
+                <div className="group/item flex w-full items-center">
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={item.title} isActive={isActive} className="flex-1">
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                      {item.items && item.items.length > 0 && (
+                        <ChevronRight className="ml-auto transition-transform duration-200 opacity-0 group-hover/item:opacity-100 group-data-[state=open]/collapsible:rotate-90 group-data-[state=open]/collapsible:opacity-100" />
+                      )}
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  {item.action && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        item.action!.onClick();
+                      }}
+                      className="ml-1 h-8 w-8 rounded-sm opacity-60 hover:opacity-100 hover:bg-accent flex items-center justify-center"
+                      title={item.action.tooltip}
+                    >
+                      <item.action.icon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => {

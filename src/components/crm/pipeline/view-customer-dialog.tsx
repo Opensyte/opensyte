@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   CalendarIcon,
   Phone,
@@ -22,7 +21,6 @@ import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Separator } from "~/components/ui/separator";
-import type { Customer } from "~/types/crm";
 import { api } from "~/trpc/react";
 
 interface ViewCustomerDialogProps {
@@ -35,7 +33,6 @@ interface ViewCustomerDialogProps {
 // Customer details will be fetched via tRPC
 
 export function ViewCustomerDialog({
-  customerName,
   customerId,
   open,
   onOpenChange,
@@ -282,7 +279,7 @@ export function ViewCustomerDialog({
                         variant="outline"
                         className="bg-white dark:bg-gray-700"
                       >
-                        {customer.source?.replace(/_/g, " ") || "Unknown"}
+                        {customer.source?.replace(/_/g, " ") ?? "Unknown"}
                       </Badge>
                     </div>
                     <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">

@@ -3,6 +3,8 @@ import { contactsCrmRoutes } from "./routers/crm/contacts";
 import { organizationRouter } from "./routers/organization";
 import { interactionsRouter } from "./routers/crm/interactions";
 import { dealsCrmRoutes } from "./routers/crm/deals";
+import { projectRouter } from "./routers/projects/project";
+import { taskRouter } from "./routers/projects/task";
 
 /**
  * This is the primary router for your server.
@@ -14,6 +16,8 @@ export const appRouter = createTRPCRouter({
   organization: organizationRouter,
   interactions: interactionsRouter,
   dealsCrm: dealsCrmRoutes,
+  project: projectRouter,
+  task: taskRouter,
 });
 
 // export type definition of API

@@ -59,17 +59,20 @@ export function DealBoard({
   }, [deals, activeId]);
   // Apply filters to deals (using localDeals for optimistic UI)
   const filteredDeals = useMemo(() => {
-    console.log("Filtering deals", localDeals.length);
+    // Early return if no filters applied
+    if (!filters.searchQuery && !filters.probability) {
+      return localDeals;
+    }
+
     return localDeals.filter((deal) => {
-      // Apply search filter
-      if (
-        filters.searchQuery &&
-        !deal.title.toLowerCase().includes(filters.searchQuery.toLowerCase()) &&
-        !deal.customerName
-          .toLowerCase()
-          .includes(filters.searchQuery.toLowerCase())
-      ) {
-        return false;
+      // Apply search filter with early return
+      if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        const titleMatch = deal.title.toLowerCase().includes(query);
+        const customerMatch = deal.customerName.toLowerCase().includes(query);
+        if (!titleMatch && !customerMatch) {
+          return false;
+        }
       }
 
       // Apply probability filter
@@ -88,9 +91,9 @@ export function DealBoard({
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      // Lowering the activation constraint for better mobile experience
+      // Minimal activation constraint for instant drag response
       activationConstraint: {
-        distance: 5,
+        distance: 1,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -114,67 +117,58 @@ export function DealBoard({
     (event: DragEndEvent) => {
       const { active, over } = event;
 
+      // Clear active state immediately for instant visual feedback
+      setActiveId(null);
+
       if (!over) {
-        setActiveId(null);
         return;
       }
 
-      const activeId = active.id;
-      const overId = over.id;
+      const activeId = active.id as string;
+      const overId = over.id as string;
 
       // Find the active deal from localDeals for current UI state
       const activeDeal = localDeals.find((deal) => deal.id === activeId);
       if (!activeDeal) {
-        setActiveId(null);
         return;
       }
 
       // Get the type and status from the over element
-      const overType = over.data?.current?.type as
-        | "column"
-        | "deal"
-        | undefined;
-
+      const overType = over.data?.current?.type as "column" | "deal" | undefined;
       let newStatus = activeDeal.status;
 
-      // If dropped on a column directly
+      // Determine new status based on drop target
       if (overType === "column") {
-        newStatus = overId as string;
-      }
-      // If dropped on another deal
-      else if (overType === "deal") {
-        // Find the target deal
+        newStatus = overId;
+      } else if (overType === "deal") {
+        // Find the target deal and use its status
         const overDeal = localDeals.find((deal) => deal.id === overId);
-        if (!overDeal) {
-          setActiveId(null);
-          return;
+        if (overDeal) {
+          newStatus = overDeal.status;
         }
-
-        // Use the target deal's status for the active deal
-        newStatus = overDeal.status;
       }
 
-      // Clear active state immediately
-      setActiveId(null);
-
-      // If status has changed, update the deal
-      if (activeDeal.status !== newStatus) {
-        // INSTANT OPTIMISTIC UPDATE: Update local state immediately for instant UI feedback
-        const updatedDeal = {
-          ...activeDeal,
-          status: newStatus,
-          updatedAt: new Date().toISOString(),
-        };
-
-        // Update local state first for instant visual feedback
-        setLocalDeals((prevDeals) =>
-          prevDeals.map((deal) =>
-            deal.id === activeDeal.id ? updatedDeal : deal,
-          ),
-        );
-
-        onDealUpdate(updatedDeal);
+      // Only proceed if status actually changed
+      if (activeDeal.status === newStatus) {
+        return;
       }
+
+      // Create updated deal object
+      const updatedDeal = {
+        ...activeDeal,
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+      };
+
+      // INSTANT OPTIMISTIC UPDATE: Update local state immediately for instant visual feedback
+      setLocalDeals((prevDeals) =>
+        prevDeals.map((deal) =>
+          deal.id === activeId ? updatedDeal : deal,
+        ),
+      );
+
+      // Then call API in background
+      onDealUpdate(updatedDeal);
     },
     [localDeals, onDealUpdate],
   );
