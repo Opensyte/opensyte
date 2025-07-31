@@ -206,8 +206,8 @@ export function CustomerDetailsDialog({
                     <MapPin className="text-muted-foreground mt-0.5 h-4 w-4 flex-shrink-0" />
                     <div className="text-sm break-words">
                       <p>{customer.address}</p>
-                      {(customer.city ||
-                        customer.state ||
+                      {(customer.city ??
+                        customer.state ??
                         customer.postalCode) && (
                         <p>
                           {[customer.city, customer.state, customer.postalCode]

@@ -1,11 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  LayoutList,
+  KanbanSquare,
+  GanttChartSquare,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -16,7 +25,8 @@ import {
 import { TaskCreateDialog } from "./task-create-dialog";
 import { TasksList } from "./tasks-list";
 import { ProjectEditDialog } from "./project-edit-dialog";
-import { Skeleton } from "~/components/ui/skeleton";
+import { ProjectTasksSkeleton } from "./project-tasks-skeleton";
+import { ProjectGanttBoard } from "./project-gantt-board";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,8 +51,10 @@ interface ProjectTasksClientProps {
   projectId: string;
 }
 
-export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksClientProps) {
-  const [activeTab, setActiveTab] = useState("list");
+export function ProjectTasksClient({
+  organizationId,
+  projectId,
+}: ProjectTasksClientProps) {
   const [isCreateTaskDialogOpen, setIsCreateTaskDialogOpen] = useState(false);
   const [isEditProjectDialogOpen, setIsEditProjectDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -50,38 +62,35 @@ export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksCl
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
+  const { data: project, isLoading: isLoadingProject } =
+    api.project.getById.useQuery({
+      id: projectId,
+      organizationId,
+    });
 
-  // Fetch project details
-  const { data: project } = api.project.getById.useQuery({
-    id: projectId,
-    organizationId,
-  });
-
-  // Fetch tasks for this project
-  const { data: tasks, isLoading } = api.task.getAll.useQuery({
+  const { data: tasks, isLoading: isLoadingTasks } = api.task.getAll.useQuery({
     organizationId,
     projectId,
   });
 
-  // Filter tasks based on status and search
-  const filteredTasks = tasks?.filter(task => {
-    const matchesStatus = statusFilter === "all" || task.status === statusFilter;
-    const matchesSearch = searchQuery === "" || 
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  }) ?? [];
+  const filteredTasks =
+    tasks?.filter((task) => {
+      const matchesStatus =
+        statusFilter === "all" || task.status === statusFilter;
+      const matchesSearch =
+        searchQuery === "" ||
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStatus && matchesSearch;
+    }) ?? [];
 
-  // Get tRPC utils for cache invalidation
   const utils = api.useUtils();
-  
-  // Delete project mutation
+
   const deleteProject = api.project.delete.useMutation({
     onSuccess: () => {
       toast.success("Project deleted successfully");
-      // Invalidate project list cache to update sidebar
       void utils.project.getAll.invalidate();
-      router.push(`/${organizationId}`);
+      router.push(`/${organizationId}/projects`);
     },
     onError: (error) => {
       toast.error(error.message ?? "Failed to delete project");
@@ -97,59 +106,25 @@ export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksCl
     }
   };
 
+  if (isLoadingProject) {
+    return <ProjectTasksSkeleton />;
+  }
+
   if (!project) {
     return (
-      <div className="flex h-full flex-col">
-        {/* Header Skeleton */}
-        <div className="border-b bg-background p-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-96" />
-            </div>
-            <Skeleton className="h-8 w-20" />
-          </div>
-        </div>
-
-        {/* Tabs Skeleton */}
-        <div className="flex-1 flex flex-col">
-          <div className="border-b px-4">
-            <div className="flex gap-6 h-12 items-center">
-              <Skeleton className="h-6 w-12" />
-              <Skeleton className="h-6 w-16" />
-              <Skeleton className="h-6 w-14" />
-            </div>
-          </div>
-
-          {/* Toolbar Skeleton */}
-          <div className="border-b p-4 bg-muted/30">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-8 w-24" />
-                <Skeleton className="h-8 w-32" />
-                <Skeleton className="h-8 w-20" />
-              </div>
-              <Skeleton className="h-8 w-64" />
-            </div>
-          </div>
-
-          {/* Tasks List Skeleton */}
-          <div className="flex-1 p-4">
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
-                  <Skeleton className="h-4 w-4" />
-                  <Skeleton className="h-4 w-4" />
-                  <Skeleton className="h-6 w-48" />
-                  <Skeleton className="h-6 w-24" />
-                  <Skeleton className="h-6 w-20" />
-                  <Skeleton className="h-6 w-16" />
-                  <Skeleton className="h-6 w-20" />
-                  <Skeleton className="h-4 w-4" />
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Project not found</h2>
+          <p className="text-muted-foreground mt-2">
+            The project you are looking for does not exist or you do not have
+            permission to view it.
+          </p>
+          <Button
+            onClick={() => router.push(`/${organizationId}/projects`)}
+            className="mt-4"
+          >
+            Back to Projects
+          </Button>
         </div>
       </div>
     );
@@ -158,32 +133,36 @@ export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksCl
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b bg-background p-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
-            {project.description && (
-              <p className="text-muted-foreground">{project.description}</p>
-            )}
+      <div className="border-b p-4 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {project.name}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {project.description ??
+                "Manage tasks, board, and timeline for this project."}
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditProjectDialogOpen(true)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Project
+            <Button onClick={() => setIsCreateTaskDialogOpen(true)} size="sm">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Task
             </Button>
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="icon" className="h-9 w-9">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem 
+                <DropdownMenuItem
+                  onClick={() => setIsEditProjectDialogOpen(true)}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Project
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => setIsDeleteDialogOpen(true)}
                   className="text-red-600 focus:text-red-600"
                 >
@@ -196,118 +175,94 @@ export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksCl
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex-1 flex flex-col">
-        <div className="border-b px-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="h-12 bg-transparent border-0 p-0">
-              <TabsTrigger 
-                value="list" 
-                className="border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none h-12"
-              >
-                List
-              </TabsTrigger>
-              <TabsTrigger 
-                value="board" 
-                className="border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none h-12"
-              >
-                Board
-              </TabsTrigger>
-              <TabsTrigger 
-                value="gantt" 
-                className="border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none h-12"
-              >
-                Gantt
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+      <Tabs defaultValue="list" className="flex flex-col overflow-hidden p-0">
+        <div className="border-b px-4 md:px-6">
+          <TabsList>
+            <TabsTrigger value="list">
+              <LayoutList className="mr-2 h-4 w-4" />
+              List
+            </TabsTrigger>
+            <TabsTrigger value="board">
+              <KanbanSquare className="mr-2 h-4 w-4" />
+              Board
+            </TabsTrigger>
+            <TabsTrigger value="gantt">
+              <GanttChartSquare className="mr-2 h-4 w-4" />
+              Gantt
+            </TabsTrigger>
+          </TabsList>
         </div>
 
-        {/* Tab Content */}
-        <div className="flex-1">
-          {activeTab === "list" && (
-            <div className="h-full flex flex-col">
-              {/* Toolbar */}
-              <div className="border-b p-4 bg-muted/30">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => setIsCreateTaskDialogOpen(true)}
-                      size="sm"
-                      className="h-8"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Task
-                    </Button>
-                    
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-32 h-8">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="BACKLOG">Backlog</SelectItem>
-                        <SelectItem value="TODO">To Do</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="REVIEW">Review</SelectItem>
-                        <SelectItem value="DONE">Done</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Search tasks..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 h-8 w-64"
-                      />
-                    </div>
-                  </div>
-                </div>
+        <TabsContent
+          value="list"
+          className="flex flex-1 flex-col overflow-hidden"
+        >
+          <div className="bg-muted/30 border-b p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-9 w-40">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="BACKLOG">Backlog</SelectItem>
+                    <SelectItem value="TODO">To Do</SelectItem>
+                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                    <SelectItem value="REVIEW">Review</SelectItem>
+                    <SelectItem value="DONE">Done</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
-              {/* Tasks List */}
-              <div className="flex-1">
-                <TasksList
-                  tasks={filteredTasks}
-                  isLoading={isLoading}
-                  organizationId={organizationId}
-                  projectId={projectId}
+              <div className="relative">
+                <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
+                <Input
+                  placeholder="Search tasks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9 w-64 pl-9"
                 />
               </div>
             </div>
-          )}
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <TasksList
+              tasks={filteredTasks}
+              isLoading={isLoadingTasks}
+              organizationId={organizationId}
+              projectId={projectId}
+            />
+          </div>
+        </TabsContent>
 
-          {activeTab === "board" && (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">Board View</h3>
-                <p className="text-muted-foreground mt-2">
-                  Board view will be implemented in a future update
-                </p>
-              </div>
+        <TabsContent
+          value="board"
+          className="flex-1 overflow-y-auto p-4 md:p-6"
+        >
+          <div className="flex h-full items-center justify-center">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">Board View</h3>
+              <p className="text-muted-foreground mt-2">
+                This feature is coming soon.
+              </p>
             </div>
-          )}
+          </div>
+        </TabsContent>
 
-          {activeTab === "gantt" && (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-lg font-medium">Gantt Chart</h3>
-                <p className="text-muted-foreground mt-2">
-                  Gantt chart will be implemented in a future update
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        <TabsContent
+          value="gantt"
+          className="flex-1 h-full min-h-0 p-4"
+        >
+          <div className="flex h-full min-h-0 flex-col">
+            <ProjectGanttBoard 
+              organizationId={organizationId}
+              projectId={projectId}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
 
-      {/* Create Task Dialog */}
+      {/* Dialogs */}
       <TaskCreateDialog
         open={isCreateTaskDialogOpen}
         onOpenChange={setIsCreateTaskDialogOpen}
@@ -315,7 +270,6 @@ export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksCl
         projectId={projectId}
       />
 
-      {/* Edit Project Dialog */}
       {project && (
         <ProjectEditDialog
           open={isEditProjectDialogOpen}
@@ -328,14 +282,17 @@ export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksCl
         />
       )}
 
-      {/* Delete Project Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;{project?.name}&rdquo;? This action cannot be undone.
-              All tasks, files, and data associated with this project will be permanently deleted.
+              Are you sure you want to delete &ldquo;{project?.name}&rdquo;?
+              This action cannot be undone. All tasks and data associated with
+              this project will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
@@ -344,7 +301,7 @@ export function ProjectTasksClient({ organizationId, projectId }: ProjectTasksCl
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteProject}
-              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="w-full bg-red-600 hover:bg-red-700 focus:ring-red-600 sm:w-auto"
               disabled={deleteProject.isPending}
             >
               {deleteProject.isPending ? "Deleting..." : "Delete Project"}
