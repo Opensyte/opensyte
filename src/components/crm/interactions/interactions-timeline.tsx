@@ -12,6 +12,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
+import {
+  interactionTypeColors,
+  interactionTypeDotColors,
+  interactionTypeLabels,
+} from "~/types/crm";
 
 interface InteractionsTimelineProps {
   interactions: CustomerInteraction[];
@@ -28,50 +33,31 @@ export function InteractionsTimeline({
   getCustomerName,
   formatDate,
 }: InteractionsTimelineProps) {
-  // Get the badge color based on interaction type
+  // Helper functions using centralized color mappings
   const getInteractionTypeColor = (type: string) => {
-    switch (type) {
-      case "CALL":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "EMAIL":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "MEETING":
-        return "bg-purple-100 text-purple-800 border-purple-200";
-      case "NOTE":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "TASK":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
+    return (
+      interactionTypeColors[type as keyof typeof interactionTypeColors] ??
+      "bg-gray-100 text-gray-800 border-gray-200"
+    );
   };
 
-  // Get the dot color based on interaction type
   const getDotColor = (type: string) => {
-    switch (type) {
-      case "CALL":
-        return "bg-blue-500";
-      case "EMAIL":
-        return "bg-green-500";
-      case "MEETING":
-        return "bg-purple-500";
-      case "NOTE":
-        return "bg-yellow-500";
-      case "TASK":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
+    return (
+      interactionTypeDotColors[type as keyof typeof interactionTypeDotColors] ??
+      "bg-gray-500"
+    );
   };
 
-  // Get the interaction type label
   const getInteractionTypeLabel = (type: string) => {
-    return type.charAt(0) + type.slice(1).toLowerCase();
+    return (
+      interactionTypeLabels[type as keyof typeof interactionTypeLabels] ??
+      type.charAt(0) + type.slice(1).toLowerCase()
+    );
   };
 
   // Sort interactions by created date (newest first)
   const sortedInteractions = [...interactions].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   return (
@@ -95,13 +81,13 @@ export function InteractionsTimeline({
                   "group relative pr-2 pl-6 transition-colors sm:pr-6 sm:pl-10",
                   "pb-5",
                   "border-l-muted/70 border-l-2",
-                  index === 0 ? "pt-6" : "pt-5",
+                  index === 0 ? "pt-6" : "pt-5"
                 )}
               >
                 <div
                   className={cn(
                     "absolute top-5 left-[-4px] h-2 w-2 rounded-full shadow-sm sm:left-[-6px] sm:h-3 sm:w-3",
-                    getDotColor(interaction.type),
+                    getDotColor(interaction.type)
                   )}
                 ></div>
 
@@ -111,7 +97,7 @@ export function InteractionsTimeline({
                       <Badge
                         className={cn(
                           "border font-medium",
-                          getInteractionTypeColor(interaction.type),
+                          getInteractionTypeColor(interaction.type)
                         )}
                       >
                         {getInteractionTypeLabel(interaction.type)}

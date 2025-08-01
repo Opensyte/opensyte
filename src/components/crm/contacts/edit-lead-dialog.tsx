@@ -128,7 +128,7 @@ export default function EditLeadDialog({
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && handleDialogClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Lead</DialogTitle>
@@ -252,7 +252,7 @@ export default function EditLeadDialog({
                             {value
                               .replace(/_/g, " ")
                               .toLowerCase()
-                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              .replace(/\b\w/g, l => l.toUpperCase())}
                           </SelectItem>
                         ))}
                       </SelectContent>

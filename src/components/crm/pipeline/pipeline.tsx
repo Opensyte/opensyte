@@ -33,7 +33,7 @@ export function Pipeline({ organizationId }: PipelineProps) {
     {
       refetchOnWindowFocus: false,
       enabled: !!organizationId, // Only run query if organizationId is provided
-    },
+    }
   );
 
   const updateDeal = api.dealsCrm.updateDeal.useMutation({
@@ -41,7 +41,7 @@ export function Pipeline({ organizationId }: PipelineProps) {
       toast.success("Deal updated successfully");
       await utils.dealsCrm.invalidate();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to update deal", {
         description: error.message,
       });
@@ -76,7 +76,7 @@ export function Pipeline({ organizationId }: PipelineProps) {
 
   // Apply filters helper
   const handleApplyFilters = (newFilters: Partial<DealFilters>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }));
+    setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
   /* useEffect(() => {
@@ -99,11 +99,11 @@ export function Pipeline({ organizationId }: PipelineProps) {
   // Calculate pipeline metrics
   const totalValue = deals.reduce((sum, deal) => sum + Number(deal.value), 0);
   const totalDeals = deals.length;
-  const wonDeals = deals.filter((deal) => deal.status === "CLOSED_WON");
+  const wonDeals = deals.filter(deal => deal.status === "CLOSED_WON");
   const wonValue = wonDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
 
   // Transform deals data to match expected Deal type
-  const transformedDeals: Deal[] = deals.map((deal) => ({
+  const transformedDeals: Deal[] = deals.map(deal => ({
     ...deal,
     value: Number(deal.value),
     probability: deal.probability ?? undefined,

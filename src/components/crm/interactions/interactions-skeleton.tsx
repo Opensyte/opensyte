@@ -54,10 +54,13 @@ export function InteractionsSkeleton() {
                 <Skeleton className="h-4 w-16" />
                 <Skeleton className="h-4 w-16" />
               </div>
-              
+
               {/* Table rows */}
               {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 py-3">
+                <div
+                  key={index}
+                  className="grid grid-cols-1 md:grid-cols-6 gap-4 py-3"
+                >
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />

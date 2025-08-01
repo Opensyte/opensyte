@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Slider } from "~/components/ui/slider";
 import { Toggle } from "~/components/ui/toggle";
 import { Separator } from "~/components/ui/separator";
-import { ZoomInIcon, ZoomOutIcon, CalendarIcon } from "lucide-react";
+import { ZoomInIcon, ZoomOutIcon } from "lucide-react";
 import { addDays, addMonths } from "date-fns";
 import {
   GanttProvider,
@@ -28,6 +28,7 @@ import {
   type GanttStatus,
   type Range,
 } from "~/components/ui/kibo-ui/gantt";
+import { taskPriorityBackgroundColors } from "~/types/projects";
 
 interface ProjectGanttBoardProps {
   organizationId: string;
@@ -97,7 +98,10 @@ export function ProjectGanttBoard({
   const [newTaskName, setNewTaskName] = useState("");
   const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
   const [clickedDate, setClickedDate] = useState<Date | null>(null);
-  const [currentMousePosition, setCurrentMousePosition] = useState({ x: 0, y: 0 });
+  const [currentMousePosition, setCurrentMousePosition] = useState({
+    x: 0,
+    y: 0,
+  });
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Filter states - daily is default as requested
@@ -116,14 +120,14 @@ export function ProjectGanttBoard({
   useEffect(() => {
     if (tasks) {
       setOptimisticTasks(
-        tasks.map((task) => ({
+        tasks.map(task => ({
           id: task.id,
           title: task.title,
           startDate: task.startDate,
           dueDate: task.dueDate,
           status: task.status,
           priority: task.priority,
-        })),
+        }))
       );
     }
   }, [tasks]);
@@ -143,7 +147,10 @@ export function ProjectGanttBoard({
   // Handle click outside popover to close it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node)
+      ) {
         setShowAddPopover(false);
         setNewTaskName("");
         setClickedDate(null);
@@ -160,7 +167,7 @@ export function ProjectGanttBoard({
 
   // Create task mutation
   const createTaskMutation = api.task.create.useMutation({
-    onMutate: async (newTask) => {
+    onMutate: async newTask => {
       // Optimistic update - add temporary task
       const tempTask = {
         id: `temp-${Date.now()}`,
@@ -177,15 +184,15 @@ export function ProjectGanttBoard({
         updatedAt: new Date(),
       };
 
-      setOptimisticTasks((prev) => [...prev, tempTask]);
+      setOptimisticTasks(prev => [...prev, tempTask]);
       return { tempTask };
     },
     onSuccess: (createdTask, variables, context) => {
       // Replace temp task with real one
-      setOptimisticTasks((prev) =>
-        prev.map((task) =>
-          task.id === context?.tempTask.id ? createdTask : task,
-        ),
+      setOptimisticTasks(prev =>
+        prev.map(task =>
+          task.id === context?.tempTask.id ? createdTask : task
+        )
       );
       toast.success("Task created successfully");
       void utils.task.getAll.invalidate();
@@ -193,8 +200,8 @@ export function ProjectGanttBoard({
     onError: (error, variables, context) => {
       // Remove temp task on error
       if (context?.tempTask) {
-        setOptimisticTasks((prev) =>
-          prev.filter((task) => task.id !== context.tempTask.id),
+        setOptimisticTasks(prev =>
+          prev.filter(task => task.id !== context.tempTask.id)
         );
       }
       toast.error(error.message ?? "Failed to create task");
@@ -206,7 +213,7 @@ export function ProjectGanttBoard({
     onSuccess: () => {
       void utils.task.getAll.invalidate();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to update task");
       // Revert optimistic update on error
       setOptimisticTasks(tasks ?? []);
@@ -216,10 +223,10 @@ export function ProjectGanttBoard({
   // Convert tasks to Gantt features with date filtering
   const ganttFeatures: GanttFeature[] = useMemo(() => {
     const tasksWithDates = (optimisticTasks ?? []).filter(
-      (task) => task.startDate && task.dueDate,
+      task => task.startDate && task.dueDate
     );
 
-    return tasksWithDates.map((task) => ({
+    return tasksWithDates.map(task => ({
       id: task.id,
       name: task.title,
       startAt: new Date(task.startDate!),
@@ -240,44 +247,42 @@ export function ProjectGanttBoard({
         acc[priority].push(feature);
         return acc;
       },
-      {} as Record<string, GanttFeature[]>,
+      {} as Record<string, GanttFeature[]>
     );
 
     // Sort groups by priority order
     const sortedGroups = Object.entries(grouped).sort(
-      ([a], [b]) => getPriorityOrder(a) - getPriorityOrder(b),
+      ([a], [b]) => getPriorityOrder(a) - getPriorityOrder(b)
     );
 
     return sortedGroups;
   }, [ganttFeatures]);
 
-
-
   // Handle timeline click for task creation (receives Date from Gantt library)
   const handleTimelineClick = useCallback(
     (date: Date) => {
       // Use tracked mouse position or default to center of screen
-      const mouseX = currentMousePosition.x || window.innerWidth / 2;
-      const mouseY = currentMousePosition.y || window.innerHeight / 2;
-      
+      const mouseX = currentMousePosition.x ?? window.innerWidth / 2;
+      const mouseY = currentMousePosition.y ?? window.innerHeight / 2;
+
       // Show popover at mouse cursor position
       setPopoverPosition({ x: mouseX, y: mouseY });
       setClickedDate(date);
       setShowAddPopover(true);
     },
-    [currentMousePosition],
+    [currentMousePosition]
   );
 
   // Handle task drag/resize with optimistic updates
   const handleUpdateTaskDates = useCallback(
     (id: string, startAt: Date, endAt: Date | null) => {
       // Optimistic update - update local state immediately
-      setOptimisticTasks((prev) =>
-        prev.map((task) =>
+      setOptimisticTasks(prev =>
+        prev.map(task =>
           task.id === id
             ? { ...task, startDate: startAt, dueDate: endAt }
-            : task,
-        ),
+            : task
+        )
       );
 
       // Then sync with backend
@@ -288,24 +293,27 @@ export function ProjectGanttBoard({
         dueDate: endAt ?? undefined,
       });
     },
-    [updateTaskMutation, organizationId],
+    [updateTaskMutation, organizationId]
   );
 
   // Get duration based on selected time range
-  const getTaskDurationByRange = useCallback((startDate: Date, range: Range): Date => {
-    const endDate = new Date(startDate);
-    
-    switch (range) {
-      case "daily":
-        return addDays(endDate, 1); // 1 day
-      case "monthly":
-        return addMonths(endDate, 1); // 1 month
-      case "quarterly":
-        return addMonths(endDate, 3); // 3 months (1 quarter)
-      default:
-        return addDays(endDate, 1); // fallback to 1 day
-    }
-  }, []);
+  const getTaskDurationByRange = useCallback(
+    (startDate: Date, range: Range): Date => {
+      const endDate = new Date(startDate);
+
+      switch (range) {
+        case "daily":
+          return addDays(endDate, 1); // 1 day
+        case "monthly":
+          return addMonths(endDate, 1); // 1 month
+        case "quarterly":
+          return addMonths(endDate, 3); // 3 months (1 quarter)
+        default:
+          return addDays(endDate, 1); // fallback to 1 day
+      }
+    },
+    []
+  );
 
   // Handle popover task creation
   const handleAddTaskFromPopover = useCallback(() => {
@@ -321,14 +329,20 @@ export function ProjectGanttBoard({
         startDate: clickedDate,
         dueDate: endDate,
       });
-      
+
       setNewTaskName("");
       setClickedDate(null);
     }
     setShowAddPopover(false);
-  }, [newTaskName, clickedDate, createTaskMutation, organizationId, projectId, getTaskDurationByRange, timeRange]);
-
-
+  }, [
+    newTaskName,
+    clickedDate,
+    createTaskMutation,
+    organizationId,
+    projectId,
+    getTaskDurationByRange,
+    timeRange,
+  ]);
 
   if (isLoading) {
     return (
@@ -383,12 +397,13 @@ export function ProjectGanttBoard({
   return (
     <div className="flex h-full flex-col">
       {/* Gantt Filters */}
-      <div className="flex flex-col gap-4 border-b border-border p-4 md:flex-row md:items-center md:justify-between">
-        
+      <div className="flex flex-col gap-4 border-border p-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           {/* Time Range Filter */}
           <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium text-muted-foreground">View:</Label>
+            <Label className="text-sm font-medium text-muted-foreground">
+              View:
+            </Label>
             <div className="flex gap-1">
               <Toggle
                 pressed={timeRange === "daily"}
@@ -421,7 +436,9 @@ export function ProjectGanttBoard({
 
           {/* Zoom Control */}
           <div className="flex items-center gap-3">
-            <Label className="text-sm font-medium text-muted-foreground">Zoom:</Label>
+            <Label className="text-sm font-medium text-muted-foreground">
+              Zoom:
+            </Label>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -432,11 +449,11 @@ export function ProjectGanttBoard({
               >
                 <ZoomOutIcon className="h-4 w-4" />
               </Button>
-              
+
               <div className="flex items-center gap-2">
                 <Slider
                   value={[zoom]}
-                  onValueChange={(value) => setZoom(value[0] ?? 100)}
+                  onValueChange={value => setZoom(value[0] ?? 100)}
                   max={300}
                   min={25}
                   step={25}
@@ -446,7 +463,7 @@ export function ProjectGanttBoard({
                   {zoom}%
                 </span>
               </div>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -463,137 +480,124 @@ export function ProjectGanttBoard({
 
       <div className="flex-1">
         <GanttProvider
-          className="border-border rounded-lg border h-full min-h-[500px]"
+          className="border-border rounded-lg border h-full min-h-svh"
           onAddItem={handleTimelineClick}
           features={ganttFeatures}
           range={timeRange}
           zoom={zoom}
         >
-        <GanttSidebar>
-          {groupedFeatures.map(([priority, features]) => (
-            <GanttSidebarGroup key={priority} name={`${priority} Priority`}>
-              {features.map((feature) => (
-                <GanttSidebarItem
-                  key={feature.id}
-                  feature={feature}
-                  onSelectItem={(taskId) => {
-                    console.log("Selected task:", taskId);
-                    // Note: scrollToFeature functionality is built into GanttSidebarItem
-                  }}
-                />
-              ))}
-            </GanttSidebarGroup>
-          ))}
-        </GanttSidebar>
-
-        <GanttTimeline>
-          <GanttHeader />
-
-          <GanttFeatureList>
+          <GanttSidebar>
             {groupedFeatures.map(([priority, features]) => (
-              <GanttFeatureListGroup key={priority}>
-                <GanttFeatureRow
-                  features={features}
-                  onMove={handleUpdateTaskDates}
-                >
-                  {(feature) => {
-                    // Get task details from optimistic tasks
-                    const taskDetails = optimisticTasks.find(t => t.id === feature.id);
-                    const priority = taskDetails?.priority ?? 'MEDIUM';
-                    
-                    // Priority indicator colors
-                    const priorityColors = {
-                      URGENT: 'bg-red-500',
-                      HIGH: 'bg-orange-500', 
-                      MEDIUM: 'bg-yellow-500',
-                      LOW: 'bg-green-500'
-                    };
-                    
-                    return (
-                      <div 
-                        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-white shadow-sm transition-all hover:shadow-md"
-                        style={{ backgroundColor: feature.status.color }}
-                      >
-                        {/* Priority indicator dot */}
-                        <div 
-                          className={`h-2 w-2 rounded-full flex-shrink-0 ${priorityColors[priority as keyof typeof priorityColors] ?? priorityColors.MEDIUM}`}
-                        />
-                        
-                        {/* Task name */}
-                        <span className="flex-1 truncate text-sm font-medium">
-                          {feature.name}
-                        </span>
-                      </div>
-                    );
-                  }}
-                </GanttFeatureRow>
-              </GanttFeatureListGroup>
+              <GanttSidebarGroup key={priority} name={`${priority} Priority`}>
+                {features.map(feature => (
+                  <GanttSidebarItem key={feature.id} feature={feature} />
+                ))}
+              </GanttSidebarGroup>
             ))}
-          </GanttFeatureList>
+          </GanttSidebar>
 
-          <GanttToday />
+          <GanttTimeline>
+            <GanttHeader />
+
+            <GanttFeatureList>
+              {groupedFeatures.map(([priority, features]) => (
+                <GanttFeatureListGroup key={priority}>
+                  <GanttFeatureRow
+                    features={features}
+                    onMove={handleUpdateTaskDates}
+                  >
+                    {feature => {
+                      // Get task details from optimistic tasks
+                      const taskDetails = optimisticTasks.find(
+                        t => t.id === feature.id
+                      );
+                      const priority = taskDetails?.priority ?? "MEDIUM";
+
+                      return (
+                        <div
+                          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-white shadow-sm transition-all hover:shadow-md"
+                          style={{ backgroundColor: feature.status.color }}
+                        >
+                          {/* Priority indicator dot */}
+                          <div
+                            className={`h-2 w-2 rounded-full flex-shrink-0 ${taskPriorityBackgroundColors[priority as keyof typeof taskPriorityBackgroundColors] ?? taskPriorityBackgroundColors.MEDIUM}`}
+                          />
+
+                          {/* Task name */}
+                          <span className="flex-1 truncate text-sm font-medium">
+                            {feature.name}
+                          </span>
+                        </div>
+                      );
+                    }}
+                  </GanttFeatureRow>
+                </GanttFeatureListGroup>
+              ))}
+            </GanttFeatureList>
+
+            <GanttToday />
 
             <GanttAddFeatureHelper top={0} />
 
-          {/* Task creation popover */}
-          {showAddPopover && (
-            <div
-              className="fixed z-50"
-              style={{
-                top: Math.min(popoverPosition.y, window.innerHeight - 200),
-                left: Math.min(popoverPosition.x, window.innerWidth - 320),
-              }}
-            >
-              <Card ref={popoverRef} className="w-80 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-lg">Create New Task</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="taskName">Task Name</Label>
-                    <Input
-                      id="taskName"
-                      value={newTaskName}
-                      onChange={(e) => setNewTaskName(e.target.value)}
-                      placeholder="Enter task name"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newTaskName.trim()) {
-                          handleAddTaskFromPopover();
-                        } else if (e.key === "Escape") {
+            {/* Task creation popover */}
+            {showAddPopover && (
+              <div
+                className="fixed z-50"
+                style={{
+                  top: Math.min(popoverPosition.y, window.innerHeight - 200),
+                  left: Math.min(popoverPosition.x, window.innerWidth - 320),
+                }}
+              >
+                <Card ref={popoverRef} className="w-80 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Create New Task</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="taskName">Task Name</Label>
+                      <Input
+                        id="taskName"
+                        value={newTaskName}
+                        onChange={e => setNewTaskName(e.target.value)}
+                        placeholder="Enter task name"
+                        autoFocus
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && newTaskName.trim()) {
+                            handleAddTaskFromPopover();
+                          } else if (e.key === "Escape") {
+                            setShowAddPopover(false);
+                            setNewTaskName("");
+                            setClickedDate(null);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
                           setShowAddPopover(false);
                           setNewTaskName("");
                           setClickedDate(null);
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowAddPopover(false);
-                        setNewTaskName("");
-                        setClickedDate(null);
-                      }}
-                      className="w-full sm:w-auto"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleAddTaskFromPopover}
-                      disabled={!newTaskName.trim()}
-                      className="w-full sm:w-auto"
-                    >
-                      Create Task
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </GanttTimeline>
-      </GanttProvider>
+                        }}
+                        className="w-full sm:w-auto"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleAddTaskFromPopover}
+                        disabled={!newTaskName.trim()}
+                        className="w-full sm:w-auto"
+                      >
+                        Create Task
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </GanttTimeline>
+        </GanttProvider>
       </div>
     </div>
   );

@@ -34,11 +34,7 @@ interface NavItem {
   }[];
 }
 
-export function NavMain({
-  items,
-}: {
-  items: NavItem[];
-}) {
+export function NavMain({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
 
   // Extract orgId from pathname
@@ -53,12 +49,12 @@ export function NavMain({
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => {
+        {items.map(item => {
           const itemUrl = getUrl(item.url);
           // Check if this item or any of its children are active
           const isItemActive = pathname.startsWith(itemUrl);
           const hasActiveChild = item.items?.some(
-            (subItem) => pathname === getUrl(subItem.url),
+            subItem => pathname === getUrl(subItem.url)
           );
           const isActive = isItemActive || hasActiveChild;
           return (
@@ -71,7 +67,11 @@ export function NavMain({
               <SidebarMenuItem>
                 <div className="group/item flex w-full items-center">
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={item.title} isActive={isActive} className="flex-1">
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      isActive={isActive}
+                      className="flex-1"
+                    >
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
                       {item.items && item.items.length > 0 && (
@@ -81,7 +81,7 @@ export function NavMain({
                   </CollapsibleTrigger>
                   {item.action && (
                     <button
-                      onClick={(e) => {
+                      onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();
                         item.action!.onClick();
@@ -95,7 +95,7 @@ export function NavMain({
                 </div>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {item.items?.map((subItem) => {
+                    {item.items?.map(subItem => {
                       const subItemUrl = getUrl(subItem.url);
                       const isSubItemActive = pathname === subItemUrl;
                       return (

@@ -4,9 +4,11 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 export const userRouter = createTRPCRouter({
   // Get user by ID
   getById: publicProcedure
-    .input(z.object({ 
-      id: z.string(),
-    }))
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       return ctx.db.user.findUnique({
         where: {
@@ -23,9 +25,11 @@ export const userRouter = createTRPCRouter({
 
   // Get organization members (users in an organization)
   getOrganizationMembers: publicProcedure
-    .input(z.object({ 
-      organizationId: z.string().cuid(),
-    }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       const orgMembers = await ctx.db.userOrganization.findMany({
         where: {

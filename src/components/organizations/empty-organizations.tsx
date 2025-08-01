@@ -17,7 +17,7 @@ export function EmptyOrganizations() {
       void utils.organization.getAll.invalidate();
       toast.success("Organization created successfully!");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message || "Failed to create organization");
     },
   });

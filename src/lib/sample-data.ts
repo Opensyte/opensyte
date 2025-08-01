@@ -69,7 +69,7 @@ export const deals: Deal[] = [
     stage: 2,
     probability: 60,
     expectedCloseDate: new Date(
-      Date.now() + 1000 * 60 * 60 * 24 * 14,
+      Date.now() + 1000 * 60 * 60 * 24 * 14
     ).toISOString(),
     description: "Renewal of enterprise package with added users",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
@@ -86,7 +86,7 @@ export const deals: Deal[] = [
     stage: 3,
     probability: 75,
     expectedCloseDate: new Date(
-      Date.now() + 1000 * 60 * 60 * 24 * 30,
+      Date.now() + 1000 * 60 * 60 * 24 * 30
     ).toISOString(),
     description: "Full platform implementation with data migration",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
@@ -103,7 +103,7 @@ export const deals: Deal[] = [
     stage: 0,
     probability: 25,
     expectedCloseDate: new Date(
-      Date.now() + 1000 * 60 * 60 * 24 * 45,
+      Date.now() + 1000 * 60 * 60 * 24 * 45
     ).toISOString(),
     description: "Initial consulting for digital transformation",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
@@ -120,7 +120,7 @@ export const deals: Deal[] = [
     stage: 4,
     probability: 90,
     expectedCloseDate: new Date(
-      Date.now() + 1000 * 60 * 60 * 24 * 7,
+      Date.now() + 1000 * 60 * 60 * 24 * 7
     ).toISOString(),
     description: "Additional professional services for custom integrations",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
@@ -137,7 +137,7 @@ export const deals: Deal[] = [
     stage: 1,
     probability: 40,
     expectedCloseDate: new Date(
-      Date.now() + 1000 * 60 * 60 * 24 * 21,
+      Date.now() + 1000 * 60 * 60 * 24 * 21
     ).toISOString(),
     description: "Small business starter package with basic features",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
@@ -154,10 +154,10 @@ export const deals: Deal[] = [
     stage: 5,
     probability: 100,
     expectedCloseDate: new Date(
-      Date.now() - 1000 * 60 * 60 * 24 * 2,
+      Date.now() - 1000 * 60 * 60 * 24 * 2
     ).toISOString(),
     actualCloseDate: new Date(
-      Date.now() - 1000 * 60 * 60 * 24 * 2,
+      Date.now() - 1000 * 60 * 60 * 24 * 2
     ).toISOString(),
     description: "Annual premium support package with 24/7 availability",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
@@ -174,10 +174,10 @@ export const deals: Deal[] = [
     stage: 6,
     probability: 0,
     expectedCloseDate: new Date(
-      Date.now() - 1000 * 60 * 60 * 24 * 5,
+      Date.now() - 1000 * 60 * 60 * 24 * 5
     ).toISOString(),
     actualCloseDate: new Date(
-      Date.now() - 1000 * 60 * 60 * 24 * 3,
+      Date.now() - 1000 * 60 * 60 * 24 * 3
     ).toISOString(),
     description: "On-site training for team of 10, lost to competitor",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
@@ -194,7 +194,7 @@ export const deals: Deal[] = [
     stage: 2,
     probability: 55,
     expectedCloseDate: new Date(
-      Date.now() + 1000 * 60 * 60 * 24 * 28,
+      Date.now() + 1000 * 60 * 60 * 24 * 28
     ).toISOString(),
     description: "Custom module development for specific business needs",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
@@ -204,7 +204,7 @@ export const deals: Deal[] = [
 
 // Function to get deals for display
 export function getDeals(): Deal[] {
-  return deals.map((deal) => ({
+  return deals.map(deal => ({
     ...deal,
     expectedCloseDate: deal.expectedCloseDate,
     createdAt: deal.createdAt,
@@ -215,7 +215,7 @@ export function getDeals(): Deal[] {
 
 // Function to get a deal by ID
 export function getDealById(id: string): Deal | undefined {
-  return deals.find((deal) => deal.id === id);
+  return deals.find(deal => deal.id === id);
 }
 
 // Function to get customers for display
@@ -230,7 +230,7 @@ export function filterDeals({
   probability,
   dealsArray,
 }: FilterOptions): Deal[] {
-  return dealsArray.filter((deal) => {
+  return dealsArray.filter(deal => {
     // Filter by search query (case insensitive)
     if (
       searchQuery &&

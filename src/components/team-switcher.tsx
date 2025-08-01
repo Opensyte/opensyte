@@ -43,14 +43,14 @@ export function TeamSwitcher({
   const utils = api.useUtils();
 
   const createOrganizationMutation = api.organization.create.useMutation({
-    onSuccess: (newOrg) => {
+    onSuccess: newOrg => {
       void utils.organization.getAll.invalidate();
       toast.success("Organization created successfully!");
       setIsAddDialogOpen(false);
       // Navigate to the new organization
       router.push(`/${newOrg.id}`);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message || "Failed to create organization");
     },
   });
@@ -59,7 +59,7 @@ export function TeamSwitcher({
   const currentOrgId = pathname.split("/")[1];
 
   // Find the current active team based on the URL
-  const activeTeam = teams.find((team) => team.id === currentOrgId) ?? teams[0];
+  const activeTeam = teams.find(team => team.id === currentOrgId) ?? teams[0];
 
   const handleAddOrganization = async (data: OrganizationFormValues) => {
     if (!session?.user?.id) {
@@ -116,7 +116,7 @@ export function TeamSwitcher({
             <DropdownMenuLabel className="text-muted-foreground text-xs">
               Organizations
             </DropdownMenuLabel>
-            {teams.map((team) => (
+            {teams.map(team => (
               <DropdownMenuItem
                 key={team.id}
                 onClick={() => handleTeamSwitch(team)}

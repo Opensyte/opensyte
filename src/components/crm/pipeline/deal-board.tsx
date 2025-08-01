@@ -64,7 +64,7 @@ export function DealBoard({
       return localDeals;
     }
 
-    return localDeals.filter((deal) => {
+    return localDeals.filter(deal => {
       // Apply search filter with early return
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
@@ -98,15 +98,15 @@ export function DealBoard({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   // Memoize these functions to prevent recreation on each render
   const getColumnDeals = useCallback(
     (columnId: string): Deal[] => {
-      return filteredDeals.filter((deal) => deal.status === columnId);
+      return filteredDeals.filter(deal => deal.status === columnId);
     },
-    [filteredDeals],
+    [filteredDeals]
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -128,13 +128,16 @@ export function DealBoard({
       const overId = over.id as string;
 
       // Find the active deal from localDeals for current UI state
-      const activeDeal = localDeals.find((deal) => deal.id === activeId);
+      const activeDeal = localDeals.find(deal => deal.id === activeId);
       if (!activeDeal) {
         return;
       }
 
       // Get the type and status from the over element
-      const overType = over.data?.current?.type as "column" | "deal" | undefined;
+      const overType = over.data?.current?.type as
+        | "column"
+        | "deal"
+        | undefined;
       let newStatus = activeDeal.status;
 
       // Determine new status based on drop target
@@ -142,7 +145,7 @@ export function DealBoard({
         newStatus = overId;
       } else if (overType === "deal") {
         // Find the target deal and use its status
-        const overDeal = localDeals.find((deal) => deal.id === overId);
+        const overDeal = localDeals.find(deal => deal.id === overId);
         if (overDeal) {
           newStatus = overDeal.status;
         }
@@ -161,16 +164,14 @@ export function DealBoard({
       };
 
       // INSTANT OPTIMISTIC UPDATE: Update local state immediately for instant visual feedback
-      setLocalDeals((prevDeals) =>
-        prevDeals.map((deal) =>
-          deal.id === activeId ? updatedDeal : deal,
-        ),
+      setLocalDeals(prevDeals =>
+        prevDeals.map(deal => (deal.id === activeId ? updatedDeal : deal))
       );
 
       // Then call API in background
       onDealUpdate(updatedDeal);
     },
-    [localDeals, onDealUpdate],
+    [localDeals, onDealUpdate]
   );
 
   const handleDragCancel = useCallback(() => {
@@ -180,18 +181,11 @@ export function DealBoard({
   const getDragOverlay = useCallback(() => {
     if (!activeId) return null;
 
-    const deal = localDeals.find((deal) => deal.id === activeId);
+    const deal = localDeals.find(deal => deal.id === activeId);
     if (!deal) return null;
 
-    return (
-      <DealCard
-        deal={deal}
-        isOverlay
-        organizationId={organizationId}
-        onDealUpdate={onDealUpdate}
-      />
-    );
-  }, [activeId, localDeals, organizationId, onDealUpdate]);
+    return <DealCard deal={deal} isOverlay organizationId={organizationId} />;
+  }, [activeId, localDeals, organizationId]);
 
   return (
     <DndContext
@@ -204,7 +198,7 @@ export function DealBoard({
     >
       <div className="hide-scrollbar flex h-auto min-h-[calc(100vh-350px)] overflow-x-auto pb-4">
         <div className="flex flex-wrap gap-4">
-          {COLUMNS.map((column) => {
+          {COLUMNS.map(column => {
             const columnDeals = getColumnDeals(column.id);
             return (
               <PipelineColumn
@@ -214,7 +208,6 @@ export function DealBoard({
                 color={column.color}
                 deals={columnDeals}
                 organizationId={organizationId}
-                onDealUpdate={onDealUpdate}
               />
             );
           })}

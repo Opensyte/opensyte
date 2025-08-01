@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -38,7 +38,7 @@ export function DeleteDealDialog({
       // Invalidate the deals query to refresh the pipeline
       void utils.dealsCrm.getDealsByOrganization.invalidate({ organizationId });
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to delete deal: ${error.message}`);
     },
   });

@@ -15,7 +15,7 @@ export const taskRouter = createTRPCRouter({
         status: TaskStatusSchema.optional(),
         priority: PrioritySchema.optional(),
         assignedToId: z.string().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const { organizationId, projectId, status, priority, assignedToId } =
@@ -57,7 +57,7 @@ export const taskRouter = createTRPCRouter({
       z.object({
         organizationId: z.string().cuid(),
         projectId: z.string().cuid().optional(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const { organizationId, projectId } = input;
@@ -113,14 +113,14 @@ export const taskRouter = createTRPCRouter({
             acc[item.status] = item._count.id;
             return acc;
           },
-          {} as Record<string, number>,
+          {} as Record<string, number>
         ),
         tasksByPriority: tasksByPriority.reduce(
           (acc, item) => {
             acc[item.priority] = item._count.id;
             return acc;
           },
-          {} as Record<string, number>,
+          {} as Record<string, number>
         ),
       };
     }),
@@ -140,7 +140,7 @@ export const taskRouter = createTRPCRouter({
         dueDate: z.date().optional(),
         estimatedHours: z.number().min(0).optional(),
         createdById: z.string().cuid(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.task.create({
@@ -171,14 +171,14 @@ export const taskRouter = createTRPCRouter({
         startDate: z.date().optional(),
         dueDate: z.date().optional(),
         estimatedHours: z.number().min(0).optional(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const { id, organizationId, ...updateData } = input;
 
       // Remove undefined values
       const cleanData = Object.fromEntries(
-        Object.entries(updateData).filter(([_, value]) => value !== undefined),
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
       );
 
       return ctx.db.task.update({
@@ -205,7 +205,7 @@ export const taskRouter = createTRPCRouter({
       z.object({
         id: z.string().cuid(),
         organizationId: z.string().cuid(),
-      }),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.task.delete({
@@ -221,7 +221,7 @@ export const taskRouter = createTRPCRouter({
     .input(
       z.object({
         organizationId: z.string().cuid(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       // Get users who are members of this organization
@@ -242,7 +242,7 @@ export const taskRouter = createTRPCRouter({
       // Since we don't have direct access to User model through UserOrganization,
       // we'll need to get user details separately
       // For now, let's return a mock structure that can be updated when user system is integrated
-      return members.map((member) => ({
+      return members.map(member => ({
         id: member.userId,
         name: `User ${member.userId.slice(-6)}`, // Temporary display name
         email: `user${member.userId.slice(-6)}@example.com`, // Temporary email

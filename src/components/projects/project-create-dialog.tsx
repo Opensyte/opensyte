@@ -49,8 +49,12 @@ const createProjectSchema = z.object({
   startDate: z.date().optional(),
   endDate: z.date().optional(),
   status: ProjectStatusSchema.default("PLANNED"),
-  budget: z.number().min(0).optional().or(z.string().transform(val => (val ? parseFloat(val) : undefined))),
-  currency: z.string().default("USD")
+  budget: z
+    .number()
+    .min(0)
+    .optional()
+    .or(z.string().transform(val => (val ? parseFloat(val) : undefined))),
+  currency: z.string().default("USD"),
 });
 
 type CreateProjectForm = z.infer<typeof createProjectSchema>;
@@ -70,7 +74,6 @@ export function ProjectCreateDialog({
   const utils = api.useUtils();
 
   // Initialize API utils
-  
 
   const form = useForm<CreateProjectForm>({
     resolver: zodResolver(createProjectSchema),
@@ -90,7 +93,7 @@ export function ProjectCreateDialog({
       form.reset();
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to create project");
     },
     onSettled: () => {
@@ -100,7 +103,7 @@ export function ProjectCreateDialog({
 
   const onSubmit = (data: CreateProjectForm) => {
     setIsSubmitting(true);
-    
+
     createProject.mutate({
       organizationId,
       name: data.name,
@@ -168,7 +171,10 @@ export function ProjectCreateDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -219,9 +225,7 @@ export function ProjectCreateDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>
@@ -261,9 +265,7 @@ export function ProjectCreateDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>
@@ -273,8 +275,6 @@ export function ProjectCreateDialog({
                 )}
               />
             </div>
-
-
 
             {/* Budget and Currency */}
             <div className="grid grid-cols-2 gap-4">
@@ -303,7 +303,10 @@ export function ProjectCreateDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Currency" />

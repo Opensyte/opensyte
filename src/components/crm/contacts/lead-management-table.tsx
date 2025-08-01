@@ -118,7 +118,7 @@ export default function LeadManagementTable({
               </TableCell>
             </TableRow>
           ) : (
-            leads.map((lead) => (
+            leads.map(lead => (
               <TableRow key={lead.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">

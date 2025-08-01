@@ -29,7 +29,7 @@ export function ContactsClient() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Customer | undefined>(
-    undefined,
+    undefined
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -68,7 +68,7 @@ export function ContactsClient() {
   const filteredLeads = useMemo(() => {
     if (!contacts) return [];
 
-    return contacts.filter((lead) => {
+    return contacts.filter(lead => {
       // Search filter
       const matchesSearch =
         searchQuery === "" ||
@@ -114,7 +114,7 @@ export function ContactsClient() {
 
       setAddDialogOpen(false);
       toast.success(
-        `Lead "${data.firstName} ${data.lastName}" has been added.`,
+        `Lead "${data.firstName} ${data.lastName}" has been added.`
       );
     } catch {
       toast.error("Failed to add lead. Please try again.");
@@ -145,7 +145,7 @@ export function ContactsClient() {
 
       setEditDialogOpen(false);
       toast.success(
-        `Lead "${data.firstName} ${data.lastName}" has been updated.`,
+        `Lead "${data.firstName} ${data.lastName}" has been updated.`
       );
     } catch {
       toast.error("Failed to update lead. Please try again.");

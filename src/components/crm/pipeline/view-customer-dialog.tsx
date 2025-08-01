@@ -47,13 +47,13 @@ export function ViewCustomerDialog({
     {
       enabled: open && !!customerId, // Only fetch when dialog is open and customerId exists
       refetchOnWindowFocus: false,
-    },
+    }
   );
 
   const getInitials = (name: string) => {
     return name
       .split(" ")
-      .map((n) => n[0])
+      .map(n => n[0])
       .join("")
       .toUpperCase();
   };

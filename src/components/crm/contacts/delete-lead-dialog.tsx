@@ -27,7 +27,7 @@ export default function DeleteLeadDialog({
   isLoading = false,
 }: DeleteLeadDialogProps) {
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <AlertDialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Lead</AlertDialogTitle>

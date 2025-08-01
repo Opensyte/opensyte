@@ -56,7 +56,7 @@ export const organizationRouter = createTRPCRouter({
           },
         });
 
-        return organizations.map((org) => ({
+        return organizations.map(org => ({
           id: org.id,
           name: org.name,
           description: org.description,
@@ -69,7 +69,7 @@ export const organizationRouter = createTRPCRouter({
           createdAt: org.createdAt.toISOString(),
           updatedAt: org.updatedAt.toISOString(),
           userRole:
-            org.users.find((u) => u.userId === input.userId)?.role ??
+            org.users.find(u => u.userId === input.userId)?.role ??
             UserRole.VIEWER,
         }));
       } catch (error) {
@@ -133,7 +133,7 @@ export const organizationRouter = createTRPCRouter({
           createdAt: organization.createdAt.toISOString(),
           updatedAt: organization.updatedAt.toISOString(),
           userRole:
-            organization.users.find((u) => u.userId === input.userId)?.role ??
+            organization.users.find(u => u.userId === input.userId)?.role ??
             UserRole.VIEWER,
         };
       } catch (error) {

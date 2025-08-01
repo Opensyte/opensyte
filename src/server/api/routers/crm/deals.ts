@@ -19,7 +19,7 @@ export const dealsCrmRoutes = createTRPCRouter({
     .input(
       z.object({
         organizationId: z.string().cuid(),
-      }),
+      })
     )
     .query(async ({ input }) => {
       try {
@@ -63,7 +63,7 @@ export const dealsCrmRoutes = createTRPCRouter({
         currency: z.string().default("USD"),
         expectedCloseDate: z.date().optional(),
         description: z.string().optional(),
-      }),
+      })
     )
     .mutation(async ({ input }) => {
       try {
@@ -104,7 +104,7 @@ export const dealsCrmRoutes = createTRPCRouter({
         probability: z.number().min(0).max(100).optional(),
         expectedCloseDate: z.date().optional(),
         description: z.string().optional(),
-      }),
+      })
     )
     .mutation(async ({ input }) => {
       try {
@@ -123,7 +123,7 @@ export const dealsCrmRoutes = createTRPCRouter({
 
         if (!existingDeal) {
           throw new Error(
-            "Deal not found or does not belong to this organization",
+            "Deal not found or does not belong to this organization"
           );
         }
 
@@ -165,7 +165,7 @@ export const dealsCrmRoutes = createTRPCRouter({
       z.object({
         id: z.string().cuid(),
         organizationId: z.string().cuid(),
-      }),
+      })
     )
     .mutation(async ({ input }) => {
       try {
@@ -181,7 +181,7 @@ export const dealsCrmRoutes = createTRPCRouter({
 
         if (!existingDeal) {
           throw new Error(
-            "Deal not found or does not belong to this organization",
+            "Deal not found or does not belong to this organization"
           );
         }
 

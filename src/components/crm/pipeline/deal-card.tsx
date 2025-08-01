@@ -32,26 +32,22 @@ import { useState } from "react";
 import { EditDealDialog } from "./edit-deal-dialog";
 import { DeleteDealDialog } from "./delete-deal-dialog";
 import { CustomerDetailsDialog } from "~/components/shared/customer-details-dialog";
-import { usePipelineStore } from "~/store/crm/pipeline";
 
 interface DealCardProps {
   deal: Deal;
   isOverlay?: boolean;
   organizationId: string;
-  onDealUpdate: (deal: Deal) => void;
 }
 
 export function DealCard({
   deal,
   isOverlay = false,
   organizationId,
-  onDealUpdate,
 }: DealCardProps) {
   // Dialog visibility states
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
-  const { removeDeal } = usePipelineStore();
   const {
     attributes,
     listeners,
@@ -95,14 +91,6 @@ export function DealCard({
     return formatDistanceToNow(dateObj, { addSuffix: true });
   };
 
-  const handleDeleteDeal = (id: string) => {
-    removeDeal(id);
-  };
-
-  const handleEditDeal = (updatedDeal: Deal) => {
-    onDealUpdate(updatedDeal);
-  };
-
   return (
     <>
       <Card
@@ -129,7 +117,7 @@ export function DealCard({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={(e) => e.stopPropagation()}
+                onClick={e => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
                 <span className="sr-only">Actions</span>

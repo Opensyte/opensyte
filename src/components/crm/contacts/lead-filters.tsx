@@ -35,7 +35,7 @@ export default function LeadFilters({
           placeholder="Search leads..."
           className="w-full pl-9"
           value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={e => onSearchChange(e.target.value)}
         />
       </div>
       <div className="flex flex-wrap gap-2">
@@ -45,12 +45,12 @@ export default function LeadFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {Object.values(LeadStatus).map((status) => (
+            {Object.values(LeadStatus).map(status => (
               <SelectItem key={status} value={status}>
                 {status
                   .replace(/_/g, " ")
                   .toLowerCase()
-                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                  .replace(/\b\w/g, l => l.toUpperCase())}
               </SelectItem>
             ))}
           </SelectContent>
@@ -61,7 +61,7 @@ export default function LeadFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Sources</SelectItem>
-            {Object.values(LeadSource).map((source) => (
+            {Object.values(LeadSource).map(source => (
               <SelectItem key={source} value={source}>
                 {source.replace(/_/g, " ")}
               </SelectItem>

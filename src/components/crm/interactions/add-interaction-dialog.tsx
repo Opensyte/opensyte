@@ -130,7 +130,6 @@ export function AddInteractionDialog({
       setIsSubmitting(false);
     }
   };
-  
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -146,15 +145,15 @@ export function AddInteractionDialog({
             <Label htmlFor="customerId">Customer *</Label>
             <Select
               value={formData.customerId}
-              onValueChange={(value) => {
+              onValueChange={value => {
                 setFormData({ ...formData, customerId: value });
                 if (errors.customerId) {
                   setErrors({ ...errors, customerId: "" });
                 }
               }}
             >
-              <SelectTrigger 
-                id="customerId" 
+              <SelectTrigger
+                id="customerId"
                 className={`w-full ${errors.customerId ? "border-destructive" : ""}`}
               >
                 <SelectValue placeholder="Select customer" />
@@ -165,7 +164,7 @@ export function AddInteractionDialog({
                     No customers available. Please add customers first.
                   </div>
                 ) : (
-                  customers.map((customer) => (
+                  customers.map(customer => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.firstName} {customer.lastName}{" "}
                       {customer.company ? `(${customer.company})` : ""}
@@ -187,7 +186,7 @@ export function AddInteractionDialog({
               <Label htmlFor="type">Interaction Type</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value) =>
+                onValueChange={value =>
                   setFormData({ ...formData, type: value as InteractionType })
                 }
               >
@@ -208,7 +207,7 @@ export function AddInteractionDialog({
               <Label htmlFor="medium">Medium</Label>
               <Select
                 value={formData.medium}
-                onValueChange={(value) =>
+                onValueChange={value =>
                   setFormData({
                     ...formData,
                     medium: value as InteractionMedium,
@@ -235,7 +234,7 @@ export function AddInteractionDialog({
             <Input
               id="subject"
               value={formData.subject}
-              onChange={(e) => {
+              onChange={e => {
                 setFormData({ ...formData, subject: e.target.value });
                 if (errors.subject) {
                   setErrors({ ...errors, subject: "" });
@@ -261,7 +260,7 @@ export function AddInteractionDialog({
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !formData.scheduledAt && "text-muted-foreground",
+                      !formData.scheduledAt && "text-muted-foreground"
                     )}
                   >
                     <CalendarClock className="mr-2 h-4 w-4" />
@@ -276,7 +275,7 @@ export function AddInteractionDialog({
                   <Calendar
                     mode="single"
                     selected={formData.scheduledAt ?? undefined}
-                    onSelect={(date) =>
+                    onSelect={date =>
                       date && setFormData({ ...formData, scheduledAt: date })
                     }
                     initialFocus
@@ -293,7 +292,7 @@ export function AddInteractionDialog({
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !formData.completedAt && "text-muted-foreground",
+                      !formData.completedAt && "text-muted-foreground"
                     )}
                   >
                     <CalendarClock className="mr-2 h-4 w-4" />
@@ -308,7 +307,7 @@ export function AddInteractionDialog({
                   <Calendar
                     mode="single"
                     selected={formData.completedAt ?? undefined}
-                    onSelect={(date) =>
+                    onSelect={date =>
                       date && setFormData({ ...formData, completedAt: date })
                     }
                     initialFocus
@@ -323,7 +322,7 @@ export function AddInteractionDialog({
             <Textarea
               id="content"
               value={formData.content}
-              onChange={(e) => {
+              onChange={e => {
                 setFormData({ ...formData, content: e.target.value });
                 if (errors.content) {
                   setErrors({ ...errors, content: "" });
@@ -349,19 +348,19 @@ export function AddInteractionDialog({
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             type="button"
-            onClick={handleSubmit} 
+            onClick={handleSubmit}
             className="w-full sm:w-auto"
             disabled={isLoading || isSubmitting || customers.length === 0}
           >
-            {(isLoading || isSubmitting) ? (
+            {isLoading || isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Adding...
               </>
             ) : (
-              'Add Interaction'
+              "Add Interaction"
             )}
           </Button>
         </DialogFooter>

@@ -56,7 +56,7 @@ export default function ViewLeadDialog({
     { id: lead?.id ?? "" },
     {
       enabled: !!lead?.id && isOpen,
-    },
+    }
   );
 
   const leadData = detailedLead ?? lead;
@@ -64,7 +64,7 @@ export default function ViewLeadDialog({
   if (!lead) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-xl">
@@ -194,7 +194,7 @@ export default function ViewLeadDialog({
                           new Date(leadData?.createdAt ?? new Date()),
                           {
                             addSuffix: true,
-                          },
+                          }
                         )}
                       </span>
                     </div>

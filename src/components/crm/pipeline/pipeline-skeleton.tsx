@@ -80,7 +80,7 @@ export function PipelineSkeleton() {
                         </div>
                       </CardContent>
                     </Card>
-                  ),
+                  )
                 )}
               </div>
             </div>

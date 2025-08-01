@@ -41,7 +41,10 @@ import {
 } from "~/components/ui/popover";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
-import { TaskStatusSchema, PrioritySchema } from "../../../prisma/generated/zod/index";
+import {
+  TaskStatusSchema,
+  PrioritySchema,
+} from "../../../prisma/generated/zod/index";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Task title is required"),
@@ -95,7 +98,7 @@ export function TaskCreateDialog({
       form.reset();
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to create task");
     },
     onSettled: () => {
@@ -105,7 +108,7 @@ export function TaskCreateDialog({
 
   const onSubmit = (data: CreateTaskForm) => {
     setIsSubmitting(true);
-    
+
     createTask.mutate({
       organizationId,
       projectId,
@@ -116,7 +119,9 @@ export function TaskCreateDialog({
       startDate: data.startDate,
       dueDate: data.dueDate,
       assignedToId: data.assignedToId,
-      estimatedHours: data.estimatedHours ? parseFloat(data.estimatedHours) : undefined,
+      estimatedHours: data.estimatedHours
+        ? parseFloat(data.estimatedHours)
+        : undefined,
     });
   };
 
@@ -125,9 +130,7 @@ export function TaskCreateDialog({
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
-          <DialogDescription>
-            Add a new task to your project.
-          </DialogDescription>
+          <DialogDescription>Add a new task to your project.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -141,10 +144,10 @@ export function TaskCreateDialog({
                   <FormItem>
                     <FormLabel>Task Title</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Enter task title" 
+                      <Input
+                        placeholder="Enter task title"
                         className="w-full text-base"
-                        {...field} 
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -237,9 +240,12 @@ export function TaskCreateDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {members?.map((member) => (
+                        {members?.map(member => (
                           <SelectItem key={member.id} value={member.userId}>
-                            {member.user?.name ?? member.user?.email ?? "Unknown User"} ({member.role})
+                            {member.user?.name ??
+                              member.user?.email ??
+                              "Unknown User"}{" "}
+                            ({member.role})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -248,7 +254,6 @@ export function TaskCreateDialog({
                   </FormItem>
                 )}
               />
-
             </div>
 
             {/* Dates */}
@@ -283,9 +288,7 @@ export function TaskCreateDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>
@@ -325,9 +328,7 @@ export function TaskCreateDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>

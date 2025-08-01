@@ -11,25 +11,13 @@ import {
 } from "~/components/ui/dialog";
 import { Separator } from "~/components/ui/separator";
 import { api } from "~/trpc/react";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  startDate: Date | null;
-  dueDate: Date | null;
-  assignedToId: string | null;
-  estimatedHours: number | null;
-  actualHours: number | null;
-  createdAt: Date;
-  organizationId: string;
-  project: {
-    id: string;
-    name: string;
-  } | null;
-}
+import type { Task } from "~/types";
+import {
+  taskStatusColors,
+  taskStatusLabels,
+  taskPriorityColors,
+  taskPriorityIcons,
+} from "~/types";
 
 interface TaskViewDialogProps {
   open: boolean;
@@ -38,54 +26,20 @@ interface TaskViewDialogProps {
   organizationId?: string;
 }
 
-const statusColors = {
-  BACKLOG: "bg-gray-100 text-gray-800",
-  TODO: "bg-blue-100 text-blue-800",
-  IN_PROGRESS: "bg-yellow-100 text-yellow-800",
-  REVIEW: "bg-purple-100 text-purple-800",
-  DONE: "bg-green-100 text-green-800",
-  ARCHIVED: "bg-gray-100 text-gray-800",
-};
-
-const statusLabels = {
-  BACKLOG: "Backlog",
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
-  REVIEW: "Review",
-  DONE: "Done",
-  ARCHIVED: "Archived",
-};
-
-const priorityColors = {
-  LOW: "text-green-600",
-  MEDIUM: "text-yellow-600",
-  HIGH: "text-orange-600",
-  URGENT: "text-red-600",
-};
-
-const priorityLabels = {
-  LOW: "Low",
-  MEDIUM: "Medium",
-  HIGH: "High",
-  URGENT: "Urgent",
-};
-
-const priorityIcons = {
-  LOW: "🔽",
-  MEDIUM: "➖",
-  HIGH: "🔼",
-  URGENT: "🚨",
-};
-
-export function TaskViewDialog({ open, onOpenChange, task, organizationId }: TaskViewDialogProps) {
+export function TaskViewDialog({
+  open,
+  onOpenChange,
+  task,
+  organizationId,
+}: TaskViewDialogProps) {
   if (!task) return null;
-  
+
   // Fetch organization members for displaying member names
   const { data: members } = api.organization.getMembers.useQuery(
     { organizationId: organizationId ?? task.organizationId },
     { enabled: !!(organizationId ?? task.organizationId) }
   );
-  
+
   // Find the member name from the ID
   const getAssigneeName = (assignedToId: string) => {
     const member = members?.find(member => member.userId === assignedToId);
@@ -106,14 +60,25 @@ export function TaskViewDialog({ open, onOpenChange, task, organizationId }: Tas
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4 text-muted-foreground" />
-              <Badge className={statusColors[task.status as keyof typeof statusColors]}>
-                {statusLabels[task.status as keyof typeof statusLabels]}
+              <Badge
+                className={
+                  taskStatusColors[task.status as keyof typeof taskStatusColors]
+                }
+              >
+                {taskStatusLabels[task.status as keyof typeof taskStatusLabels]}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
               <Flag className="h-4 w-4 text-muted-foreground" />
-              <span className={`font-medium ${priorityColors[task.priority as keyof typeof priorityColors]}`}>
-                {priorityIcons[task.priority as keyof typeof priorityIcons]} {priorityLabels[task.priority as keyof typeof priorityLabels]}
+              <span
+                className={`font-medium ${taskPriorityColors[task.priority as keyof typeof taskPriorityColors]}`}
+              >
+                {
+                  taskPriorityIcons[
+                    task.priority as keyof typeof taskPriorityIcons
+                  ]
+                }{" "}
+                {task.priority.charAt(0) + task.priority.slice(1).toLowerCase()}
               </span>
             </div>
           </div>
@@ -124,7 +89,9 @@ export function TaskViewDialog({ open, onOpenChange, task, organizationId }: Tas
           {task.project && (
             <div className="space-y-2">
               <h3 className="font-medium">Project</h3>
-              <p className="text-sm text-muted-foreground">{task.project.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {task.project.name}
+              </p>
             </div>
           )}
 
@@ -158,10 +125,14 @@ export function TaskViewDialog({ open, onOpenChange, task, organizationId }: Tas
                   <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">
                     {getAssigneeName(task.assignedToId).charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm">{getAssigneeName(task.assignedToId)}</span>
+                  <span className="text-sm">
+                    {getAssigneeName(task.assignedToId)}
+                  </span>
                 </div>
               ) : (
-                <span className="text-sm text-muted-foreground">Unassigned</span>
+                <span className="text-sm text-muted-foreground">
+                  Unassigned
+                </span>
               )}
             </div>
 

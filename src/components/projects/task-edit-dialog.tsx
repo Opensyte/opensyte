@@ -41,6 +41,7 @@ import {
 } from "~/components/ui/popover";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
+import type { Task } from "~/types";
 import {
   TaskStatusSchema,
   PrioritySchema,
@@ -59,19 +60,6 @@ const editTaskSchema = z.object({
 });
 
 type EditTaskForm = z.infer<typeof editTaskSchema>;
-
-interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  startDate: Date | null;
-  dueDate: Date | null;
-  assignedToId: string | null;
-  estimatedHours: number | null;
-  actualHours: number | null;
-}
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -93,7 +81,7 @@ export function TaskEditDialog({
   // Fetch organization members for assignment
   const { data: members } = api.organization.getMembers.useQuery(
     { organizationId },
-    { enabled: !!organizationId },
+    { enabled: !!organizationId }
   );
 
   const form = useForm<EditTaskForm>({
@@ -112,7 +100,13 @@ export function TaskEditDialog({
       form.reset({
         title: task.title,
         description: task.description ?? "",
-        status: task.status as "BACKLOG" | "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE" | "ARCHIVED",
+        status: task.status as
+          | "BACKLOG"
+          | "TODO"
+          | "IN_PROGRESS"
+          | "REVIEW"
+          | "DONE"
+          | "ARCHIVED",
         priority: task.priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
         startDate: task.startDate ? new Date(task.startDate) : undefined,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
@@ -129,7 +123,7 @@ export function TaskEditDialog({
       void utils.task.getAll.invalidate();
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to update task");
     },
     onSettled: () => {
@@ -272,7 +266,7 @@ export function TaskEditDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {members?.map((member) => (
+                        {members?.map(member => (
                           <SelectItem key={member.id} value={member.userId}>
                             {member.user?.name ??
                               member.user?.email ??
@@ -303,7 +297,7 @@ export function TaskEditDialog({
                             variant="outline"
                             className={cn(
                               "h-10 w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground",
+                              !field.value && "text-muted-foreground"
                             )}
                           >
                             {field.value ? (
@@ -320,7 +314,7 @@ export function TaskEditDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date("1900-01-01")}
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>
@@ -343,7 +337,7 @@ export function TaskEditDialog({
                             variant="outline"
                             className={cn(
                               "h-10 w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground",
+                              !field.value && "text-muted-foreground"
                             )}
                           >
                             {field.value ? (
@@ -360,7 +354,7 @@ export function TaskEditDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date("1900-01-01")}
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>

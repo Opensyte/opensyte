@@ -1,24 +1,26 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { TaskStatusSchema, PrioritySchema } from "../../../../../prisma/generated/zod/index";
+import {
+  TaskStatusSchema,
+  PrioritySchema,
+} from "../../../../../prisma/generated/zod/index";
 
 export const taskRouter = createTRPCRouter({
   // Get all tasks for an organization
   getAll: publicProcedure
-    .input(z.object({ 
-      organizationId: z.string().cuid(),
-      projectId: z.string().cuid().optional(),
-    }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        projectId: z.string().cuid().optional(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       return ctx.db.task.findMany({
         where: {
           organizationId: input.organizationId,
           ...(input.projectId && { projectId: input.projectId }),
         },
-        orderBy: [
-          { order: "asc" },
-          { createdAt: "desc" },
-        ],
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
         include: {
           project: {
             select: {
@@ -32,10 +34,12 @@ export const taskRouter = createTRPCRouter({
 
   // Get task by ID
   getById: publicProcedure
-    .input(z.object({ 
-      id: z.string().cuid(),
-      organizationId: z.string().cuid(),
-    }))
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       return ctx.db.task.findFirst({
         where: {
@@ -69,20 +73,25 @@ export const taskRouter = createTRPCRouter({
 
   // Create new task
   create: publicProcedure
-    .input(z.object({
-      organizationId: z.string().cuid(),
-      projectId: z.string().cuid().optional(),
-      parentTaskId: z.string().cuid().optional(),
-      title: z.string().min(1, "Task title is required"),
-      description: z.string().optional(),
-      status: TaskStatusSchema.default("BACKLOG"),
-      priority: PrioritySchema.default("MEDIUM"),
-      startDate: z.date().optional(),
-      dueDate: z.date().optional(),
-      assignedToId: z.string().optional().transform(val => val === "unassigned" ? null : val),
-      createdById: z.string().optional(),
-      estimatedHours: z.number().min(0).optional(),
-    }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        projectId: z.string().cuid().optional(),
+        parentTaskId: z.string().cuid().optional(),
+        title: z.string().min(1, "Task title is required"),
+        description: z.string().optional(),
+        status: TaskStatusSchema.default("BACKLOG"),
+        priority: PrioritySchema.default("MEDIUM"),
+        startDate: z.date().optional(),
+        dueDate: z.date().optional(),
+        assignedToId: z
+          .string()
+          .optional()
+          .transform(val => (val === "unassigned" ? null : val)),
+        createdById: z.string().optional(),
+        estimatedHours: z.number().min(0).optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.task.create({
         data: {
@@ -112,25 +121,30 @@ export const taskRouter = createTRPCRouter({
 
   // Update task
   update: publicProcedure
-    .input(z.object({
-      id: z.string().cuid(),
-      organizationId: z.string().cuid(),
-      projectId: z.string().cuid().optional(),
-      parentTaskId: z.string().cuid().optional(),
-      title: z.string().min(1, "Task title is required").optional(),
-      description: z.string().optional(),
-      status: TaskStatusSchema.optional(),
-      priority: PrioritySchema.optional(),
-      startDate: z.date().optional(),
-      dueDate: z.date().optional(),
-      assignedToId: z.string().optional().transform(val => val === "unassigned" ? null : val),
-      estimatedHours: z.number().min(0).optional(),
-      actualHours: z.number().min(0).optional(),
-      completedAt: z.date().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+        projectId: z.string().cuid().optional(),
+        parentTaskId: z.string().cuid().optional(),
+        title: z.string().min(1, "Task title is required").optional(),
+        description: z.string().optional(),
+        status: TaskStatusSchema.optional(),
+        priority: PrioritySchema.optional(),
+        startDate: z.date().optional(),
+        dueDate: z.date().optional(),
+        assignedToId: z
+          .string()
+          .optional()
+          .transform(val => (val === "unassigned" ? null : val)),
+        estimatedHours: z.number().min(0).optional(),
+        actualHours: z.number().min(0).optional(),
+        completedAt: z.date().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const { id, organizationId, ...updateData } = input;
-      
+
       return ctx.db.task.update({
         where: {
           id,
@@ -150,10 +164,12 @@ export const taskRouter = createTRPCRouter({
 
   // Delete task
   delete: publicProcedure
-    .input(z.object({
-      id: z.string().cuid(),
-      organizationId: z.string().cuid(),
-    }))
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.task.delete({
         where: {
@@ -165,10 +181,12 @@ export const taskRouter = createTRPCRouter({
 
   // Get task statistics
   getStats: publicProcedure
-    .input(z.object({ 
-      organizationId: z.string().cuid(),
-      projectId: z.string().cuid().optional(),
-    }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        projectId: z.string().cuid().optional(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       const tasks = await ctx.db.task.findMany({
         where: {
@@ -185,7 +203,9 @@ export const taskRouter = createTRPCRouter({
 
       const totalTasks = tasks.length;
       const completedTasks = tasks.filter(t => t.status === "DONE").length;
-      const inProgressTasks = tasks.filter(t => t.status === "IN_PROGRESS").length;
+      const inProgressTasks = tasks.filter(
+        t => t.status === "IN_PROGRESS"
+      ).length;
       const backlogTasks = tasks.filter(t => t.status === "BACKLOG").length;
       const todoTasks = tasks.filter(t => t.status === "TODO").length;
       const reviewTasks = tasks.filter(t => t.status === "REVIEW").length;
@@ -197,8 +217,14 @@ export const taskRouter = createTRPCRouter({
         URGENT: tasks.filter(t => t.priority === "URGENT").length,
       };
 
-      const totalEstimatedHours = tasks.reduce((acc, t) => acc + (t.estimatedHours ?? 0), 0);
-      const totalActualHours = tasks.reduce((acc, t) => acc + (t.actualHours ?? 0), 0);
+      const totalEstimatedHours = tasks.reduce(
+        (acc, t) => acc + (t.estimatedHours ?? 0),
+        0
+      );
+      const totalActualHours = tasks.reduce(
+        (acc, t) => acc + (t.actualHours ?? 0),
+        0
+      );
 
       return {
         totalTasks,
@@ -210,16 +236,19 @@ export const taskRouter = createTRPCRouter({
         priorityBreakdown,
         totalEstimatedHours,
         totalActualHours,
-        completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+        completionRate:
+          totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
       };
     }),
 
   // Get tasks by assignee
   getByAssignee: publicProcedure
-    .input(z.object({
-      organizationId: z.string().cuid(),
-      assignedToId: z.string(),
-    }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        assignedToId: z.string(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       return ctx.db.task.findMany({
         where: {
@@ -242,18 +271,22 @@ export const taskRouter = createTRPCRouter({
 
   // Update task order for drag and drop
   updateOrder: publicProcedure
-    .input(z.object({
-      organizationId: z.string().cuid(),
-      tasks: z.array(z.object({
-        id: z.string().cuid(),
-        order: z.number(),
-      })),
-    }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        tasks: z.array(
+          z.object({
+            id: z.string().cuid(),
+            order: z.number(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const { organizationId, tasks } = input;
-      
+
       // Update each task's order in a transaction
-      const updatePromises = tasks.map(task => 
+      const updatePromises = tasks.map(task =>
         ctx.db.task.update({
           where: {
             id: task.id,
@@ -264,9 +297,9 @@ export const taskRouter = createTRPCRouter({
           },
         })
       );
-      
+
       await Promise.all(updatePromises);
-      
+
       return { success: true };
     }),
 });

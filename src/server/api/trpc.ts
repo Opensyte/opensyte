@@ -95,7 +95,7 @@ const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
   if (t._config.isDev) {
     // artificial delay in dev
     const waitMs = Math.floor(Math.random() * 400) + 100;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    await new Promise(resolve => setTimeout(resolve, waitMs));
   }
 
   const result = await next({

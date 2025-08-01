@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/dialog";
 import { cn } from "~/lib/utils";
 import type { CustomerInteraction } from "~/types/crm";
+import { interactionTypeColors } from "~/types/crm";
 
 interface ViewInteractionDialogProps {
   isOpen: boolean;
@@ -27,26 +28,16 @@ export function ViewInteractionDialog({
   onOpenChange,
   interaction,
   getCustomerName,
-  formatDate
+  formatDate,
 }: ViewInteractionDialogProps) {
   if (!interaction) return null;
 
-  // Get the badge color based on interaction type
+  // Get the badge color based on interaction type using centralized mapping
   const getInteractionTypeColor = (type: string) => {
-    switch (type) {
-      case "CALL":
-        return "bg-blue-100 text-blue-800";
-      case "EMAIL":
-        return "bg-green-100 text-green-800";
-      case "MEETING":
-        return "bg-purple-100 text-purple-800";
-      case "NOTE":
-        return "bg-yellow-100 text-yellow-800";
-      case "TASK":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+    return (
+      interactionTypeColors[type as keyof typeof interactionTypeColors] ??
+      "bg-gray-100 text-gray-800"
+    );
   };
 
   return (
@@ -57,7 +48,7 @@ export function ViewInteractionDialog({
             <Badge
               className={cn(
                 "font-medium",
-                getInteractionTypeColor(interaction.type),
+                getInteractionTypeColor(interaction.type)
               )}
             >
               {interaction.type}

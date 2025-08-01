@@ -5,35 +5,34 @@ import { ProjectTasksSkeleton } from "~/components/projects/project-tasks-skelet
 import { api } from "~/trpc/server";
 
 interface ProjectPageProps {
-  params: {
+  params: Promise<{
     orgId: string;
     projectId: string;
-  };
+  }>;
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
+  const { orgId, projectId } = await params;
+
   try {
     // Just verify project exists and belongs to the organization
-    const project = await api.project.getById({ 
-      id: params.projectId,
-      organizationId: params.orgId
+    const project = await api.project.getById({
+      id: projectId,
+      organizationId: orgId,
     });
-    
+
     if (!project) {
-      redirect(`/${params.orgId}/projects`);
+      redirect(`/${orgId}/projects`);
     }
   } catch {
     // If verification fails, redirect to dashboard
-    redirect(`/${params.orgId}`);
+    redirect(`/${orgId}`);
   }
 
   return (
     <div className="flex h-full flex-col">
       <Suspense fallback={<ProjectTasksSkeleton />}>
-        <ProjectTasksClient 
-          organizationId={params.orgId}
-          projectId={params.projectId}
-        />
+        <ProjectTasksClient organizationId={orgId} projectId={projectId} />
       </Suspense>
     </div>
   );

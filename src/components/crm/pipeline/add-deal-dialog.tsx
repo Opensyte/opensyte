@@ -81,23 +81,23 @@ export function AddDealDialog({ organizationId }: AddDealDialogProps) {
 
   // tRPC queries and mutations
   const utils = api.useUtils();
-  const { data: customers = [], isLoading: customersLoading } =
+  const { data: customers = [] } =
     api.contactsCrm.getContactsByOrganization.useQuery(
       { organizationId },
       {
         refetchOnWindowFocus: false,
         enabled: !!organizationId,
-      },
+      }
     );
 
   const createDeal = api.dealsCrm.createDeal.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Deal created successfully");
-      utils.dealsCrm.invalidate();
+      await utils.dealsCrm.invalidate();
       setOpen(false);
       form.reset(defaultValues);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to create deal", {
         description: error.message,
       });
@@ -219,7 +219,7 @@ export function AddDealDialog({ organizationId }: AddDealDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {customers.map((customer) => (
+                        {customers.map(customer => (
                           <SelectItem key={customer.id} value={customer.id}>
                             {customer.firstName} {customer.lastName} -{" "}
                             {customer.company}
@@ -292,7 +292,7 @@ export function AddDealDialog({ organizationId }: AddDealDialogProps) {
                             variant="outline"
                             className={cn(
                               "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground",
+                              !field.value && "text-muted-foreground"
                             )}
                           >
                             {field.value ? (

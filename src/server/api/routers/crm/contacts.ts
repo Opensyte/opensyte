@@ -71,7 +71,7 @@ export const contactsCrmRoutes = createTRPCRouter({
       z.object({
         id: z.string().cuid(),
         data: CustomerUpdateInputSchema,
-      }),
+      })
     )
     .mutation(async ({ input }) => {
       try {
@@ -114,7 +114,7 @@ export const contactsCrmRoutes = createTRPCRouter({
     .input(
       z.object({
         organizationId: z.string().cuid(),
-      }),
+      })
     )
     .query(async ({ input }) => {
       try {

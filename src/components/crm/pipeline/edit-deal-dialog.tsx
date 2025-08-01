@@ -75,10 +75,11 @@ export function EditDealDialog({
   organizationId,
 }: EditDealDialogProps) {
   // Fetch customers for the organization
-  const { data: customers, isLoading: isLoadingCustomers } = api.contactsCrm.getContactsByOrganization.useQuery(
-    { organizationId },
-    { enabled: open } // Only fetch when dialog is open
-  );
+  const { data: customers, isLoading: isLoadingCustomers } =
+    api.contactsCrm.getContactsByOrganization.useQuery(
+      { organizationId },
+      { enabled: open } // Only fetch when dialog is open
+    );
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -115,12 +116,17 @@ export function EditDealDialog({
 
   // Update customer name when customer selection changes
   const watchedCustomerId = form.watch("customerId");
-  
+
   useEffect(() => {
     if (watchedCustomerId && customers) {
-      const selectedCustomer = customers.find(customer => customer.id === watchedCustomerId);
+      const selectedCustomer = customers.find(
+        customer => customer.id === watchedCustomerId
+      );
       if (selectedCustomer) {
-        form.setValue("customerName", `${selectedCustomer.firstName} ${selectedCustomer.lastName}`.trim());
+        form.setValue(
+          "customerName",
+          `${selectedCustomer.firstName} ${selectedCustomer.lastName}`.trim()
+        );
       }
     }
   }, [watchedCustomerId, customers, form]);
@@ -133,7 +139,7 @@ export function EditDealDialog({
       // Invalidate the deals query to refresh the pipeline
       void utils.dealsCrm.getDealsByOrganization.invalidate({ organizationId });
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to update deal: ${error.message}`);
     },
   });
@@ -183,8 +189,8 @@ export function EditDealDialog({
                 <FormItem>
                   <FormLabel>Customer</FormLabel>
                   <FormControl>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value}
                       disabled={isLoadingCustomers}
                     >
@@ -198,9 +204,10 @@ export function EditDealDialog({
                             <span className="ml-2">Loading customers...</span>
                           </div>
                         ) : customers?.length ? (
-                          customers.map((customer) => (
+                          customers.map(customer => (
                             <SelectItem key={customer.id} value={customer.id}>
-                              {(`${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim()) || (customer.company ?? "Unnamed Customer")}
+                              {`${customer.firstName ?? ""} ${customer.lastName ?? ""}`.trim() ||
+                                (customer.company ?? "Unnamed Customer")}
                             </SelectItem>
                           ))
                         ) : (
@@ -285,7 +292,7 @@ export function EditDealDialog({
                             variant={"outline"}
                             className={cn(
                               "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground",
+                              !field.value && "text-muted-foreground"
                             )}
                           >
                             {field.value ? (
@@ -324,7 +331,7 @@ export function EditDealDialog({
                       max={100}
                       step={1}
                       value={[value]}
-                      onValueChange={(vals) => onChange(vals[0])}
+                      onValueChange={vals => onChange(vals[0])}
                       {...fieldProps}
                     />
                   </FormControl>

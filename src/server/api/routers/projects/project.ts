@@ -26,10 +26,12 @@ export const projectRouter = createTRPCRouter({
 
   // Get project by ID
   getById: publicProcedure
-    .input(z.object({ 
-      id: z.string().cuid(),
-      organizationId: z.string().cuid(),
-    }))
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       return ctx.db.project.findFirst({
         where: {
@@ -54,17 +56,19 @@ export const projectRouter = createTRPCRouter({
 
   // Create new project
   create: publicProcedure
-    .input(z.object({
-      organizationId: z.string().cuid(),
-      name: z.string().min(1, "Project name is required"),
-      description: z.string().optional(),
-      startDate: z.date().optional(),
-      endDate: z.date().optional(),
-      status: ProjectStatusSchema.default("PLANNED"),
-      budget: z.number().min(0).optional(),
-      currency: z.string().default("USD"),
-      createdById: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        name: z.string().min(1, "Project name is required"),
+        description: z.string().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        status: ProjectStatusSchema.default("PLANNED"),
+        budget: z.number().min(0).optional(),
+        currency: z.string().default("USD"),
+        createdById: z.string().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.project.create({
         data: {
@@ -90,20 +94,22 @@ export const projectRouter = createTRPCRouter({
 
   // Update project
   update: publicProcedure
-    .input(z.object({
-      id: z.string().cuid(),
-      organizationId: z.string().cuid(),
-      name: z.string().min(1, "Project name is required").optional(),
-      description: z.string().optional(),
-      startDate: z.date().optional(),
-      endDate: z.date().optional(),
-      status: ProjectStatusSchema.optional(),
-      budget: z.number().min(0).optional(),
-      currency: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+        name: z.string().min(1, "Project name is required").optional(),
+        description: z.string().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        status: ProjectStatusSchema.optional(),
+        budget: z.number().min(0).optional(),
+        currency: z.string().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const { id, organizationId, ...updateData } = input;
-      
+
       return ctx.db.project.update({
         where: {
           id,
@@ -122,10 +128,12 @@ export const projectRouter = createTRPCRouter({
 
   // Delete project
   delete: publicProcedure
-    .input(z.object({
-      id: z.string().cuid(),
-      organizationId: z.string().cuid(),
-    }))
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.project.delete({
         where: {
@@ -153,11 +161,16 @@ export const projectRouter = createTRPCRouter({
       });
 
       const totalProjects = projects.length;
-      const activeProjects = projects.filter(p => p.status === "IN_PROGRESS").length;
-      const completedProjects = projects.filter(p => p.status === "COMPLETED").length;
+      const activeProjects = projects.filter(
+        p => p.status === "IN_PROGRESS"
+      ).length;
+      const completedProjects = projects.filter(
+        p => p.status === "COMPLETED"
+      ).length;
       const totalTasks = projects.reduce((acc, p) => acc + p.tasks.length, 0);
-      const completedTasks = projects.reduce((acc, p) => 
-        acc + p.tasks.filter(t => t.status === "DONE").length, 0
+      const completedTasks = projects.reduce(
+        (acc, p) => acc + p.tasks.filter(t => t.status === "DONE").length,
+        0
       );
 
       return {
@@ -166,7 +179,8 @@ export const projectRouter = createTRPCRouter({
         completedProjects,
         totalTasks,
         completedTasks,
-        completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+        completionRate:
+          totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
       };
     }),
 });

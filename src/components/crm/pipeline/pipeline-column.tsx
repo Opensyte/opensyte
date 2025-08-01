@@ -15,7 +15,6 @@ interface PipelineColumnProps {
   color: string;
   deals: Deal[];
   organizationId: string;
-  onDealUpdate: (deal: Deal) => void;
 }
 
 export function PipelineColumn({
@@ -24,7 +23,6 @@ export function PipelineColumn({
   color,
   deals,
   organizationId,
-  onDealUpdate,
 }: PipelineColumnProps) {
   const columnId = useId();
   const { setNodeRef, isOver } = useDroppable({
@@ -36,7 +34,7 @@ export function PipelineColumn({
   });
 
   // Memoize the deal IDs to prevent unnecessary re-renders
-  const dealIds = useMemo(() => deals.map((d) => d.id), [deals]);
+  const dealIds = useMemo(() => deals.map(d => d.id), [deals]);
 
   return (
     <div
@@ -61,12 +59,11 @@ export function PipelineColumn({
           strategy={verticalListSortingStrategy}
         >
           <div className="flex flex-col gap-2">
-            {deals.map((deal) => (
+            {deals.map(deal => (
               <DealCard
                 key={deal.id}
                 deal={deal}
                 organizationId={organizationId}
-                onDealUpdate={onDealUpdate}
               />
             ))}
 

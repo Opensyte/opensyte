@@ -22,7 +22,7 @@ import {
   MapPin,
   User2,
 } from "lucide-react";
-import type { Customer } from "~/types/crm";
+
 import { api } from "~/trpc/react";
 
 interface CustomerDetailsDialogProps {
@@ -53,7 +53,7 @@ const sourceIconMap = {
 };
 
 export function CustomerDetailsDialog({
-  customerName,
+  customerName: _customerName,
   customerId,
   open,
   onOpenChange,
@@ -68,7 +68,7 @@ export function CustomerDetailsDialog({
     {
       enabled: open && !!customerId, // Only fetch when dialog is open and customerId exists
       refetchOnWindowFocus: false,
-    },
+    }
   );
 
   const CustomerSkeleton = () => (

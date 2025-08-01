@@ -172,11 +172,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
   const params = useParams();
   const orgId = params?.orgId as string;
-  const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
+  const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] =
+    useState(false);
 
   const { data: organizations, isLoading } = api.organization.getAll.useQuery(
     { userId: session?.user?.id ?? "" },
-    { enabled: !!session?.user?.id },
+    { enabled: !!session?.user?.id }
   );
 
   // Get navigation data with the state setter
@@ -185,14 +186,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Fetch projects for the current organization
   const { data: projects } = api.project.getAll.useQuery(
     { organizationId: orgId },
-    { enabled: !!orgId },
+    { enabled: !!orgId }
   );
 
   // Transform organizations to teams format for TeamSwitcher
   const teams = React.useMemo(() => {
     if (!organizations) return [];
 
-    return organizations.map((org) => ({
+    return organizations.map(org => ({
       id: org.id,
       name: org.name,
       logo: Building2, // Using Building2 as default icon for all orgs
@@ -203,7 +204,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Create dynamic navigation with projects
   const dynamicNavMain = React.useMemo(() => {
     const baseNav = [...data.navMain];
-    
+
     // Find the Projects section and update it with dynamic project items
     const projectsIndex = baseNav.findIndex(item => item.title === "Projects");
     if (projectsIndex !== -1 && projects) {
@@ -212,7 +213,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: `/[orgId]/projects/${project.id}`,
         icon: Folder,
       }));
-      
+
       const currentProjectSection = baseNav[projectsIndex]!;
       // Type-safe way to update the items
       baseNav[projectsIndex] = {
@@ -220,7 +221,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         items: projectItems,
       } as typeof currentProjectSection; // Ensure type compatibility
     }
-    
+
     return baseNav;
   }, [projects, data.navMain]);
 
@@ -242,7 +243,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <NavUser user={data.user} />
         </SidebarFooter>
         <SidebarRail />
-        
+
         {/* Project Creation Dialog */}
         {orgId && (
           <ProjectCreateDialog
@@ -267,7 +268,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />
-      
+
       {/* Project Creation Dialog */}
       {orgId && (
         <ProjectCreateDialog

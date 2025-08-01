@@ -98,7 +98,7 @@ export default function AddLeadDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && handleDialogClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
@@ -225,7 +225,7 @@ export default function AddLeadDialog({
                             {value
                               .replace(/_/g, " ")
                               .toLowerCase()
-                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              .replace(/\b\w/g, l => l.toUpperCase())}
                           </SelectItem>
                         ))}
                       </SelectContent>

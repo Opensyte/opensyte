@@ -74,13 +74,20 @@ export function ProjectTasksClient({
   });
 
   const filteredTasks =
-    tasks?.filter((task) => {
+    tasks?.filter(task => {
+      const statusFilterValue = statusFilter ?? "all";
       const matchesStatus =
-        statusFilter === "all" || task.status === statusFilter;
+        statusFilterValue === "all" || task.status === statusFilterValue;
+
+      const searchQueryValue = searchQuery ?? "";
       const matchesSearch =
-        searchQuery === "" ||
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        searchQueryValue === "" ||
+        task.title.toLowerCase().includes(searchQueryValue.toLowerCase()) ||
+        (task.description
+          ?.toLowerCase()
+          .includes(searchQueryValue.toLowerCase()) ??
+          false);
+
       return matchesStatus && matchesSearch;
     }) ?? [];
 
@@ -92,7 +99,7 @@ export function ProjectTasksClient({
       void utils.project.getAll.invalidate();
       router.push(`/${organizationId}/projects`);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to delete project");
     },
   });
@@ -133,7 +140,7 @@ export function ProjectTasksClient({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b p-4 md:p-6">
+      <div className=" p-4 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
@@ -219,7 +226,7 @@ export function ProjectTasksClient({
                 <Input
                   placeholder="Search tasks..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="h-9 w-64 pl-9"
                 />
               </div>
@@ -249,12 +256,9 @@ export function ProjectTasksClient({
           </div>
         </TabsContent>
 
-        <TabsContent
-          value="gantt"
-          className="flex-1 h-full min-h-0 p-4"
-        >
+        <TabsContent value="gantt" className="flex-1 h-full min-h-0 p-4">
           <div className="flex h-full min-h-0 flex-col">
-            <ProjectGanttBoard 
+            <ProjectGanttBoard
               organizationId={organizationId}
               projectId={projectId}
             />

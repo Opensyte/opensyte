@@ -50,7 +50,7 @@ export default function DashboardPage() {
     error,
   } = api.organization.getAll.useQuery(
     { userId: session?.user?.id ?? "" },
-    { enabled: !!session?.user?.id },
+    { enabled: !!session?.user?.id }
   );
 
   const utils = api.useUtils();
@@ -60,7 +60,7 @@ export default function DashboardPage() {
       void utils.organization.getAll.invalidate();
       toast.success("Organization created successfully!");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message || "Failed to create organization");
     },
   });
@@ -70,7 +70,7 @@ export default function DashboardPage() {
       void utils.organization.getAll.invalidate();
       toast.success("Organization updated successfully!");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message || "Failed to update organization");
     },
   });
@@ -80,7 +80,7 @@ export default function DashboardPage() {
       void utils.organization.getAll.invalidate();
       toast.success("Organization deleted successfully!");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message || "Failed to delete organization");
     },
   });
@@ -99,7 +99,7 @@ export default function DashboardPage() {
 
   const handleEditOrganization = async (
     id: string,
-    data: EditOrganizationFormValues,
+    data: EditOrganizationFormValues
   ) => {
     if (!session?.user?.id) {
       toast.error("You must be logged in to edit an organization");
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           <OrganizationsSkeleton />
         ) : organizations && organizations.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {organizations.map((org) => (
+            {organizations.map(org => (
               <OrganizationCard
                 key={org.id}
                 id={org.id}

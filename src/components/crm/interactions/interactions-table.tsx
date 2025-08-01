@@ -1,7 +1,7 @@
 import React from "react";
 import { Trash2, Eye } from "lucide-react";
-
 import type { CustomerInteraction } from "~/types/crm";
+import { interactionTypeColors } from "~/types/crm";
 import {
   Card,
   CardContent,
@@ -36,22 +36,12 @@ export function InteractionsTable({
   getCustomerName,
   formatDate,
 }: InteractionsTableProps) {
-  // Get the badge color based on interaction type
+  // Get the badge color based on interaction type using centralized mapping
   const getInteractionTypeColor = (type: string) => {
-    switch (type) {
-      case "CALL":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "EMAIL":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "MEETING":
-        return "bg-purple-100 text-purple-800 border-purple-200";
-      case "NOTE":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "TASK":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
+    return (
+      interactionTypeColors[type as keyof typeof interactionTypeColors] ??
+      "bg-gray-100 text-gray-800 border-gray-200"
+    );
   };
 
   const capitalizeFirstLetter = (text: string) => {
@@ -105,7 +95,7 @@ export function InteractionsTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                interactions.map((interaction) => (
+                interactions.map(interaction => (
                   <TableRow
                     key={interaction.id}
                     className="group hover:bg-muted/50"
@@ -114,7 +104,7 @@ export function InteractionsTable({
                       <Badge
                         className={cn(
                           "px-2 py-0.5 font-medium",
-                          getInteractionTypeColor(interaction.type),
+                          getInteractionTypeColor(interaction.type)
                         )}
                       >
                         {capitalizeFirstLetter(interaction.type)}

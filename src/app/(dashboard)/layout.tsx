@@ -28,7 +28,11 @@ export default async function RootLayout({
   });
   if (!session) return redirect("/sign-in");
   return (
-    <html lang="en" suppressHydrationWarning className={`${geist.variable} dark`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geist.variable} dark`}
+    >
       <body>
         <TRPCReactProvider>
           {children}

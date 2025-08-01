@@ -45,5 +45,5 @@ export default tseslint.config(
         projectService: true,
       },
     },
-  },
+  }
 );

@@ -25,7 +25,7 @@ export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
         [key]: value,
       });
     },
-    [onApplyFilters],
+    [onApplyFilters]
   );
 
   const handleSliderChange = useCallback(
@@ -47,7 +47,7 @@ export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
 
       handleFilterChange(key, values);
     },
-    [filters, handleFilterChange],
+    [filters, handleFilterChange]
   );
 
   const handleResetFilters = useCallback(() => {
@@ -68,7 +68,7 @@ export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
             placeholder="Search deals..."
             className="pl-8"
             value={filters.searchQuery ?? ""}
-            onChange={(e) => handleFilterChange("searchQuery", e.target.value)}
+            onChange={e => handleFilterChange("searchQuery", e.target.value)}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -93,10 +93,10 @@ export function DealFilters({ filters, onApplyFilters }: DealFiltersProps) {
                     max={100}
                     step={1}
                     value={filters.probability ?? [0, 100]}
-                    onValueChange={(values) =>
+                    onValueChange={values =>
                       handleSliderChange(
                         "probability",
-                        values as [number, number],
+                        values as [number, number]
                       )
                     }
                   />

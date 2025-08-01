@@ -45,7 +45,7 @@ export const interactionsRouter = createTRPCRouter({
       z.object({
         id: z.string().cuid(),
         data: CustomerInteractionUpdateInputSchema,
-      }),
+      })
     )
     .mutation(async ({ input }) => {
       return db.customerInteraction.update({

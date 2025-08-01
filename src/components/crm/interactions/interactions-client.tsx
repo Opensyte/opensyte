@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { format } from "date-fns";
-import { PlusCircle, Search, Loader2 } from "lucide-react";
+import { PlusCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
@@ -37,7 +37,9 @@ interface InteractionsClientProps {
   organizationId: string;
 }
 
-export function InteractionsClient({ organizationId }: InteractionsClientProps) {
+export function InteractionsClient({
+  organizationId,
+}: InteractionsClientProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [currentInteraction, setCurrentInteraction] =
@@ -46,69 +48,71 @@ export function InteractionsClient({ organizationId }: InteractionsClientProps) 
   const [filterType, setFilterType] = useState<"ALL" | InteractionType>("ALL");
 
   // tRPC queries and mutations
-  const { data: interactions = [], isLoading, error } = api.interactions.getByOrganization.useQuery(
+  const {
+    data: interactions = [],
+    isLoading,
+    error,
+  } = api.interactions.getByOrganization.useQuery(
     { organizationId },
     {
       refetchOnWindowFocus: false,
       enabled: !!organizationId, // Only run query if organizationId is provided
     }
-  ) as { data: CustomerInteraction[], isLoading: boolean, error: Error | null };
+  ) as { data: CustomerInteraction[]; isLoading: boolean; error: Error | null };
 
   // Fetch customers for the organization
-  const { data: customers = [], isLoading: customersLoading } = api.contactsCrm.getContactsByOrganization.useQuery(
-    { organizationId },
-    {
-      refetchOnWindowFocus: false,
-      enabled: !!organizationId, // Only run query if organizationId is provided
-    }
-  );
-  
+  const { data: customers = [] } =
+    api.contactsCrm.getContactsByOrganization.useQuery(
+      { organizationId },
+      {
+        refetchOnWindowFocus: false,
+        enabled: !!organizationId, // Only run query if organizationId is provided
+      }
+    );
+
   const createInteraction = api.interactions.createInteraction.useMutation({
     onSuccess: () => {
       toast.success("Interaction added");
-      utils.interactions.invalidate();
+      void utils.interactions.invalidate();
     },
-    onError: (error) => {
-      toast.error("Failed to add interaction", {
-        description: error.message,
-      });
+    onError: () => {
+      toast.error("Failed to add interaction");
     },
   });
 
-  const updateInteraction = api.interactions.updateInteraction.useMutation({
+  api.interactions.updateInteraction.useMutation({
     onSuccess: () => {
       toast.success("Interaction updated");
-      utils.interactions.invalidate();
+      void utils.interactions.invalidate();
     },
-    onError: (error) => {
-      toast.error("Failed to update interaction", {
-        description: error.message,
-      });
+    onError: () => {
+      toast.error("Failed to update interaction");
     },
   });
 
   const deleteInteraction = api.interactions.deleteInteraction.useMutation({
     onSuccess: () => {
       toast.success("Interaction deleted");
-      utils.interactions.invalidate();
+      void utils.interactions.invalidate();
     },
-    onError: (error) => {
-      toast.error("Failed to delete interaction", {
-        description: error.message,
-      });
+    onError: () => {
+      toast.error("Failed to delete interaction");
     },
   });
 
   const utils = api.useUtils();
 
   // Filter interactions based on search term and type filter
-  const filteredInteractions = interactions.filter((interaction) => {
-    const matchesSearch = searchTerm === '' || 
-      (interaction.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      interaction.content?.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesType = filterType === 'ALL' || interaction.type === filterType;
-    
+  const filteredInteractions = interactions.filter(interaction => {
+    const matchesSearch =
+      searchTerm === "" ||
+      (interaction.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ??
+        false) ||
+      (interaction.content?.toLowerCase().includes(searchTerm.toLowerCase()) ??
+        false);
+
+    const matchesType = filterType === "ALL" || interaction.type === filterType;
+
     return matchesSearch && matchesType;
   });
 
@@ -133,7 +137,7 @@ export function InteractionsClient({ organizationId }: InteractionsClientProps) 
         completedAt: formData.completedAt,
       });
       setIsAddDialogOpen(false);
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   };
@@ -143,16 +147,14 @@ export function InteractionsClient({ organizationId }: InteractionsClientProps) 
     try {
       await deleteInteraction.mutateAsync({ id });
       setIsViewDialogOpen(false);
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   };
 
-
-
   // Get customer name by ID
   const getCustomerName = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
+    const customer = customers.find(c => c.id === customerId);
     return customer
       ? `${customer.firstName} ${customer.lastName}`
       : "Unknown Customer";
@@ -176,8 +178,12 @@ export function InteractionsClient({ organizationId }: InteractionsClientProps) 
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-destructive mb-2">Failed to load interactions</p>
-              <p className="text-sm text-muted-foreground">{error?.message || "An unexpected error occurred"}</p>
+              <p className="text-destructive mb-2">
+                Failed to load interactions
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {error?.message || "An unexpected error occurred"}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -219,7 +225,7 @@ export function InteractionsClient({ organizationId }: InteractionsClientProps) 
                   placeholder="Search interactions..."
                   className="pl-8"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
@@ -256,7 +262,7 @@ export function InteractionsClient({ organizationId }: InteractionsClientProps) 
         <TabsContent value="table" className="space-y-4">
           <InteractionsTable
             interactions={filteredInteractions}
-            onViewInteraction={(interaction) => {
+            onViewInteraction={interaction => {
               setCurrentInteraction(interaction);
               setIsViewDialogOpen(true);
             }}
@@ -269,7 +275,7 @@ export function InteractionsClient({ organizationId }: InteractionsClientProps) 
         <TabsContent value="timeline" className="space-y-4">
           <InteractionsTimeline
             interactions={filteredInteractions}
-            onViewInteraction={(interaction) => {
+            onViewInteraction={interaction => {
               setCurrentInteraction(interaction);
               setIsViewDialogOpen(true);
             }}

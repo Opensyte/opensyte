@@ -49,7 +49,11 @@ const updateProjectSchema = z.object({
   startDate: z.date().optional(),
   endDate: z.date().optional(),
   status: ProjectStatusSchema.optional(),
-  budget: z.number().min(0).optional().or(z.string().transform(val => (val ? parseFloat(val) : undefined))),
+  budget: z
+    .number()
+    .min(0)
+    .optional()
+    .or(z.string().transform(val => (val ? parseFloat(val) : undefined))),
   currency: z.string().optional().default("USD"),
 });
 
@@ -93,7 +97,12 @@ export function ProjectEditDialog({
     defaultValues: {
       name: project.name,
       description: project.description ?? "",
-      status: project.status as "PLANNED" | "IN_PROGRESS" | "ON_HOLD" | "COMPLETED" | "CANCELLED",
+      status: project.status as
+        | "PLANNED"
+        | "IN_PROGRESS"
+        | "ON_HOLD"
+        | "COMPLETED"
+        | "CANCELLED",
       budget: project.budget ? Number(project.budget) : undefined,
       currency: project.currency,
       startDate: project.startDate ?? undefined,
@@ -106,7 +115,12 @@ export function ProjectEditDialog({
     form.reset({
       name: project.name,
       description: project.description ?? "",
-      status: project.status as "PLANNED" | "IN_PROGRESS" | "ON_HOLD" | "COMPLETED" | "CANCELLED",
+      status: project.status as
+        | "PLANNED"
+        | "IN_PROGRESS"
+        | "ON_HOLD"
+        | "COMPLETED"
+        | "CANCELLED",
       budget: project.budget ? Number(project.budget) : undefined,
       currency: project.currency,
       startDate: project.startDate ?? undefined,
@@ -122,7 +136,7 @@ export function ProjectEditDialog({
       void utils.project.getStats.invalidate();
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to update project");
     },
     onSettled: () => {
@@ -132,7 +146,7 @@ export function ProjectEditDialog({
 
   const onSubmit = (data: UpdateProjectForm) => {
     setIsSubmitting(true);
-    
+
     updateProject.mutate({
       id: project.id,
       organizationId,
@@ -251,9 +265,7 @@ export function ProjectEditDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>
@@ -293,9 +305,7 @@ export function ProjectEditDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
+                          disabled={date => date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>
@@ -319,9 +329,11 @@ export function ProjectEditDialog({
                         type="number"
                         step="0.01"
                         placeholder="0.00"
-                        value={field.value?.toString() ?? ''}
-                        onChange={(e) => {
-                          const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                        value={field.value?.toString() ?? ""}
+                        onChange={e => {
+                          const value = e.target.value
+                            ? parseFloat(e.target.value)
+                            : undefined;
                           field.onChange(value);
                         }}
                       />

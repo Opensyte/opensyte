@@ -54,39 +54,13 @@ import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { TaskViewDialog } from "./task-view-dialog";
-
-// Define the valid task status values from the schema
-type TaskStatusType =
-  | "BACKLOG"
-  | "TODO"
-  | "IN_PROGRESS"
-  | "REVIEW"
-  | "DONE"
-  | "ARCHIVED";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  startDate: Date | null;
-  dueDate: Date | null;
-  assignedToId: string | null;
-  estimatedHours: number | null;
-  actualHours: number | null;
-  createdAt: Date;
-  project: {
-    id: string;
-    name: string;
-  } | null;
-  assignee?: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string | null;
-  } | null;
-}
+import type { Task, TaskStatus } from "~/types";
+import {
+  taskStatusColors,
+  taskStatusLabels,
+  taskPriorityColors,
+  taskPriorityIcons,
+} from "~/types";
 
 interface TasksListProps {
   tasks: Task[];
@@ -94,38 +68,6 @@ interface TasksListProps {
   organizationId: string;
   projectId: string;
 }
-
-const statusColors = {
-  BACKLOG: "bg-gray-100 text-gray-800",
-  TODO: "bg-blue-100 text-blue-800",
-  IN_PROGRESS: "bg-yellow-100 text-yellow-800",
-  REVIEW: "bg-purple-100 text-purple-800",
-  DONE: "bg-green-100 text-green-800",
-  ARCHIVED: "bg-gray-100 text-gray-800",
-};
-
-const statusLabels = {
-  BACKLOG: "Backlog",
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
-  REVIEW: "Review",
-  DONE: "Done",
-  ARCHIVED: "Archived",
-};
-
-const priorityColors = {
-  LOW: "text-green-600",
-  MEDIUM: "text-yellow-600",
-  HIGH: "text-orange-600",
-  URGENT: "text-red-600",
-};
-
-const priorityIcons = {
-  LOW: "🔽",
-  MEDIUM: "➖",
-  HIGH: "🔼",
-  URGENT: "🚨",
-};
 
 // Sortable Task Row Component
 function SortableTaskRow({
@@ -138,7 +80,7 @@ function SortableTaskRow({
 }: {
   task: Task;
   handleCheckboxChange: (taskId: string, checked: boolean) => void;
-  handleStatusChange: (taskId: string, newStatus: TaskStatusType) => void;
+  handleStatusChange: (taskId: string, newStatus: TaskStatus) => void;
   handleDelete: (task: Task) => void;
   setEditingTask: (task: Task | null) => void;
   setViewingTask: (task: Task | null) => void;
@@ -172,7 +114,7 @@ function SortableTaskRow({
         <div className="flex items-center gap-2">
           <Checkbox
             checked={task.status === "DONE"}
-            onCheckedChange={(checked) =>
+            onCheckedChange={checked =>
               handleCheckboxChange(task.id, checked as boolean)
             }
           />
@@ -190,10 +132,10 @@ function SortableTaskRow({
       {/* Priority */}
       <TableCell>
         <span
-          className={`text-lg ${priorityColors[task.priority as keyof typeof priorityColors]}`}
+          className={`text-lg ${taskPriorityColors[task.priority as keyof typeof taskPriorityColors]}`}
           title={task.priority}
         >
-          {priorityIcons[task.priority as keyof typeof priorityIcons]}
+          {taskPriorityIcons[task.priority as keyof typeof taskPriorityIcons]}
         </span>
       </TableCell>
 
@@ -267,10 +209,10 @@ function SortableTaskRow({
       <TableCell>
         <Badge
           variant="outline"
-          className={`${priorityColors[task.priority as keyof typeof priorityColors]} border-current`}
+          className={`${taskPriorityColors[task.priority as keyof typeof taskPriorityColors]} border-current`}
         >
           <span className="mr-1">
-            {priorityIcons[task.priority as keyof typeof priorityIcons]}
+            {taskPriorityIcons[task.priority as keyof typeof taskPriorityIcons]}
           </span>
           {task.priority.charAt(0).toUpperCase() +
             task.priority.slice(1).toLowerCase()}
@@ -281,18 +223,18 @@ function SortableTaskRow({
       <TableCell>
         <Select
           value={task.status}
-          onValueChange={(value) =>
-            handleStatusChange(task.id, value as TaskStatusType)
+          onValueChange={value =>
+            handleStatusChange(task.id, value as TaskStatus)
           }
         >
           <SelectTrigger className="h-8 w-full">
             <SelectValue asChild>
               <Badge
                 className={
-                  statusColors[task.status as keyof typeof statusColors]
+                  taskStatusColors[task.status as keyof typeof taskStatusColors]
                 }
               >
-                {statusLabels[task.status as keyof typeof statusLabels]}
+                {taskStatusLabels[task.status as keyof typeof taskStatusLabels]}
               </Badge>
             </SelectValue>
           </SelectTrigger>
@@ -353,7 +295,7 @@ export function TasksList({
   // Fetch organization members for assignee data
   const { data: members } = api.organization.getMembers.useQuery(
     { organizationId },
-    { enabled: !!organizationId },
+    { enabled: !!organizationId }
   );
 
   // Sensors for drag and drop
@@ -361,16 +303,16 @@ export function TasksList({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   // Update local tasks when tasks prop changes and enrich with assignee data
   useEffect(() => {
     if (tasks && members) {
-      const enrichedTasks = tasks.map((task) => ({
+      const enrichedTasks = tasks.map(task => ({
         ...task,
         assignee: task.assignedToId
-          ? (members.find((member) => member.userId === task.assignedToId)
+          ? (members.find(member => member.userId === task.assignedToId)
               ?.user ?? null)
           : null,
       }));
@@ -385,7 +327,7 @@ export function TasksList({
       toast.success("Task updated successfully");
       void utils.task.getAll.invalidate();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to update task");
     },
   });
@@ -395,17 +337,17 @@ export function TasksList({
       toast.success("Task deleted successfully");
       void utils.task.getAll.invalidate();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message ?? "Failed to delete task");
     },
   });
 
-  const handleStatusChange = (taskId: string, newStatus: TaskStatusType) => {
+  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
     // Optimistic update
-    setLocalTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, status: newStatus } : task,
-      ),
+    setLocalTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
     );
 
     // Then sync with API
@@ -423,7 +365,7 @@ export function TasksList({
   const handleDelete = (task: Task) => {
     if (
       confirm(
-        `Are you sure you want to delete "${task.title}"? This action cannot be undone.`,
+        `Are you sure you want to delete "${task.title}"? This action cannot be undone.`
       )
     ) {
       deleteTask.mutate({
@@ -439,8 +381,8 @@ export function TasksList({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const activeTask = localTasks.find((task) => task.id === String(active.id));
-      const overTask = localTasks.find((task) => task.id === String(over.id));
+      const activeTask = localTasks.find(task => task.id === String(active.id));
+      const overTask = localTasks.find(task => task.id === String(over.id));
 
       if (activeTask && overTask) {
         // For now, just show the edit dialog since reordering requires schema changes
@@ -490,11 +432,11 @@ export function TasksList({
             </TableRow>
           </TableHeader>
           <SortableContext
-            items={localTasks.map((task) => task.id)}
+            items={localTasks.map(task => task.id)}
             strategy={verticalListSortingStrategy}
           >
             <TableBody>
-              {localTasks.map((task) => (
+              {localTasks.map(task => (
                 <SortableTaskRow
                   key={task.id}
                   task={task}
@@ -515,7 +457,7 @@ export function TasksList({
         <TaskEditDialog
           task={editingTask}
           open={!!editingTask}
-          onOpenChange={(open) => !open && setEditingTask(null)}
+          onOpenChange={open => !open && setEditingTask(null)}
           organizationId={organizationId}
           projectId={projectId}
         />
@@ -526,7 +468,7 @@ export function TasksList({
         <TaskViewDialog
           task={viewingTask}
           open={!!viewingTask}
-          onOpenChange={(open) => !open && setViewingTask(null)}
+          onOpenChange={open => !open && setViewingTask(null)}
         />
       )}
     </>
