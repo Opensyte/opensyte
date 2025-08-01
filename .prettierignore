@@ -51,3 +51,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# zod generated types
+prisma/generated/zod/index.ts
