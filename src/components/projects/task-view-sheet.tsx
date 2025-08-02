@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { X } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -31,7 +32,6 @@ export default function TaskViewSheet({
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      console.log({task})
       // Small delay to ensure the element is rendered before animation
       const timer = setTimeout(() => setIsAnimating(true), 10);
       return () => clearTimeout(timer);
@@ -221,7 +221,7 @@ export default function TaskViewSheet({
                   {task.assignee ? (
                     <>
                       {task.assignee.image ? (
-                        <img
+                        <Image
                           src={task.assignee.image}
                           alt={task.assignee.name}
                           className="w-6 h-6 rounded-full"

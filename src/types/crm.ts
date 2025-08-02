@@ -1,13 +1,10 @@
 // NOTE: If a type already exists in Prisma, do not redefine it here.
 // Always use the Prisma types directly to maintain consistency.
 
-import type { Deal, Customer } from "@prisma/client";
+import type { Deal } from "@prisma/client";
 
 // Re-export Prisma types for easier imports
 export type { Deal, Customer } from "@prisma/client";
-
-
-
 
 export interface DealFilters {
   dateRange: null | [Date, Date];
@@ -24,7 +21,6 @@ export interface PipelineMetrics {
   wonDeals: Deal[];
   wonValue: number;
 }
-
 
 // Interaction Color Mappings
 export const interactionTypeColors = {

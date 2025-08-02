@@ -165,9 +165,19 @@ export default function LeadManagementTable({
                 <TableCell>
                   <Badge
                     variant={lead.status ? "secondary" : "outline"}
-                    className={lead.status ? leadStatusColors[lead.status as keyof typeof leadStatusColors] : undefined}
+                    className={
+                      lead.status
+                        ? leadStatusColors[
+                            lead.status as keyof typeof leadStatusColors
+                          ]
+                        : undefined
+                    }
                   >
-                    {lead.status ? leadStatusLabels[lead.status as keyof typeof leadStatusLabels] ?? lead.status : "N/A"}
+                    {lead.status
+                      ? (leadStatusLabels[
+                          lead.status as keyof typeof leadStatusLabels
+                        ] ?? lead.status)
+                      : "N/A"}
                   </Badge>
                 </TableCell>
                 <TableCell>

@@ -283,8 +283,12 @@ export function TasksList({
   organizationId,
   projectId,
 }: TasksListProps) {
-  const [editingTask, setEditingTask] = useState<TaskWithRelations | null>(null);
-  const [viewingTask, setViewingTask] = useState<TaskWithRelations | null>(null);
+  const [editingTask, setEditingTask] = useState<TaskWithRelations | null>(
+    null
+  );
+  const [viewingTask, setViewingTask] = useState<TaskWithRelations | null>(
+    null
+  );
   const [localTasks, setLocalTasks] = useState<TaskWithRelations[]>(tasks);
   const utils = api.useUtils();
 

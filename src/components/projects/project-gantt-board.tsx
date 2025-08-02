@@ -28,7 +28,10 @@ import {
   type GanttStatus,
   type Range,
 } from "~/components/ui/kibo-ui/gantt";
-import { taskPriorityBackgroundColors, type TaskWithRelations } from "~/types/projects";
+import {
+  taskPriorityBackgroundColors,
+  type TaskWithRelations,
+} from "~/types/projects";
 import TaskViewSheet from "./task-view-sheet";
 
 interface ProjectGanttBoardProps {
@@ -85,7 +88,7 @@ export function ProjectGanttBoard({
   organizationId,
   projectId,
   tasks,
-  isLoading
+  isLoading,
 }: ProjectGanttBoardProps) {
   const [optimisticTasks, setOptimisticTasks] = useState<
     Array<TaskWithRelations>
@@ -107,7 +110,9 @@ export function ProjectGanttBoard({
   const [timeRange, setTimeRange] = useState<Range>("monthly");
 
   // TaskViewSheet state
-  const [viewingTask, setViewingTask] = useState<TaskWithRelations | null>(null);
+  const [viewingTask, setViewingTask] = useState<TaskWithRelations | null>(
+    null
+  );
 
   const utils = api.useUtils();
 
@@ -182,7 +187,8 @@ export function ProjectGanttBoard({
         status: newTask.status ?? "BACKLOG",
         priority: newTask.priority ?? "MEDIUM",
         startDate: newTask.startDate ?? new Date(),
-        dueDate: newTask.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        dueDate:
+          newTask.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         estimatedHours: null,
         actualHours: null,
         completedAt: null,

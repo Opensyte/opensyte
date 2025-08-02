@@ -119,10 +119,14 @@ export function InteractionsTable({
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden py-2.5 text-sm sm:table-cell">
-                      {interaction.scheduledAt ? formatDate(interaction.scheduledAt) : "—"}
+                      {interaction.scheduledAt
+                        ? formatDate(interaction.scheduledAt)
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden py-2.5 text-sm sm:table-cell">
-                      {interaction.completedAt ? formatDate(interaction.completedAt) : "—"}
+                      {interaction.completedAt
+                        ? formatDate(interaction.completedAt)
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden py-2.5 text-sm md:table-cell">
                       {formatDate(interaction.createdAt)}
