@@ -267,10 +267,7 @@ export function ProjectTasksClient({
           </div>
         </TabsContent>
 
-        <TabsContent
-          value="board"
-          className="flex-1 h-full min-h-0 p-4 md:p-6"
-        >
+        <TabsContent value="board" className="flex-1 h-full min-h-0 p-4 md:p-6">
           <div className="flex h-full min-h-0 flex-col">
             <ProjectKanbanBoard
               tasks={filteredTasks}
@@ -284,7 +281,9 @@ export function ProjectTasksClient({
         <TabsContent value="gantt" className="flex-1 h-full min-h-0 p-4">
           <div className="flex h-full min-h-0 flex-col">
             <ProjectGanttBoard
-              tasks={(enrichedTasks ?? []).filter(task => task.startDate && task.dueDate)}
+              tasks={(enrichedTasks ?? []).filter(
+                task => task.startDate && task.dueDate
+              )}
               isLoading={isLoadingTasks}
               organizationId={organizationId}
               projectId={projectId}

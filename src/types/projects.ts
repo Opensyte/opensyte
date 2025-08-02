@@ -170,7 +170,7 @@ export const KANBAN_COLUMNS = [
   { id: "ARCHIVED" as const, name: "Archived" },
 ] as const;
 
-export type KanbanColumnType = typeof KANBAN_COLUMNS[number];
+export type KanbanColumnType = (typeof KANBAN_COLUMNS)[number];
 
 // Transform Task to match KanbanItemProps with proper typing
 export type KanbanTask = TaskWithRelations & {

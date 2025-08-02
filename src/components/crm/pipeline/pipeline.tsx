@@ -56,7 +56,8 @@ export function Pipeline({ organizationId }: PipelineProps) {
       title: updatedDeal.title,
       value: Number(updatedDeal.value),
       customerId: updatedDeal.customerId,
-      customerName: `${updatedDeal.customer.firstName} ${updatedDeal.customer.lastName}`.trim(),
+      customerName:
+        `${updatedDeal.customer.firstName} ${updatedDeal.customer.lastName}`.trim(),
       status: updatedDeal.status,
       stage: updatedDeal.stage,
       probability: updatedDeal.probability ?? undefined,

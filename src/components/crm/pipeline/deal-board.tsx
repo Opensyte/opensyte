@@ -69,7 +69,8 @@ export function DealBoard({
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const titleMatch = deal.title.toLowerCase().includes(query);
-        const customerName = `${deal.customer?.firstName ?? ''} ${deal.customer?.lastName ?? ''}`.trim();
+        const customerName =
+          `${deal.customer?.firstName ?? ""} ${deal.customer?.lastName ?? ""}`.trim();
         const customerMatch = customerName.toLowerCase().includes(query);
         if (!titleMatch && !customerMatch) {
           return false;

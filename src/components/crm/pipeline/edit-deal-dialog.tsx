@@ -86,7 +86,8 @@ export function EditDealDialog({
       title: deal.title,
       value: Number(deal.value),
       customerId: deal.customerId,
-      customerName: `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
+      customerName:
+        `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
       status: deal.status as LeadStatus,
       stage: deal.stage,
       probability: deal.probability ?? 50,
@@ -101,7 +102,8 @@ export function EditDealDialog({
       title: deal.title,
       value: Number(deal.value),
       customerId: deal.customerId,
-      customerName: `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
+      customerName:
+        `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
       status: deal.status as LeadStatus,
       stage: deal.stage,
       probability: deal.probability ?? 50,
