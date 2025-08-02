@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import type { LeadFormValues as LeadFormValuesEditDialog } from "~/components/crm/contacts/edit-lead-dialog";
 import type { LeadFormValues as LeadFormValuesAddDialog } from "~/components/crm/contacts/add-lead-dialog";
 import { api } from "~/trpc/react";
-import type { Customer } from "~/types/crm";
+import type { Customer } from "@prisma/client";
 import { Skeleton } from "~/components/ui/skeleton";
 
 export function ContactsClient() {
@@ -278,14 +278,12 @@ export function ContactsClient() {
             onSourceChange={setSourceFilter}
           />
 
-          <div className="rounded-md border">
-            <LeadManagementTable
-              leads={filteredLeads}
-              onDeleteLead={handleDeleteLead}
-              onEditLead={openEditDialog}
-              isDeleting={deleteContactMutation.isPending}
-            />
-          </div>
+          <LeadManagementTable
+            leads={filteredLeads}
+            onDeleteLead={handleDeleteLead}
+            onEditLead={openEditDialog}
+            isDeleting={deleteContactMutation.isPending}
+          />
         </CardContent>
       </Card>
 

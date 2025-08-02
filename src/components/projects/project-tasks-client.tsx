@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -27,6 +27,7 @@ import { TasksList } from "./tasks-list";
 import { ProjectEditDialog } from "./project-edit-dialog";
 import { ProjectTasksSkeleton } from "./project-tasks-skeleton";
 import { ProjectGanttBoard } from "./project-gantt-board";
+import { ProjectKanbanBoard } from "./project-kanban-board";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,8 +74,32 @@ export function ProjectTasksClient({
     projectId,
   });
 
+  // Get organization members for assignee enrichment
+  const { data: members } = api.organization.getMembers.useQuery({
+    organizationId,
+  });
+
+  // State for enriched tasks with assignee data
+  const [enrichedTasks, setEnrichedTasks] = useState<typeof tasks>([]);
+
+  // Update enriched tasks when data changes and enrich with assignee data
+  useEffect(() => {
+    if (tasks && members) {
+      const enrichedTasksData = tasks.map(task => ({
+        ...task,
+        assignee: task.assignedToId
+          ? (members.find(member => member.userId === task.assignedToId)
+              ?.user ?? null)
+          : null,
+      }));
+      setEnrichedTasks(enrichedTasksData);
+    } else {
+      setEnrichedTasks(tasks);
+    }
+  }, [tasks, members]);
+
   const filteredTasks =
-    tasks?.filter(task => {
+    enrichedTasks?.filter(task => {
       const statusFilterValue = statusFilter ?? "all";
       const matchesStatus =
         statusFilterValue === "all" || task.status === statusFilterValue;
@@ -244,22 +269,22 @@ export function ProjectTasksClient({
 
         <TabsContent
           value="board"
-          className="flex-1 overflow-y-auto p-4 md:p-6"
+          className="flex-1 h-full min-h-0 p-4 md:p-6"
         >
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">Board View</h3>
-              <p className="text-muted-foreground mt-2">
-                This feature is coming soon.
-              </p>
-            </div>
+          <div className="flex h-full min-h-0 flex-col">
+            <ProjectKanbanBoard
+              tasks={filteredTasks}
+              isLoading={isLoadingTasks}
+              organizationId={organizationId}
+              projectId={projectId}
+            />
           </div>
         </TabsContent>
 
         <TabsContent value="gantt" className="flex-1 h-full min-h-0 p-4">
           <div className="flex h-full min-h-0 flex-col">
             <ProjectGanttBoard
-              tasks={tasks ?? []}
+              tasks={(enrichedTasks ?? []).filter(task => task.startDate && task.dueDate)}
               isLoading={isLoadingTasks}
               organizationId={organizationId}
               projectId={projectId}

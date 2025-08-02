@@ -123,6 +123,13 @@ export const taskPriorityColors = {
   URGENT: "text-red-600",
 } as const;
 
+export const taskPriorityLabels = {
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+  URGENT: "Urgent",
+} as const;
+
 export const taskPriorityBackgroundColors = {
   LOW: "bg-green-500",
   MEDIUM: "bg-yellow-500",
@@ -152,3 +159,21 @@ export const projectStatusLabels = {
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
 } as const;
+
+// Kanban Board Configuration
+export const KANBAN_COLUMNS = [
+  { id: "BACKLOG" as const, name: "Backlog" },
+  { id: "TODO" as const, name: "To Do" },
+  { id: "IN_PROGRESS" as const, name: "In Progress" },
+  { id: "REVIEW" as const, name: "Review" },
+  { id: "DONE" as const, name: "Done" },
+  { id: "ARCHIVED" as const, name: "Archived" },
+] as const;
+
+export type KanbanColumnType = typeof KANBAN_COLUMNS[number];
+
+// Transform Task to match KanbanItemProps with proper typing
+export type KanbanTask = TaskWithRelations & {
+  column: string;
+  name: string;
+};

@@ -6,7 +6,7 @@ import { DealBoard } from "./deal-board";
 import { DealFilters as DealFiltersComponent } from "./deal-filters";
 import { PipelineSkeleton } from "./pipeline-skeleton";
 import { api } from "~/trpc/react";
-import type { Deal, DealFilters } from "~/types/crm";
+import type { DealWithCustomer, DealFilters } from "~/types/crm";
 
 interface PipelineProps {
   organizationId: string;
@@ -49,28 +49,19 @@ export function Pipeline({ organizationId }: PipelineProps) {
   });
 
   // Handle deal updates
-  const handleDealUpdate = (updatedDeal: Deal) => {
+  const handleDealUpdate = (updatedDeal: DealWithCustomer) => {
     updateDeal.mutate({
       id: updatedDeal.id,
       organizationId: organizationId,
       title: updatedDeal.title,
       value: Number(updatedDeal.value),
       customerId: updatedDeal.customerId,
-      customerName: updatedDeal.customerName,
-      status: updatedDeal.status as
-        | "NEW"
-        | "CONTACTED"
-        | "QUALIFIED"
-        | "PROPOSAL"
-        | "NEGOTIATION"
-        | "CLOSED_WON"
-        | "CLOSED_LOST",
+      customerName: `${updatedDeal.customer.firstName} ${updatedDeal.customer.lastName}`.trim(),
+      status: updatedDeal.status,
       stage: updatedDeal.stage,
-      probability: updatedDeal.probability,
-      expectedCloseDate: updatedDeal.expectedCloseDate
-        ? new Date(updatedDeal.expectedCloseDate)
-        : undefined,
-      description: updatedDeal.description,
+      probability: updatedDeal.probability ?? undefined,
+      expectedCloseDate: updatedDeal.expectedCloseDate ?? undefined,
+      description: updatedDeal.description ?? undefined,
     });
   };
 
@@ -102,22 +93,7 @@ export function Pipeline({ organizationId }: PipelineProps) {
   const wonDeals = deals.filter(deal => deal.status === "CLOSED_WON");
   const wonValue = wonDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
 
-  // Transform deals data to match expected Deal type
-  const transformedDeals: Deal[] = deals.map(deal => ({
-    ...deal,
-    value: Number(deal.value),
-    probability: deal.probability ?? undefined,
-    description: deal.description ?? "",
-    customerName: `${deal.customer.firstName} ${deal.customer.lastName}`,
-    expectedCloseDate: deal.expectedCloseDate
-      ? deal.expectedCloseDate.toISOString()
-      : undefined,
-    actualCloseDate: deal.actualCloseDate
-      ? deal.actualCloseDate.toISOString()
-      : undefined,
-    createdAt: deal.createdAt.toISOString(),
-    updatedAt: deal.updatedAt.toISOString(),
-  }));
+  // No transformation needed - deals already have correct type from API
 
   return (
     <>
@@ -175,7 +151,7 @@ export function Pipeline({ organizationId }: PipelineProps) {
           </div>
         ) : (
           <DealBoard
-            deals={transformedDeals}
+            deals={deals}
             filters={filters}
             organizationId={organizationId}
             onDealUpdate={handleDealUpdate}

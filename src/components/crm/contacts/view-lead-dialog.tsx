@@ -13,7 +13,7 @@ import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { Mail, Phone, Building2, Calendar, Tag, Info } from "lucide-react";
-import type { Customer } from "~/types/crm";
+import type { Customer } from "@prisma/client";
 import { api } from "~/trpc/react";
 
 interface ViewLeadDialogProps {

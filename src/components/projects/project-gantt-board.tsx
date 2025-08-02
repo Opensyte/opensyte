@@ -131,8 +131,8 @@ export function ProjectGanttBoard({
           ? (members.find(member => member.userId === task.assignedToId)
               ?.user ?? null)
           : null,
-        startDate: task.startDate ?? new Date(),
-        dueDate: task.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        startDate: task.startDate,
+        dueDate: task.dueDate,
       }));
       setOptimisticTasks(enrichedTasks as TaskWithRelations[]);
     } else {

@@ -16,7 +16,7 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { PipelineColumn } from "./pipeline-column";
 import { DealCard } from "./deal-card";
-import type { Deal, DealFilters } from "~/types/crm";
+import type { DealWithCustomer, DealFilters } from "~/types/crm";
 
 interface Column {
   id: string;
@@ -35,10 +35,10 @@ const COLUMNS: Column[] = [
 ];
 
 interface DealBoardProps {
-  deals: Deal[];
+  deals: DealWithCustomer[];
   filters: DealFilters;
   organizationId: string;
-  onDealUpdate: (deal: Deal) => void;
+  onDealUpdate: (deal: DealWithCustomer) => void;
 }
 
 export function DealBoard({
@@ -49,7 +49,7 @@ export function DealBoard({
 }: DealBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   // Local deals state for optimistic UI updates
-  const [localDeals, setLocalDeals] = useState<Deal[]>(deals);
+  const [localDeals, setLocalDeals] = useState<DealWithCustomer[]>(deals);
 
   // Update local deals when props change (only if not currently dragging)
   useEffect(() => {
@@ -69,7 +69,8 @@ export function DealBoard({
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const titleMatch = deal.title.toLowerCase().includes(query);
-        const customerMatch = deal.customerName.toLowerCase().includes(query);
+        const customerName = `${deal.customer?.firstName ?? ''} ${deal.customer?.lastName ?? ''}`.trim();
+        const customerMatch = customerName.toLowerCase().includes(query);
         if (!titleMatch && !customerMatch) {
           return false;
         }
@@ -78,6 +79,7 @@ export function DealBoard({
       // Apply probability filter
       if (
         filters.probability &&
+        deal.probability !== null &&
         deal.probability !== undefined &&
         (deal.probability < filters.probability[0] ||
           deal.probability > filters.probability[1])
@@ -103,7 +105,7 @@ export function DealBoard({
 
   // Memoize these functions to prevent recreation on each render
   const getColumnDeals = useCallback(
-    (columnId: string): Deal[] => {
+    (columnId: string): DealWithCustomer[] => {
       return filteredDeals.filter(deal => deal.status === columnId);
     },
     [filteredDeals]
@@ -142,7 +144,7 @@ export function DealBoard({
 
       // Determine new status based on drop target
       if (overType === "column") {
-        newStatus = overId;
+        newStatus = overId as typeof activeDeal.status;
       } else if (overType === "deal") {
         // Find the target deal and use its status
         const overDeal = localDeals.find(deal => deal.id === overId);
@@ -160,7 +162,7 @@ export function DealBoard({
       const updatedDeal = {
         ...activeDeal,
         status: newStatus,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       };
 
       // INSTANT OPTIMISTIC UPDATE: Update local state immediately for instant visual feedback

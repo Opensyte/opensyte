@@ -4,7 +4,18 @@
 import type { Deal } from "@prisma/client";
 
 // Re-export Prisma types for easier imports
-export type { Deal, Customer } from "@prisma/client";
+export type { Deal } from "@prisma/client";
+
+// Extended Deal type with customer relationship data (as returned by API)
+export type DealWithCustomer = Deal & {
+  customer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    company: string | null;
+    email: string | null;
+  };
+};
 
 export interface DealFilters {
   dateRange: null | [Date, Date];

@@ -42,7 +42,7 @@ import {
 import { Slider } from "~/components/ui/slider";
 import { LeadStatus } from "~/types/crm-enums";
 import { cn } from "~/lib/utils";
-import type { Deal } from "~/types/crm";
+import type { DealWithCustomer } from "~/types/crm";
 import { api } from "~/trpc/react";
 
 const formSchema = z.object({
@@ -62,7 +62,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface EditDealDialogProps {
-  deal: Deal;
+  deal: DealWithCustomer;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
@@ -84,16 +84,14 @@ export function EditDealDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: deal.title,
-      value: deal.value,
+      value: Number(deal.value),
       customerId: deal.customerId,
-      customerName: deal.customerName,
+      customerName: `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
       status: deal.status as LeadStatus,
       stage: deal.stage,
       probability: deal.probability ?? 50,
-      description: deal.description,
-      expectedCloseDate: deal.expectedCloseDate
-        ? new Date(deal.expectedCloseDate)
-        : undefined,
+      description: deal.description ?? "",
+      expectedCloseDate: deal.expectedCloseDate ?? undefined,
     },
   });
 
@@ -101,16 +99,14 @@ export function EditDealDialog({
   useEffect(() => {
     form.reset({
       title: deal.title,
-      value: deal.value,
+      value: Number(deal.value),
       customerId: deal.customerId,
-      customerName: deal.customerName,
+      customerName: `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
       status: deal.status as LeadStatus,
       stage: deal.stage,
       probability: deal.probability ?? 50,
-      description: deal.description,
-      expectedCloseDate: deal.expectedCloseDate
-        ? new Date(deal.expectedCloseDate)
-        : undefined,
+      description: deal.description ?? "",
+      expectedCloseDate: deal.expectedCloseDate ?? undefined,
     });
   }, [deal, form]);
 

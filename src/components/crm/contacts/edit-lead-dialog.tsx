@@ -31,7 +31,7 @@ import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import { LeadSource, LeadStatus } from "~/types/crm-enums";
 import { useEffect } from "react";
-import type { Customer } from "~/types/crm";
+import type { Customer } from "@prisma/client";
 
 // This schema matches our Prisma model
 const leadFormSchema = z.object({

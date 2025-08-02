@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Button } from "~/components/ui/button";
-import type { Deal } from "~/types/crm";
+import type { DealWithCustomer } from "~/types/crm";
 import { useState } from "react";
 
 // Import dialogs
@@ -34,7 +34,7 @@ import { DeleteDealDialog } from "./delete-deal-dialog";
 import { CustomerDetailsDialog } from "~/components/shared/customer-details-dialog";
 
 interface DealCardProps {
-  deal: Deal;
+  deal: DealWithCustomer;
   isOverlay?: boolean;
   organizationId: string;
 }
@@ -85,10 +85,9 @@ export function DealCard({
     return "bg-red-500";
   };
 
-  const formatDate = (date: string | undefined) => {
+  const formatDate = (date: Date | null) => {
     if (!date) return null;
-    const dateObj = new Date(date);
-    return formatDistanceToNow(dateObj, { addSuffix: true });
+    return formatDistanceToNow(date, { addSuffix: true });
   };
 
   return (
@@ -107,7 +106,7 @@ export function DealCard({
             <h4 className="line-clamp-1 text-sm font-medium">{deal.title}</h4>
             <div className="flex items-center gap-1">
               <span className="text-xl font-semibold">
-                {formatValue(deal.value)}
+                {formatValue(Number(deal.value))}
               </span>
             </div>
           </div>
@@ -146,7 +145,7 @@ export function DealCard({
         <CardContent className="p-3 pt-0">
           <div className="text-muted-foreground flex items-center text-xs">
             <User className="mr-1 h-3 w-3" />
-            {deal.customerName}
+            {`${deal.customer.firstName} ${deal.customer.lastName}`.trim()}
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-3 pt-0">
@@ -193,7 +192,7 @@ export function DealCard({
       )}
       {isViewCustomerOpen && (
         <CustomerDetailsDialog
-          customerName={deal.customerName}
+          customerName={`${deal.customer.firstName} ${deal.customer.lastName}`.trim()}
           customerId={deal.customerId}
           open={isViewCustomerOpen}
           onOpenChange={setIsViewCustomerOpen}
