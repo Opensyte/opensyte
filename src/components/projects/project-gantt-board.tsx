@@ -28,11 +28,14 @@ import {
   type GanttStatus,
   type Range,
 } from "~/components/ui/kibo-ui/gantt";
-import { taskPriorityBackgroundColors } from "~/types/projects";
+import { taskPriorityBackgroundColors, type TaskWithRelations } from "~/types/projects";
+import TaskViewSheet from "./task-view-sheet";
 
 interface ProjectGanttBoardProps {
   organizationId: string;
   projectId: string;
+  tasks: TaskWithRelations[];
+  isLoading: boolean;
 }
 
 // Task status to Gantt status mapping with Tailwind/Shadcn colors
@@ -81,16 +84,11 @@ const getPriorityOrder = (priority: string): number => {
 export function ProjectGanttBoard({
   organizationId,
   projectId,
+  tasks,
+  isLoading
 }: ProjectGanttBoardProps) {
   const [optimisticTasks, setOptimisticTasks] = useState<
-    Array<{
-      id: string;
-      title: string;
-      startDate: Date | null;
-      dueDate: Date | null;
-      status: string;
-      priority: string;
-    }>
+    Array<TaskWithRelations>
   >([]);
 
   // Add state for popover and new task name
@@ -108,29 +106,34 @@ export function ProjectGanttBoard({
   const [zoom, setZoom] = useState(100);
   const [timeRange, setTimeRange] = useState<Range>("monthly");
 
+  // TaskViewSheet state
+  const [viewingTask, setViewingTask] = useState<TaskWithRelations | null>(null);
+
   const utils = api.useUtils();
 
-  // Fetch tasks with dates for Gantt display
-  const { data: tasks, isLoading } = api.task.getAll.useQuery({
-    organizationId,
-    projectId,
-  });
+  // Fetch organization members for assignee data
+  const { data: members } = api.organization.getMembers.useQuery(
+    { organizationId },
+    { enabled: !!organizationId }
+  );
 
-  // Update optimistic tasks when data changes
+  // Update optimistic tasks when data changes and enrich with assignee data
   useEffect(() => {
-    if (tasks) {
-      setOptimisticTasks(
-        tasks.map(task => ({
-          id: task.id,
-          title: task.title,
-          startDate: task.startDate,
-          dueDate: task.dueDate,
-          status: task.status,
-          priority: task.priority,
-        }))
-      );
+    if (tasks && members) {
+      const enrichedTasks = tasks.map(task => ({
+        ...task,
+        assignee: task.assignedToId
+          ? (members.find(member => member.userId === task.assignedToId)
+              ?.user ?? null)
+          : null,
+        startDate: task.startDate ?? new Date(),
+        dueDate: task.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      }));
+      setOptimisticTasks(enrichedTasks as TaskWithRelations[]);
+    } else {
+      setOptimisticTasks(tasks);
     }
-  }, [tasks]);
+  }, [tasks, members]);
 
   // Track global mouse position for popover placement
   useEffect(() => {
@@ -168,20 +171,29 @@ export function ProjectGanttBoard({
   // Create task mutation
   const createTaskMutation = api.task.create.useMutation({
     onMutate: async newTask => {
-      // Optimistic update - add temporary task
-      const tempTask = {
+      // Optimistic update - add temporary task with all required Task fields
+      const tempTask: TaskWithRelations = {
         id: `temp-${Date.now()}`,
+        organizationId,
+        projectId,
+        parentTaskId: null,
         title: newTask.title,
+        description: null,
         status: newTask.status ?? "BACKLOG",
         priority: newTask.priority ?? "MEDIUM",
         startDate: newTask.startDate ?? new Date(),
-        dueDate:
-          newTask.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        organizationId,
-        projectId,
-        project: { id: projectId, name: "Current Project" },
+        dueDate: newTask.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        estimatedHours: null,
+        actualHours: null,
+        completedAt: null,
+        assignedToId: null,
+        order: 0,
+        customerInteractionId: null,
+        createdById: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        project: { id: projectId, name: "Current Project" },
+        assignee: null,
       };
 
       setOptimisticTasks(prev => [...prev, tempTask]);
@@ -277,13 +289,21 @@ export function ProjectGanttBoard({
   const handleUpdateTaskDates = useCallback(
     (id: string, startAt: Date, endAt: Date | null) => {
       // Optimistic update - update local state immediately
-      setOptimisticTasks(prev =>
-        prev.map(task =>
-          task.id === id
-            ? { ...task, startDate: startAt, dueDate: endAt }
-            : task
-        )
-      );
+      const updatedTask = optimisticTasks.find(task => task.id === id);
+      if (updatedTask) {
+        setOptimisticTasks(prev =>
+          prev.map(task =>
+            task.id === updatedTask.id
+              ? {
+                  ...task,
+                  startDate: startAt,
+                  dueDate: endAt,
+                  updatedAt: new Date(),
+                }
+              : task
+          )
+        );
+      }
 
       // Then sync with backend
       void updateTaskMutation.mutate({
@@ -293,7 +313,7 @@ export function ProjectGanttBoard({
         dueDate: endAt ?? undefined,
       });
     },
-    [updateTaskMutation, organizationId]
+    [updateTaskMutation, organizationId, optimisticTasks]
   );
 
   // Get duration based on selected time range
@@ -524,9 +544,20 @@ export function ProjectGanttBoard({
                           />
 
                           {/* Task name */}
-                          <span className="flex-1 truncate text-sm font-medium">
+                          <button
+                            className="flex-1 truncate text-sm font-medium text-left hover:underline focus:outline-none focus:underline"
+                            onClick={e => {
+                              e.stopPropagation();
+                              const fullTask = optimisticTasks?.find(
+                                t => t.id === feature.id
+                              );
+                              if (fullTask) {
+                                setViewingTask(fullTask);
+                              }
+                            }}
+                          >
                             {feature.name}
-                          </span>
+                          </button>
                         </div>
                       );
                     }}
@@ -599,6 +630,16 @@ export function ProjectGanttBoard({
           </GanttTimeline>
         </GanttProvider>
       </div>
+
+      {/* TaskViewSheet */}
+      {viewingTask && (
+        <TaskViewSheet
+          task={viewingTask}
+          isOpen={!!viewingTask}
+          onClose={() => setViewingTask(null)}
+          width="400px"
+        />
+      )}
     </div>
   );
 }

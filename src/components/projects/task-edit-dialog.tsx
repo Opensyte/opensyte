@@ -41,7 +41,7 @@ import {
 } from "~/components/ui/popover";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
-import type { Task } from "~/types";
+import type { Task } from "@prisma/client";
 import {
   TaskStatusSchema,
   PrioritySchema,
@@ -100,14 +100,8 @@ export function TaskEditDialog({
       form.reset({
         title: task.title,
         description: task.description ?? "",
-        status: task.status as
-          | "BACKLOG"
-          | "TODO"
-          | "IN_PROGRESS"
-          | "REVIEW"
-          | "DONE"
-          | "ARCHIVED",
-        priority: task.priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
+        status: task.status,
+        priority: task.priority,
         startDate: task.startDate ? new Date(task.startDate) : undefined,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
         assignedToId: task.assignedToId ?? "",

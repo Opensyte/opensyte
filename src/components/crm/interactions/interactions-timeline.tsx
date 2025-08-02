@@ -1,7 +1,7 @@
 import React from "react";
 import { Trash2, Eye, CheckCircle, Clock, Calendar } from "lucide-react";
 
-import type { CustomerInteraction } from "~/types/crm";
+import type { CustomerInteraction } from "@prisma/client";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";

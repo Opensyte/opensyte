@@ -53,17 +53,18 @@ import {
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { TaskEditDialog } from "./task-edit-dialog";
-import { TaskViewDialog } from "./task-view-dialog";
-import type { Task, TaskStatus } from "~/types";
+import TaskViewSheet from "./task-view-sheet";
+import type { TaskStatus } from "@prisma/client";
 import {
   taskStatusColors,
   taskStatusLabels,
   taskPriorityColors,
   taskPriorityIcons,
+  type TaskWithRelations,
 } from "~/types";
 
 interface TasksListProps {
-  tasks: Task[];
+  tasks: TaskWithRelations[];
   isLoading: boolean;
   organizationId: string;
   projectId: string;
@@ -78,12 +79,12 @@ function SortableTaskRow({
   setEditingTask,
   setViewingTask,
 }: {
-  task: Task;
+  task: TaskWithRelations;
   handleCheckboxChange: (taskId: string, checked: boolean) => void;
   handleStatusChange: (taskId: string, newStatus: TaskStatus) => void;
-  handleDelete: (task: Task) => void;
-  setEditingTask: (task: Task | null) => void;
-  setViewingTask: (task: Task | null) => void;
+  handleDelete: (task: TaskWithRelations) => void;
+  setEditingTask: (task: TaskWithRelations | null) => void;
+  setViewingTask: (task: TaskWithRelations | null) => void;
 }) {
   const {
     attributes,
@@ -282,9 +283,9 @@ export function TasksList({
   organizationId,
   projectId,
 }: TasksListProps) {
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [viewingTask, setViewingTask] = useState<Task | null>(null);
-  const [localTasks, setLocalTasks] = useState<Task[]>(tasks);
+  const [editingTask, setEditingTask] = useState<TaskWithRelations | null>(null);
+  const [viewingTask, setViewingTask] = useState<TaskWithRelations | null>(null);
+  const [localTasks, setLocalTasks] = useState<TaskWithRelations[]>(tasks);
   const utils = api.useUtils();
 
   // Update local tasks when props change
@@ -362,7 +363,7 @@ export function TasksList({
     handleStatusChange(taskId, checked ? "DONE" : "TODO");
   };
 
-  const handleDelete = (task: Task) => {
+  const handleDelete = (task: TaskWithRelations) => {
     if (
       confirm(
         `Are you sure you want to delete "${task.title}"? This action cannot be undone.`
@@ -463,12 +464,13 @@ export function TasksList({
         />
       )}
 
-      {/* View Dialog */}
+      {/* View Sheet */}
       {viewingTask && (
-        <TaskViewDialog
+        <TaskViewSheet
           task={viewingTask}
-          open={!!viewingTask}
-          onOpenChange={open => !open && setViewingTask(null)}
+          isOpen={!!viewingTask}
+          onClose={() => setViewingTask(null)}
+          width="400px"
         />
       )}
     </>

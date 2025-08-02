@@ -1,6 +1,6 @@
 import React from "react";
 import { Trash2, Eye } from "lucide-react";
-import type { CustomerInteraction } from "~/types/crm";
+import type { CustomerInteraction } from "@prisma/client";
 import { interactionTypeColors } from "~/types/crm";
 import {
   Card,
@@ -119,10 +119,10 @@ export function InteractionsTable({
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden py-2.5 text-sm sm:table-cell">
-                      {formatDate(interaction.scheduledAt)}
+                      {interaction.scheduledAt ? formatDate(interaction.scheduledAt) : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden py-2.5 text-sm sm:table-cell">
-                      {formatDate(interaction.completedAt)}
+                      {interaction.completedAt ? formatDate(interaction.completedAt) : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden py-2.5 text-sm md:table-cell">
                       {formatDate(interaction.createdAt)}

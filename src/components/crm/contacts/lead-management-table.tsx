@@ -23,8 +23,23 @@ import { Badge } from "~/components/ui/badge";
 import { CustomerDetailsDialog } from "~/components/shared/customer-details-dialog";
 import DeleteLeadDialog from "./delete-lead-dialog";
 import type { Customer } from "~/types/crm";
+import { leadStatusColors, leadStatusLabels } from "~/types/crm";
 
 // Extended Customer type for the CRM leads
+
+// Helper function to get source icon
+const getSourceIcon = (source: string) => {
+  const sourceIconMap = {
+    WEBSITE: "🌐",
+    REFERRAL: "👥",
+    SOCIAL_MEDIA: "📱",
+    EMAIL_CAMPAIGN: "✉️",
+    EVENT: "🎯",
+    COLD_CALL: "📞",
+    OTHER: "❓",
+  } as const;
+  return sourceIconMap[source as keyof typeof sourceIconMap] ?? "❓";
+};
 
 interface LeadManagementTableProps {
   leads: Customer[];
@@ -33,25 +48,7 @@ interface LeadManagementTableProps {
   isDeleting?: boolean;
 }
 
-const statusColorMap = {
-  NEW: "bg-blue-100 text-blue-800",
-  CONTACTED: "bg-purple-100 text-purple-800",
-  QUALIFIED: "bg-green-100 text-green-800",
-  PROPOSAL: "bg-yellow-100 text-yellow-800",
-  NEGOTIATION: "bg-orange-100 text-orange-800",
-  CLOSED_WON: "bg-green-100 text-green-800",
-  CLOSED_LOST: "bg-red-100 text-red-800",
-};
-
-const sourceIconMap = {
-  WEBSITE: "🌐",
-  REFERRAL: "👥",
-  SOCIAL_MEDIA: "📱",
-  EMAIL_CAMPAIGN: "📧",
-  EVENT: "🎫",
-  COLD_CALL: "📞",
-  OTHER: "📌",
-};
+// Color maps and icon maps are now centralized in ~/types/crm and handled by helper functions
 
 export default function LeadManagementTable({
   leads,
@@ -78,7 +75,7 @@ export default function LeadManagementTable({
   };
 
   const confirmDeleteLead = () => {
-    if (selectedLead) {
+    if (selectedLead?.id) {
       onDeleteLead(selectedLead.id);
       setDeleteDialogOpen(false);
     }
@@ -124,16 +121,16 @@ export default function LeadManagementTable({
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <div className="bg-muted flex h-full w-full items-center justify-center">
-                        {lead.firstName.charAt(0)}
-                        {lead.lastName.charAt(0)}
+                        {lead.firstName?.charAt(0)}
+                        {lead.lastName?.charAt(0)}
                       </div>
                     </Avatar>
                     <div>
                       <div className="font-medium">
-                        {lead.firstName} {lead.lastName}
+                        {`${lead.firstName ?? ""} ${lead.lastName ?? ""}`}
                       </div>
                       <div className="text-muted-foreground text-sm">
-                        {lead.position}
+                        {lead.position ?? "N/A"}
                       </div>
                     </div>
                   </div>
@@ -144,10 +141,10 @@ export default function LeadManagementTable({
                       <div className="flex items-center text-sm">
                         <Mail className="text-muted-foreground mr-1 h-4 w-4" />
                         <a
-                          href={`mailto:${lead.email}`}
+                          href={`mailto:${lead.email ?? ""}`}
                           className="text-sm hover:underline"
                         >
-                          {lead.email}
+                          {lead.email ?? "N/A"}
                         </a>
                       </div>
                     )}
@@ -155,10 +152,10 @@ export default function LeadManagementTable({
                       <div className="flex items-center text-sm">
                         <Phone className="text-muted-foreground mr-1 h-4 w-4" />
                         <a
-                          href={`tel:${lead.phone}`}
+                          href={`tel:${lead.phone ?? ""}`}
                           className="text-sm hover:underline"
                         >
-                          {lead.phone}
+                          {lead.phone ?? "N/A"}
                         </a>
                       </div>
                     )}
@@ -167,20 +164,17 @@ export default function LeadManagementTable({
                 <TableCell>{lead.company ?? "-"}</TableCell>
                 <TableCell>
                   <Badge
-                    variant="secondary"
-                    className={
-                      lead.status ? statusColorMap[lead.status] : undefined
-                    }
+                    variant={lead.status ? "secondary" : "outline"}
+                    className={lead.status ? leadStatusColors[lead.status as keyof typeof leadStatusColors] : undefined}
                   >
-                    {lead.status?.replace(/_/g, " ") ?? "N/A"}
+                    {lead.status ? leadStatusLabels[lead.status as keyof typeof leadStatusLabels] ?? lead.status : "N/A"}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <span className="mr-1">
-                      {lead.source ? sourceIconMap[lead.source] : null}
+                      {lead.source ? getSourceIcon(lead.source) : null}
                     </span>
-                    <span>{lead.source?.replace(/_/g, " ") ?? "N/A"}</span>
                   </div>
                 </TableCell>
                 <TableCell>{formatDate(lead.createdAt)}</TableCell>
@@ -237,7 +231,7 @@ export default function LeadManagementTable({
       <CustomerDetailsDialog
         customerName={
           selectedLead
-            ? `${selectedLead.firstName} ${selectedLead.lastName}`
+            ? `${selectedLead.firstName ?? ""} ${selectedLead.lastName ?? ""}`
             : ""
         }
         customerId={selectedLead?.id ?? ""}
@@ -251,11 +245,16 @@ export default function LeadManagementTable({
         onConfirm={confirmDeleteLead}
         leadName={
           selectedLead
-            ? `${selectedLead.firstName} ${selectedLead.lastName}`
+            ? `${selectedLead.firstName ?? ""} ${selectedLead.lastName ?? ""}`
             : ""
         }
         isLoading={isDeleting}
       />
+
+      {/* Stats Footer */}
+      <div className="text-center text-sm text-muted-foreground">
+        Found {leads.length} lead{leads.length !== 1 ? "s" : ""}
+      </div>
     </>
   );
 }

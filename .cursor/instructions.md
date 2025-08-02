@@ -6,6 +6,10 @@
 - Always fix ESLint and TypeScript type errors before committing
 - When using JSON sample data for testing, ensure it conforms to the Prisma schema
 - every page you create make it responsive
+- ALWAYS use ?? instead of ||
+- Use the generated zod schema at prisma/generated/zod/index.ts
+- If a type already exists in Prisma, do not redefine it here.
+- Always use the Prisma types directly to maintain consistency.
 
 ## Project Structure
 - Place client components in `src/components/`
@@ -48,6 +52,14 @@
 - Use React hooks for local state
 - Consider Zustand or Jotai for global state when needed
 - Implement proper loading states and error handling
+
+### UI Components & Dialogs
+- All dialogs and modals must be responsive and mobile-friendly
+- Use `max-h-[90vh] overflow-y-auto` for dialog content to ensure proper scrolling on mobile devices
+- Implement responsive button layouts in dialog footers: `flex flex-col gap-2 sm:flex-row sm:gap-0`
+- Use `w-full sm:w-auto` for buttons to make them full-width on mobile and auto-width on desktop
+- Ensure form fields are properly spaced and responsive with grid layouts that adapt to screen size
+- Always make the first letter is capital and the rest is small when using badges
 
 ## Performance
 - Use proper code splitting and lazy loading

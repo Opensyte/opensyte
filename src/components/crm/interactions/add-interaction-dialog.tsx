@@ -29,7 +29,7 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import { cn } from "~/lib/utils";
-import type { Customer, InteractionType, InteractionMedium } from "~/types/crm";
+import type { Customer, InteractionType, InteractionMedium } from "@prisma/client";
 
 interface AddInteractionDialogProps {
   isOpen: boolean;

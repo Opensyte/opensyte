@@ -30,7 +30,7 @@ import type {
   CustomerInteraction,
   InteractionType,
   InteractionMedium,
-} from "~/types/crm";
+} from "@prisma/client";
 import { api } from "~/trpc/react";
 
 interface InteractionsClientProps {

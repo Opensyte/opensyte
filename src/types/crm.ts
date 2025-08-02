@@ -1,27 +1,13 @@
-import type { Customer as PrismaCustomer } from "@prisma/client";
+// NOTE: If a type already exists in Prisma, do not redefine it here.
+// Always use the Prisma types directly to maintain consistency.
 
-// Re-export the Prisma Customer type with proper date handling
-export type Customer = Omit<PrismaCustomer, "createdAt" | "updatedAt"> & {
-  createdAt: Date;
-  updatedAt: Date;
-};
+import type { Deal, Customer } from "@prisma/client";
 
-export interface Deal {
-  id: string;
-  title: string;
-  value: number;
-  customerName: string;
-  customerId: string;
-  status: string;
-  stage: number;
-  probability?: number;
-  currency?: string;
-  expectedCloseDate?: string;
-  actualCloseDate?: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Re-export Prisma types for easier imports
+export type { Deal, Customer } from "@prisma/client";
+
+
+
 
 export interface DealFilters {
   dateRange: null | [Date, Date];
@@ -39,28 +25,6 @@ export interface PipelineMetrics {
   wonValue: number;
 }
 
-export type InteractionType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "TASK";
-export type InteractionMedium =
-  | "IN_PERSON"
-  | "PHONE"
-  | "VIDEO"
-  | "EMAIL"
-  | "CHAT"
-  | "OTHER";
-
-export interface CustomerInteraction {
-  id: string;
-  customerId: string;
-  type: InteractionType;
-  medium: InteractionMedium;
-  subject?: string;
-  content?: string;
-  scheduledAt?: Date;
-  completedAt?: Date;
-  createdById?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 // Interaction Color Mappings
 export const interactionTypeColors = {

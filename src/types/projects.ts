@@ -1,71 +1,74 @@
+// NOTE: If a type already exists in Prisma, do not redefine it here.
+// Always use the Prisma types directly to maintain consistency.
+
 // Project and Task related types
+import type { TaskStatus, ProjectStatus, Task, Priority } from "@prisma/client";
+import type { Decimal } from "@prisma/client/runtime/library";
 
-export type TaskStatus =
-  | "BACKLOG"
-  | "TODO"
-  | "IN_PROGRESS"
-  | "REVIEW"
-  | "DONE"
-  | "ARCHIVED";
+// Re-export Prisma types for easier imports
+export type { Task, TaskStatus, ProjectStatus, Priority } from "@prisma/client";
 
-export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-
-export type ProjectStatus =
-  | "PLANNING"
-  | "ACTIVE"
-  | "ON_HOLD"
-  | "COMPLETED"
-  | "CANCELLED";
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: TaskStatus;
-  priority: TaskPriority;
-  startDate: Date | null;
-  dueDate: Date | null;
-  assignedToId: string | null;
-  estimatedHours: number | null;
-  actualHours: number | null;
-  organizationId: string;
-  projectId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  project?: {
-    id: string;
-    name: string;
-  } | null;
+// Extended types for Task with relations (for components that need related data)
+export type TaskWithAssignee = Task & {
   assignee?: {
     id: string;
     name: string;
     email: string;
     image?: string | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+    emailVerified?: boolean;
   } | null;
-}
+};
 
-export interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  status: ProjectStatus;
-  startDate: Date | null;
-  endDate: Date | null;
-  organizationId: string;
-  createdById: string;
-  createdAt: Date;
-  updatedAt: Date;
-  tasks?: Task[];
-  createdBy?: {
+export type TaskWithProject = Task & {
+  project?: {
+    id: string;
+    name: string;
+    organizationId?: string;
+    description?: string | null;
+    status?: ProjectStatus;
+    startDate?: Date | null;
+    endDate?: Date | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+    createdById?: string | null;
+    currency?: string;
+    budget?: Decimal | null;
+  } | null;
+};
+
+export type TaskWithRelations = Task & {
+  assignee?: {
     id: string;
     name: string;
     email: string;
-  };
-}
+    image?: string | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+    emailVerified?: boolean;
+  } | null;
+  project?: {
+    id: string;
+    name: string;
+    organizationId?: string;
+    description?: string | null;
+    status?: ProjectStatus;
+    startDate?: Date | null;
+    endDate?: Date | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+    createdById?: string | null;
+    currency?: string;
+    budget?: Decimal | null;
+  } | null;
+};
+
+// TaskPriority is now Priority from Prisma - no need to redefine
 
 export interface TaskFilters {
   status?: TaskStatus;
-  priority?: TaskPriority;
+  priority?: Priority;
   assigneeId?: string;
   projectId?: string;
   dateRange?: [Date, Date] | null;

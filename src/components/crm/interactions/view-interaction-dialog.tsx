@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { cn } from "~/lib/utils";
-import type { CustomerInteraction } from "~/types/crm";
+import type { CustomerInteraction } from "@prisma/client";
 import { interactionTypeColors } from "~/types/crm";
 
 interface ViewInteractionDialogProps {

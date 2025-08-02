@@ -259,6 +259,8 @@ export function ProjectTasksClient({
         <TabsContent value="gantt" className="flex-1 h-full min-h-0 p-4">
           <div className="flex h-full min-h-0 flex-col">
             <ProjectGanttBoard
+              tasks={tasks ?? []}
+              isLoading={isLoadingTasks}
               organizationId={organizationId}
               projectId={projectId}
             />

@@ -12,6 +12,8 @@ trigger: always_on
 - every page you create make it responsive
 - ALWAYS use ?? instead of ||
 - Use the generated zod schema at prisma/generated/zod/index.ts
+- If a type already exists in Prisma, do not redefine it here.
+- Always use the Prisma types directly to maintain consistency.
 
 ## Project Structure
 - Place client components in `src/components/`
