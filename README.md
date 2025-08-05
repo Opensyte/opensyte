@@ -137,7 +137,7 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | Role-Based Access Control | ❌ Not implemented | Settings: Create custom roles with predefined permission sets |
 | User Invitation Management | ❌ Not implemented | Settings: Send invitations and manage user onboarding |
 | **Human Resources (HR) Management** | | |
-| Employee Database | ❌ Not implemented | Store employee profiles |
+| Employee Database | ✅ Implemented | Store employee profiles |
 | Payroll Management | ❌ Not implemented | Automate salary calculations |
 | Performance Tracking | ❌ Not implemented | Record employee reviews and goals |
 | Time-Off Management | ❌ Not implemented | Track vacation and attendance |
@@ -147,7 +147,7 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | Social Media Management | ❌ Not implemented | Schedule posts across platforms |
 | Lead Nurturing | ❌ Not implemented | Automate follow-ups with leads |
 | Analytics | ❌ Not implemented | Measure campaign success |
-
+ 
 Want to contribute? Check out our [issues page](https://github.com/opensyte/opensyte/issues) to see what features we're currently working on!
 
 ## 📚 Available Scripts

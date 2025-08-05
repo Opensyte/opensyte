@@ -7,13 +7,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { DealCard } from "./deal-card";
-import type { Deal } from "~/types/crm";
+import type { DealWithCustomer } from "~/types/crm";
 
 interface PipelineColumnProps {
   id: string;
   title: string;
   color: string;
-  deals: Deal[];
+  deals: DealWithCustomer[];
   organizationId: string;
 }
 

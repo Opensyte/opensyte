@@ -1,6 +1,7 @@
 // Main types export file
 export * from "./crm";
 export * from "./projects";
+export * from "./hr";
 
 // Explicitly re-export enum types to resolve conflicts
 export {
