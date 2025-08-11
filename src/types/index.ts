@@ -11,3 +11,6 @@ export {
   InteractionType as CRMInteractionType,
   InteractionMedium as CRMInteractionMedium,
 } from "./crm-enums";
+
+// Re-export currencies and CurrencyCode from prisma folder for global use
+export { currencies, type CurrencyCode } from "./currencies";

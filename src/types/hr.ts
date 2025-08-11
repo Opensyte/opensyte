@@ -122,3 +122,7 @@ export type EmployeeWithComputedFields = Employee & {
   isOnProbation: boolean;
   isTerminated: boolean;
 };
+
+// Currencies (sourced from prisma folder)
+export { currencies } from "./currencies";
+export type { CurrencyCode } from "./currencies";
