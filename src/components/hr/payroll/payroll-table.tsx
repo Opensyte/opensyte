@@ -1,12 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "~/components/ui/alert-dialog";
-import { Eye, MoreHorizontal, Pencil, Trash2, Calendar, Wallet, User, DollarSign } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
+import {
+  Eye,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Calendar,
+  Wallet,
+  User,
+  DollarSign,
+} from "lucide-react";
 import { payrollStatusLabels } from "~/types";
 import { cn } from "~/lib/utils";
 
@@ -27,13 +59,37 @@ export interface PayrollRow {
 }
 
 function formatMoney(value: unknown, currency: string) {
-  const num = Number.parseFloat(String(value ?? 0));
-  if (Number.isNaN(num)) return String(value ?? "-");
-  return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(num);
+  if (value == null) return "-";
+  let num: number | null = null;
+  switch (typeof value) {
+    case "number":
+      num = Number.isFinite(value) ? value : null;
+      break;
+    case "string": {
+      const parsed = Number.parseFloat(value);
+      if (!Number.isNaN(parsed)) num = parsed;
+      break;
+    }
+    case "bigint":
+      num = Number(value);
+      break;
+    default:
+      // Unsupported type for numeric formatting
+      return "-";
+  }
+  if (num == null) return "-";
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+  }).format(num);
 }
 
 function formatDate(d: Date) {
-  return new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "2-digit" }).format(new Date(d));
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  }).format(new Date(d));
 }
 
 interface PayrollTableProps {
@@ -44,7 +100,13 @@ interface PayrollTableProps {
   isDeleting?: boolean;
 }
 
-export function PayrollTable({ data, onView, onEdit, onDelete, isDeleting = false }: PayrollTableProps) {
+export function PayrollTable({
+  data,
+  onView,
+  onEdit,
+  onDelete,
+  isDeleting = false,
+}: PayrollTableProps) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const getStatusColor = (status: keyof typeof payrollStatusLabels) => {
@@ -84,7 +146,9 @@ export function PayrollTable({ data, onView, onEdit, onDelete, isDeleting = fals
             <TableHead className="font-semibold text-right">Overtime</TableHead>
             <TableHead className="font-semibold text-right">Bonus</TableHead>
             <TableHead className="font-semibold text-right">Tax</TableHead>
-            <TableHead className="font-semibold text-right">Deductions</TableHead>
+            <TableHead className="font-semibold text-right">
+              Deductions
+            </TableHead>
             <TableHead className="font-semibold text-right">
               <div className="flex items-center justify-end gap-2">
                 <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -112,15 +176,21 @@ export function PayrollTable({ data, onView, onEdit, onDelete, isDeleting = fals
             </TableRow>
           ) : (
             data.map(row => (
-              <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
+              <TableRow
+                key={row.id}
+                className="hover:bg-muted/50 transition-colors"
+              >
                 <TableCell className="py-4">
                   <div className="font-medium">
-                    {row.employee ? `${row.employee.firstName} ${row.employee.lastName}` : "—"}
+                    {row.employee
+                      ? `${row.employee.firstName} ${row.employee.lastName}`
+                      : "—"}
                   </div>
                 </TableCell>
                 <TableCell className="py-4">
                   <div className="text-sm">
-                    {formatDate(row.payPeriodStart)} – {formatDate(row.payPeriodEnd)}
+                    {formatDate(row.payPeriodStart)} –{" "}
+                    {formatDate(row.payPeriodEnd)}
                   </div>
                 </TableCell>
                 <TableCell className="py-4">
@@ -149,8 +219,8 @@ export function PayrollTable({ data, onView, onEdit, onDelete, isDeleting = fals
                   </span>
                 </TableCell>
                 <TableCell className="py-4">
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className={cn(
                       "capitalize font-medium",
                       getStatusColor(row.status)
@@ -161,7 +231,12 @@ export function PayrollTable({ data, onView, onEdit, onDelete, isDeleting = fals
                 </TableCell>
                 <TableCell className="py-4 text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(row.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onView(row.id)}
+                    >
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View</span>
                     </Button>
@@ -182,7 +257,10 @@ export function PayrollTable({ data, onView, onEdit, onDelete, isDeleting = fals
                           <Pencil className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600" onClick={() => setConfirmId(row.id)}>
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={() => setConfirmId(row.id)}
+                        >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -195,16 +273,22 @@ export function PayrollTable({ data, onView, onEdit, onDelete, isDeleting = fals
         </TableBody>
       </Table>
 
-      <AlertDialog open={!!confirmId} onOpenChange={open => !open && setConfirmId(null)}>
+      <AlertDialog
+        open={!!confirmId}
+        onOpenChange={open => !open && setConfirmId(null)}
+      >
         <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Payroll</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. Are you sure you want to permanently delete this payroll?
+              This action cannot be undone. Are you sure you want to permanently
+              delete this payroll?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
-            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
               onClick={() => {

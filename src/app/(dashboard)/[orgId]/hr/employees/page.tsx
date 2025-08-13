@@ -1,4 +1,4 @@
-import { EmployeesClient } from "~/components/hr/employees-client";
+import { EmployeesClient } from "~/components/hr/employee/employees-client";
 
 export default function EmployeesPage() {
   return <EmployeesClient />;

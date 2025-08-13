@@ -123,7 +123,7 @@ const getNavData = (setIsCreateProjectDialogOpen: (open: boolean) => void) => ({
         },
         {
           title: "Time Off",
-          url: "/[orgId]/hr/time-off",
+          url: "/[orgId]/hr/timeoff",
         },
       ],
     },

@@ -138,9 +138,9 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | User Invitation Management | ❌ Not implemented | Settings: Send invitations and manage user onboarding |
 | **Human Resources (HR) Management** | | |
 | Employee Database | ✅ Implemented | Store employee profiles |
-| Payroll Management | ❌ Not implemented | Automate salary calculations |
+| Payroll Management | ✅ Implemented | Automate salary calculations |
 | Performance Tracking | ❌ Not implemented | Record employee reviews and goals |
-| Time-Off Management | ❌ Not implemented | Track vacation and attendance |
+| Time-Off Management | ✅ Implemented | Track vacation and attendance |
 | Onboarding/Offboarding | ❌ Not implemented | Streamline processes for hiring/departures |
 | **Marketing Automation** | | |
 | Email Campaigns | ❌ Not implemented | Design and send bulk emails |
