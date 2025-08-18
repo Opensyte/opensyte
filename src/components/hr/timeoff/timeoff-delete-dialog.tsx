@@ -76,7 +76,7 @@ export function TimeOffDeleteDialog({
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:gap-0 sm:justify-end">
+        <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
           <AlertDialogCancel disabled={isLoading} className="w-full sm:w-auto">
             Cancel
           </AlertDialogCancel>

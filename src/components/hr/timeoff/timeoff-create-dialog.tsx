@@ -340,7 +340,7 @@ export function TimeOffCreateDialog({
               />
             </div>
 
-            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:gap-0 sm:justify-end">
+            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
               <Button
                 type="button"
                 variant="outline"

@@ -1,15 +1,16 @@
 import { TimeOffClient } from "~/components/hr/timeoff/timeoff-client";
 
 interface TimeOffPageProps {
-  params: {
+  params: Promise<{
     orgId: string;
-  };
+  }>;
 }
 
-export default function TimeOffPage({ params }: TimeOffPageProps) {
+export default async function TimeOffPage({ params }: TimeOffPageProps) {
+  const { orgId } = await params;
   return (
     <div className="container mx-auto py-6">
-      <TimeOffClient organizationId={params.orgId} />
+      <TimeOffClient organizationId={orgId} />
     </div>
   );
 }
