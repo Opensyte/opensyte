@@ -6,6 +6,7 @@ import {
   PayrollStatusSchema,
   TimeOffTypeSchema,
   TimeOffStatusSchema,
+  ReviewStatusSchema,
 } from "../../../../../prisma/generated/zod";
 
 // Employee input schemas
@@ -903,6 +904,277 @@ export const hrRouter = createTRPCRouter({
       } catch (error) {
         console.error("Failed to fetch time-off statistics:", error);
         throw new Error("Failed to fetch time-off statistics");
+      }
+    }),
+
+  // ==============================
+  // Performance Reviews
+  // ==============================
+
+  createPerformanceReview: publicProcedure
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        employeeId: z.string().cuid(),
+        reviewerId: z.string().cuid(),
+        reviewPeriod: z.string().min(1),
+        performanceScore: z.number().min(0).max(5).optional(),
+        strengths: z.string().optional(),
+        improvements: z.string().optional(),
+        goals: z.string().optional(),
+        comments: z.string().optional(),
+        reviewDate: z.coerce.date(),
+        status: ReviewStatusSchema.optional().default("DRAFT"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // validate employee in organization
+        const employee = await db.employee.findFirst({
+          where: { id: input.employeeId, organizationId: input.organizationId },
+          select: { id: true },
+        });
+        if (!employee) throw new Error("Employee not found in organization");
+
+        const review = await db.performanceReview.create({
+          data: {
+            employeeId: input.employeeId,
+            reviewerId: input.reviewerId,
+            reviewPeriod: input.reviewPeriod,
+            performanceScore: input.performanceScore ?? null,
+            strengths: input.strengths ?? null,
+            improvements: input.improvements ?? null,
+            goals: input.goals ?? null,
+            comments: input.comments ?? null,
+            reviewDate: input.reviewDate,
+            status: input.status ?? "DRAFT",
+          },
+          include: {
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                department: true,
+                position: true,
+              },
+            },
+          },
+        });
+        return review;
+      } catch (e) {
+        console.error("Failed to create performance review", e);
+        throw new Error("Failed to create performance review");
+      }
+    }),
+
+  updatePerformanceReview: publicProcedure
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+        reviewerId: z.string().cuid().optional(),
+        reviewPeriod: z.string().min(1).optional(),
+        performanceScore: z.number().min(0).max(5).optional().nullable(),
+        strengths: z.string().optional().nullable(),
+        improvements: z.string().optional().nullable(),
+        goals: z.string().optional().nullable(),
+        comments: z.string().optional().nullable(),
+        reviewDate: z.coerce.date().optional(),
+        status: ReviewStatusSchema.optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const existing = await db.performanceReview.findUnique({
+          where: { id: input.id },
+          include: { employee: { select: { organizationId: true } } },
+        });
+        if (
+          !existing ||
+          existing.employee.organizationId !== input.organizationId
+        ) {
+          throw new Error("Performance review not found for organization");
+        }
+        const review = await db.performanceReview.update({
+          where: { id: input.id },
+          data: {
+            reviewerId: input.reviewerId ?? existing.reviewerId,
+            reviewPeriod: input.reviewPeriod ?? existing.reviewPeriod,
+            performanceScore:
+              input.performanceScore ?? existing.performanceScore,
+            strengths: input.strengths ?? existing.strengths,
+            improvements: input.improvements ?? existing.improvements,
+            goals: input.goals ?? existing.goals,
+            comments: input.comments ?? existing.comments,
+            reviewDate: input.reviewDate ?? existing.reviewDate,
+            status: input.status ?? existing.status,
+          },
+          include: {
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                department: true,
+                position: true,
+              },
+            },
+          },
+        });
+        return review;
+      } catch (e) {
+        console.error("Failed to update performance review", e);
+        throw new Error("Failed to update performance review");
+      }
+    }),
+
+  deletePerformanceReview: publicProcedure
+    .input(
+      z.object({ id: z.string().cuid(), organizationId: z.string().cuid() })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const existing = await db.performanceReview.findUnique({
+          where: { id: input.id },
+          include: { employee: { select: { organizationId: true } } },
+        });
+        if (
+          !existing ||
+          existing.employee.organizationId !== input.organizationId
+        ) {
+          throw new Error("Performance review not found for organization");
+        }
+        const deleted = await db.performanceReview.delete({
+          where: { id: input.id },
+        });
+        return { success: true, deletedId: deleted.id };
+      } catch (e) {
+        console.error("Failed to delete performance review", e);
+        throw new Error("Failed to delete performance review");
+      }
+    }),
+
+  getPerformanceReviewById: publicProcedure
+    .input(z.object({ id: z.string().cuid() }))
+    .query(async ({ input }) => {
+      try {
+        const review = await db.performanceReview.findUnique({
+          where: { id: input.id },
+          include: {
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                department: true,
+                position: true,
+              },
+            },
+          },
+        });
+        if (!review) throw new Error("Performance review not found");
+        return review;
+      } catch (e) {
+        console.error("Failed to fetch performance review", e);
+        throw new Error("Failed to fetch performance review");
+      }
+    }),
+
+  getPerformanceReviewsByOrganization: publicProcedure
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        employeeId: z.string().cuid().optional(),
+        status: ReviewStatusSchema.optional(),
+        period: z.string().optional(),
+        from: z.coerce.date().optional(),
+        to: z.coerce.date().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        const reviews = await db.performanceReview.findMany({
+          where: {
+            employee: {
+              organizationId: input.organizationId,
+              id: input.employeeId ?? undefined,
+            },
+            status: input.status ?? undefined,
+            reviewPeriod: input.period ? { contains: input.period } : undefined,
+            reviewDate:
+              (input.from ?? input.to)
+                ? { gte: input.from ?? undefined, lte: input.to ?? undefined }
+                : undefined,
+          },
+          orderBy: { reviewDate: "desc" },
+          include: {
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                department: true,
+                position: true,
+              },
+            },
+          },
+        });
+        return reviews;
+      } catch (e) {
+        console.error("Failed to fetch performance reviews", e);
+        throw new Error("Failed to fetch performance reviews");
+      }
+    }),
+
+  getPerformanceReviewStats: publicProcedure
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        year: z.number().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        const year = input.year ?? new Date().getFullYear();
+        const start = new Date(year, 0, 1);
+        const end = new Date(year, 11, 31);
+        const [total, submitted, completed, averageScore] = await Promise.all([
+          db.performanceReview.count({
+            where: {
+              employee: { organizationId: input.organizationId },
+              reviewDate: { gte: start, lte: end },
+            },
+          }),
+          db.performanceReview.count({
+            where: {
+              employee: { organizationId: input.organizationId },
+              status: "SUBMITTED",
+            },
+          }),
+          db.performanceReview.count({
+            where: {
+              employee: { organizationId: input.organizationId },
+              status: { in: ["ACKNOWLEDGED", "COMPLETED"] },
+            },
+          }),
+          db.performanceReview.aggregate({
+            where: {
+              employee: { organizationId: input.organizationId },
+              performanceScore: { not: null },
+            },
+            _avg: { performanceScore: true },
+          }),
+        ]);
+        return {
+          totalReviews: total,
+          submittedReviews: submitted,
+          finalizedReviews: completed,
+          averageScore: averageScore._avg.performanceScore ?? 0,
+        };
+      } catch (e) {
+        console.error("Failed to fetch performance review stats", e);
+        throw new Error("Failed to fetch performance review stats");
       }
     }),
 });

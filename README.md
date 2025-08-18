@@ -139,7 +139,7 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | **Human Resources (HR) Management** | | |
 | Employee Database | ✅ Implemented | Store employee profiles |
 | Payroll Management | ✅ Implemented | Automate salary calculations |
-| Performance Tracking | ❌ Not implemented | Record employee reviews and goals |
+| Performance Tracking | ✅ Implemented | Record employee reviews and goals |
 | Time-Off Management | ✅ Implemented | Track vacation and attendance |
 | Onboarding/Offboarding | ❌ Not implemented | Streamline processes for hiring/departures |
 | **Marketing Automation** | | |
