@@ -2,6 +2,7 @@
 export * from "./crm";
 export * from "./projects";
 export * from "./hr";
+export * from "./finance";
 
 // Explicitly re-export enum types to resolve conflicts
 export {

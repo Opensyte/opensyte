@@ -1,3 +1,6 @@
+---
+applyTo: '**'
+---
 # Coding Standards & Guidelines
 
 ## General Rules

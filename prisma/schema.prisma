@@ -328,26 +328,39 @@ model TimeEntry {
 model Invoice {
   id                 String        @id @default(cuid())
   organizationId     String
-  customerId         String?
+  customerId         String       
+  customerEmail      String
+  customerName       String?       // Customer display name
+  customerAddress    String?       // Billing address
+  customerPhone      String?       // Customer phone
   invoiceNumber      String
   status             InvoiceStatus
   issueDate          DateTime
   dueDate            DateTime
-  subtotal           Decimal       @db.Decimal(10, 2)
-  taxAmount          Decimal       @db.Decimal(10, 2)
-  discountAmount     Decimal       @db.Decimal(10, 2)
-  totalAmount        Decimal       @db.Decimal(10, 2)
-  paidAmount         Decimal       @default(0) @db.Decimal(10, 2)
+  paymentTerms       String        @default("Net 30") // e.g., "Net 30", "Due on receipt"
+  poNumber           String?       // Purchase Order Number
+  subtotal           Decimal       @db.Decimal(12, 2)
+  taxAmount          Decimal       @db.Decimal(12, 2)
+  discountAmount     Decimal       @db.Decimal(12, 2)
+  shippingAmount     Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount        Decimal       @db.Decimal(12, 2)
+  paidAmount         Decimal       @default(0) @db.Decimal(12, 2)
   currency           String        @default("USD")
   notes              String?
+  internalNotes      String?       // Private notes not visible to customer
   termsAndConditions String?
+  footer             String?       // Footer text for invoice
+  logoUrl            String?       // Company logo URL
+  sentAt             DateTime?     // When invoice was sent
+  viewedAt           DateTime?     // When customer viewed invoice
+  lastReminder       DateTime?     // Last payment reminder sent
   createdById        String?
   createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   // Relations
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   items        InvoiceItem[]
   payments     Payment[]
 
@@ -355,6 +368,9 @@ model Invoice {
   @@index([organizationId])
   @@index([customerId])
   @@index([status])
+  @@index([customerEmail])
+  @@index([issueDate])
+  @@index([dueDate])
 }
 
 enum InvoiceStatus {
@@ -370,37 +386,46 @@ enum InvoiceStatus {
 model InvoiceItem {
   id          String   @id @default(cuid())
   invoiceId   String
+  productId   String?  // Link to product/service if exists
   description String
   quantity    Decimal  @db.Decimal(10, 2)
-  unitPrice   Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(12, 2)
   taxRate     Decimal  @default(0) @db.Decimal(5, 2)
-  subtotal    Decimal  @db.Decimal(10, 2)
+  discountRate Decimal @default(0) @db.Decimal(5, 2) // Item-level discount
+  subtotal    Decimal  @db.Decimal(12, 2)
+  sortOrder   Int      @default(0) // For maintaining item order
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
+  @@index([productId])
 }
 
 model Payment {
-  id          String        @id @default(cuid())
-  invoiceId   String
-  amount      Decimal       @db.Decimal(10, 2)
-  currency    String        @default("USD")
-  method      PaymentMethod
-  reference   String?
-  paymentDate DateTime
-  notes       String?
-  createdById String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @default(now())
+  id             String        @id @default(cuid())
+  invoiceId      String
+  amount         Decimal       @db.Decimal(12, 2)
+  currency       String        @default("USD")
+  method         PaymentMethod
+  reference      String?       // Transaction reference/ID
+  paymentDate    DateTime
+  notes          String?
+  feeAmount      Decimal       @default(0) @db.Decimal(12, 2) // Processing fees
+  status         PaymentStatus @default(COMPLETED)
+  gatewayId      String?       // Payment gateway transaction ID
+  refundedAmount Decimal       @default(0) @db.Decimal(12, 2)
+  createdById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   // Relations
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
+  @@index([paymentDate])
 }
 
 enum PaymentMethod {
@@ -409,7 +434,17 @@ enum PaymentMethod {
   CASH
   CHECK
   PAYPAL
+  STRIPE
   OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
 }
 
 model Expense {

@@ -49,9 +49,6 @@ export const contactsCrmRoutes = createTRPCRouter({
             deals: {
               orderBy: { createdAt: "desc" },
             },
-            invoices: {
-              orderBy: { createdAt: "desc" },
-            },
           },
         });
 
@@ -128,7 +125,6 @@ export const contactsCrmRoutes = createTRPCRouter({
               select: {
                 interactions: true,
                 deals: true,
-                invoices: true,
               },
             },
           },

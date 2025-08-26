@@ -119,11 +119,10 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | Time Tracking | ❌ Not implemented | Record time spent on tasks |
 | Collaboration Features | ❌ Not implemented | Enable comments and file attachments within tasks |
 | **Finance and Accounting** | | |
-| Invoicing and Billing | ❌ Not implemented | Create, send, and automate invoices |
+| Invoicing and Billing | ✅ Implemented | Create, send, and delete invoices |
 | Expense Tracking | ❌ Not implemented | Log and categorize expenses |
 | Financial Reporting | ❌ Not implemented | Generate financial statements |
 | Bank Integration | ❌ Not implemented | Sync with bank accounts |
-| Multi-Currency Support | ❌ Not implemented | Handle transactions in different currencies |
 | **Collaboration Tools** | | |
 | Real-Time Chat | ❌ Not implemented | Communicate with your team |
 | Video Conferencing | ❌ Not implemented | Host built-in video meetings |
