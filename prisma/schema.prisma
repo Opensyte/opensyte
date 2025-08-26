@@ -37,6 +37,7 @@ model Organization {
   expenses  Expense[]
   employees Employee[]
   campaigns MarketingCampaign[]
+  invitations Invitation[]
 }
 
 model UserOrganization {
@@ -570,6 +571,38 @@ enum NotificationType {
   MENTION
   REMINDER
   SYSTEM
+}
+
+// ==============================
+// Organization Invitations
+// ==============================
+
+model Invitation {
+  id             String     @id @default(cuid())
+  organizationId String
+  email          String
+  role           UserRole   @default(MEMBER)
+  inviterId      String
+  token          String     @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@unique([organizationId, email])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
 }
 
 // ==============================

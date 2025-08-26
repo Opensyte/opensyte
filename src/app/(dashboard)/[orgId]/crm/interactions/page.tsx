@@ -3,8 +3,6 @@
 import React from "react";
 import { InteractionsClient } from "~/components/crm/interactions/interactions-client";
 
-// TODO: Adding edit functionality for interactions feature
-
 interface InteractionsPageProps {
   params: Promise<{
     orgId: string;

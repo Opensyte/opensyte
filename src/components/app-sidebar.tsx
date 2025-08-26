@@ -164,6 +164,10 @@ const getNavData = (setIsCreateProjectDialogOpen: (open: boolean) => void) => ({
           url: "/[orgId]/settings/team",
         },
         {
+          title: "Invitations",
+          url: "/[orgId]/settings/invitations",
+        },
+        {
           title: "Billing",
           url: "/[orgId]/settings/billing",
         },
