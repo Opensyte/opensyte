@@ -9,6 +9,62 @@ import { render } from "@react-email/components";
 import { InvoiceEmail } from "~/server/email/templates/invoice-email";
 import { formatDecimalLike } from "~/server/utils/format";
 
+// Shared schemas for better reusability and consistency
+const invoiceItemSchema = z.object({
+  description: z.string().min(1),
+  quantity: z.number().positive(),
+  unitPrice: z.number().nonnegative(),
+  taxRate: z.number().min(0).max(100).default(0),
+  discountRate: z.number().min(0).max(100).default(0),
+});
+
+const updateInvoiceItemSchema = invoiceItemSchema.extend({
+  id: z.string().cuid(),
+});
+
+/**
+ * Calculates line item totals including tax and discount
+ */
+function calculateLineItem(item: z.infer<typeof invoiceItemSchema>) {
+  const qty = new Prisma.Decimal(item.quantity);
+  const price = new Prisma.Decimal(item.unitPrice);
+  const lineBase = qty.mul(price);
+  const lineDiscount = lineBase.mul(item.discountRate).div(100);
+  const afterDiscount = lineBase.sub(lineDiscount);
+  const lineTax = afterDiscount.mul(item.taxRate).div(100);
+
+  return {
+    quantity: qty,
+    unitPrice: price,
+    taxRate: new Prisma.Decimal(item.taxRate),
+    discountRate: new Prisma.Decimal(item.discountRate),
+    subtotal: afterDiscount.add(lineTax),
+    lineDiscount,
+    lineTax,
+    afterDiscount,
+  };
+}
+
+/**
+ * Validates customer exists in organization and has required fields
+ */
+async function validateCustomer(customerId: string, organizationId: string) {
+  const customer = await db.customer.findFirst({
+    where: { id: customerId, organizationId },
+  });
+
+  if (!customer) throw new Error("Customer not found in organization");
+  if (!customer.email) throw new Error("Customer has no email");
+
+  return {
+    email: customer.email,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    address: customer.address,
+    phone: customer.phone,
+  };
+}
+
 export const invoiceRouter = createTRPCRouter({
   createInvoice: publicProcedure
     .input(
@@ -22,55 +78,41 @@ export const invoiceRouter = createTRPCRouter({
         notes: z.string().optional(),
         internalNotes: z.string().optional(),
         termsAndConditions: z.string().optional(),
-        items: z
-          .array(
-            z.object({
-              description: z.string().min(1),
-              quantity: z.number().positive(),
-              unitPrice: z.number().nonnegative(),
-              taxRate: z.number().min(0).max(100).default(0),
-              discountRate: z.number().min(0).max(100).default(0),
-            })
-          )
-          .min(1),
+        items: z.array(invoiceItemSchema).min(1),
       })
     )
     .mutation(async ({ input }) => {
-      const customer = await db.customer.findFirst({
-        where: { id: input.customerId, organizationId: input.organizationId },
-      });
-      if (!customer) throw new Error("Customer not found in organization");
-      if (!customer.email) throw new Error("Customer has no email");
+      const customer = await validateCustomer(
+        input.customerId,
+        input.organizationId
+      );
 
-      // Generate invoice number simplistic (ORG-YYYYMM-SEQ)
+      // Generate invoice number (simplified approach)
       const monthKey = new Date().toISOString().slice(0, 7).replace("-", "");
       const count = await db.invoice.count({
         where: { organizationId: input.organizationId },
       });
       const invoiceNumber = `INV-${monthKey}-${count + 1}`;
 
+      // Calculate totals
       let subtotal = new Prisma.Decimal(0);
       let taxAmount = new Prisma.Decimal(0);
       let discountAmount = new Prisma.Decimal(0);
       const shippingAmount = new Prisma.Decimal(0);
 
-      const itemData = input.items.map((i, idx) => {
-        const qty = new Prisma.Decimal(i.quantity);
-        const price = new Prisma.Decimal(i.unitPrice);
-        const lineBase = qty.mul(price);
-        const lineDiscount = lineBase.mul(i.discountRate).div(100);
-        const afterDiscount = lineBase.sub(lineDiscount);
-        const lineTax = afterDiscount.mul(i.taxRate).div(100);
-        subtotal = subtotal.add(afterDiscount);
-        taxAmount = taxAmount.add(lineTax);
-        discountAmount = discountAmount.add(lineDiscount);
+      const itemData = input.items.map((item, idx) => {
+        const calculated = calculateLineItem(item);
+        subtotal = subtotal.add(calculated.afterDiscount);
+        taxAmount = taxAmount.add(calculated.lineTax);
+        discountAmount = discountAmount.add(calculated.lineDiscount);
+
         return {
-          description: i.description,
-          quantity: qty,
-          unitPrice: price,
-          taxRate: new Prisma.Decimal(i.taxRate),
-          discountRate: new Prisma.Decimal(i.discountRate),
-          subtotal: afterDiscount.add(lineTax),
+          description: item.description,
+          quantity: calculated.quantity,
+          unitPrice: calculated.unitPrice,
+          taxRate: calculated.taxRate,
+          discountRate: calculated.discountRate,
+          subtotal: calculated.subtotal,
           sortOrder: idx,
         };
       });
@@ -80,24 +122,23 @@ export const invoiceRouter = createTRPCRouter({
       const created = await db.invoice.create({
         data: {
           organizationId: input.organizationId,
-          customerId: customer.id,
+          customerId: input.customerId,
           customerEmail: customer.email,
           customerName: `${customer.firstName} ${customer.lastName}`,
           customerAddress: customer.address ?? null,
           customerPhone: customer.phone ?? null,
-          // ensure dates
           invoiceNumber,
           status: "DRAFT",
           issueDate: input.issueDate,
           dueDate: input.dueDate,
-          paymentTerms: input.paymentTerms ?? "Net 30",
+          paymentTerms: input.paymentTerms,
           subtotal,
           taxAmount,
           discountAmount,
           shippingAmount,
           totalAmount,
           paidAmount: new Prisma.Decimal(0),
-          currency: input.currency ?? "USD",
+          currency: input.currency,
           notes: input.notes ?? null,
           internalNotes: input.internalNotes ?? null,
           termsAndConditions: input.termsAndConditions ?? null,
@@ -112,92 +153,133 @@ export const invoiceRouter = createTRPCRouter({
       z.object({
         id: z.string().cuid(),
         organizationId: z.string().cuid(),
+        customerId: z.string().cuid().optional(),
+        issueDate: z.coerce.date().optional(),
+        dueDate: z.coerce.date().optional(),
+        paymentTerms: z.string().optional(),
+        currency: z.string().optional(),
         status: InvoiceStatusSchema.optional(),
         notes: z.string().optional(),
         internalNotes: z.string().optional(),
         termsAndConditions: z.string().optional(),
-        addItems: z
-          .array(
-            z.object({
-              description: z.string().min(1),
-              quantity: z.number().positive(),
-              unitPrice: z.number().nonnegative(),
-              taxRate: z.number().min(0).max(100).default(0),
-              discountRate: z.number().min(0).max(100).default(0),
-            })
-          )
-          .optional(),
+        addItems: z.array(invoiceItemSchema).optional(),
+        updateItems: z.array(updateInvoiceItemSchema).optional(),
         removeItemIds: z.array(z.string().cuid()).optional(),
       })
     )
     .mutation(async ({ input }) => {
+      // Validate invoice exists
       const existing = await db.invoice.findUnique({
         where: { id: input.id },
         include: { items: true },
       });
+
       if (!existing || existing.organizationId !== input.organizationId) {
         throw new Error("Invoice not found for organization");
       }
 
-      // Build item creates/deletes
-      const createItems = (input.addItems ?? []).map((i, idx) => {
-        const qty = new Prisma.Decimal(i.quantity);
-        const price = new Prisma.Decimal(i.unitPrice);
-        const lineBase = qty.mul(price);
-        const lineDiscount = lineBase.mul(i.discountRate).div(100);
-        const afterDiscount = lineBase.sub(lineDiscount);
-        const lineTax = afterDiscount.mul(i.taxRate).div(100);
+      // Validate customer if being updated
+      let customerData = null;
+      if (input.customerId && input.customerId !== existing.customerId) {
+        customerData = await validateCustomer(
+          input.customerId,
+          input.organizationId
+        );
+      }
+
+      // Prepare items for creation
+      const createItems = (input.addItems ?? []).map((item, idx) => {
+        const calculated = calculateLineItem(item);
         return {
-          description: i.description,
-          quantity: qty,
-          unitPrice: price,
-          taxRate: new Prisma.Decimal(i.taxRate),
-          discountRate: new Prisma.Decimal(i.discountRate),
-          subtotal: afterDiscount.add(lineTax),
+          description: item.description,
+          quantity: calculated.quantity,
+          unitPrice: calculated.unitPrice,
+          taxRate: calculated.taxRate,
+          discountRate: calculated.discountRate,
+          subtotal: calculated.subtotal,
           sortOrder: existing.items.length + idx,
         };
       });
 
       await db.$transaction(async tx => {
+        // Remove deleted items
         if (input.removeItemIds?.length) {
           await tx.invoiceItem.deleteMany({
             where: { id: { in: input.removeItemIds }, invoiceId: existing.id },
           });
         }
+
+        // Add new items
         if (createItems.length) {
           await tx.invoiceItem.createMany({
-            data: createItems.map(i => ({ ...i, invoiceId: existing.id })),
+            data: createItems.map(item => ({
+              ...item,
+              invoiceId: existing.id,
+            })),
           });
         }
 
-        // Recompute totals
-        const items = await tx.invoiceItem.findMany({
+        // Update existing items
+        if (input.updateItems?.length) {
+          for (const item of input.updateItems) {
+            const calculated = calculateLineItem(item);
+            await tx.invoiceItem.update({
+              where: { id: item.id, invoiceId: existing.id },
+              data: {
+                description: item.description,
+                quantity: calculated.quantity,
+                unitPrice: calculated.unitPrice,
+                taxRate: calculated.taxRate,
+                discountRate: calculated.discountRate,
+                subtotal: calculated.subtotal,
+              },
+            });
+          }
+        }
+
+        // Recalculate totals
+        const allItems = await tx.invoiceItem.findMany({
           where: { invoiceId: existing.id },
         });
-        let subtotal = new Prisma.Decimal(0);
-        items.forEach(it => {
-          const basePlusTax = it.subtotal; // subtotal field already holds after discount + tax
-          // Reverse-engineer? keep simplified; maintain discount / tax from fields
-          subtotal = subtotal.add(basePlusTax);
-        });
-        // For simplicity treat subtotal as sum of item subtotal, cannot precisely separate out tax & discount without storing separate; keep existing
-        const updated = await tx.invoice.update({
+
+        const subtotal = allItems.reduce(
+          (sum, item) => sum.add(item.subtotal),
+          new Prisma.Decimal(0)
+        );
+
+        // Build update data conditionally
+        const updateData = {
+          status: input.status ?? existing.status,
+          notes: input.notes ?? existing.notes,
+          internalNotes: input.internalNotes ?? existing.internalNotes,
+          termsAndConditions:
+            input.termsAndConditions ?? existing.termsAndConditions,
+          subtotal,
+          taxAmount: existing.taxAmount, // TODO: Recalculate from items
+          discountAmount: existing.discountAmount, // TODO: Recalculate from items
+          totalAmount: subtotal,
+          ...(input.customerId && {
+            customerId: input.customerId,
+            ...(customerData && {
+              customerEmail: customerData.email,
+              customerName: `${customerData.firstName} ${customerData.lastName}`,
+              customerAddress: customerData.address,
+              customerPhone: customerData.phone,
+            }),
+          }),
+          ...(input.issueDate && { issueDate: input.issueDate }),
+          ...(input.dueDate && { dueDate: input.dueDate }),
+          ...(input.paymentTerms && { paymentTerms: input.paymentTerms }),
+          ...(input.currency && { currency: input.currency }),
+        };
+
+        await tx.invoice.update({
           where: { id: existing.id },
-          data: {
-            status: input.status ?? existing.status,
-            notes: input.notes ?? existing.notes,
-            internalNotes: input.internalNotes ?? existing.internalNotes,
-            termsAndConditions:
-              input.termsAndConditions ?? existing.termsAndConditions,
-            subtotal, // item subtotal includes tax & discount; keep legacy fields
-            taxAmount: existing.taxAmount, // unchanged (improvement: recalc with item details stored separately)
-            discountAmount: existing.discountAmount,
-            totalAmount: subtotal, // simplified
-          },
+          data: updateData,
         });
-        return updated;
       });
 
+      // Return updated invoice
       const refreshed = await db.invoice.findUnique({
         where: { id: existing.id },
         include: { items: true, payments: true },

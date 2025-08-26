@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, type Control } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "~/trpc/react";
@@ -44,6 +44,7 @@ import { InvoiceDialogSkeleton } from "./invoice-skeletons";
 import type { InvoiceEditDialogProps } from "~/types";
 import { currencies } from "~/types/currencies";
 
+// Form schemas
 const itemSchema = z.object({
   id: z.string().optional(),
   description: z.string().min(1, "Description required"),
@@ -53,7 +54,7 @@ const itemSchema = z.object({
   discountRate: z.string().default("0"),
 });
 
-const schema = z.object({
+const formSchema = z.object({
   customerId: z.string().cuid({ message: "Customer required" }),
   issueDate: z.date({ required_error: "Issue date required" }),
   dueDate: z.date({ required_error: "Due date required" }),
@@ -65,7 +66,62 @@ const schema = z.object({
   items: z.array(itemSchema).min(1, "At least one item"),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<typeof formSchema>;
+
+// Form field components for better organization
+const DateField = ({
+  control,
+  name,
+  label,
+  required = false,
+}: {
+  control: Control<FormValues>;
+  name: "issueDate" | "dueDate";
+  label: string;
+  required?: boolean;
+}) => (
+  <FormField
+    control={control}
+    name={name}
+    render={({ field }) => (
+      <FormItem className="flex flex-col">
+        <FormLabel>
+          {label} {required && "*"}
+        </FormLabel>
+        <Popover>
+          <PopoverTrigger asChild>
+            <FormControl>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-10 w-full pl-3 text-left font-normal",
+                  !field.value && "text-muted-foreground"
+                )}
+              >
+                {field.value ? (
+                  format(field.value, "PPP")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+              </Button>
+            </FormControl>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={field.value}
+              onSelect={field.onChange}
+              disabled={date => date < new Date("1900-01-01")}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+);
 
 export function InvoiceEditDialog({
   open,
@@ -90,7 +146,7 @@ export function InvoiceEditDialog({
     );
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       paymentTerms: "Net 30",
       currency: "USD",
@@ -137,9 +193,10 @@ export function InvoiceEditDialog({
       });
       // Force-set customerId after reset in case Select internal state missed the reset
       if (invoice.customerId) {
+        const customerId = invoice.customerId; // Extract to ensure type safety
         // next microtask ensures reset settled
         queueMicrotask(() => {
-          form.setValue("customerId", invoice.customerId, {
+          form.setValue("customerId", customerId, {
             shouldDirty: false,
             shouldTouch: false,
             shouldValidate: false,
@@ -172,32 +229,52 @@ export function InvoiceEditDialog({
     onSettled: () => setSubmitting(false),
   });
 
-  const onSubmit = (values: FormValues) => {
-    if (!invoiceId) return;
+  // Helper function to prepare form data for submission
+  const prepareSubmissionData = (values: FormValues) => {
+    if (!invoiceId || !invoice) return null;
 
-    setSubmitting(true);
-    updateMutation.mutate({
+    const newItems = values.items.filter(item => !item.id);
+    const existingItems = values.items.filter(item => item.id);
+    const itemsToRemove = invoice.items
+      .filter(item => !values.items.some(v => v.id === item.id))
+      .map(item => item.id);
+
+    return {
       id: invoiceId,
       organizationId,
+      customerId: values.customerId,
+      issueDate: values.issueDate,
+      dueDate: values.dueDate,
+      paymentTerms: values.paymentTerms,
+      currency: values.currency,
       notes: values.notes,
       internalNotes: values.internalNotes,
       termsAndConditions: values.termsAndConditions,
-      // For now, we'll add all items as new items and remove old ones
-      // This is a simplified approach - in production you'd want to handle updates more granularly
-      addItems: values.items
-        .filter(i => !i.id) // Only new items without existing IDs
-        .map(i => ({
-          description: i.description,
-          quantity: parseFloat(i.quantity),
-          unitPrice: parseFloat(i.unitPrice),
-          taxRate: parseFloat(i.taxRate || "0"),
-          discountRate: parseFloat(i.discountRate || "0"),
-        })),
-      removeItemIds:
-        invoice?.items
-          .filter(item => !values.items.some(v => v.id === item.id))
-          .map(item => item.id) ?? [],
-    });
+      addItems: newItems.map(item => ({
+        description: item.description,
+        quantity: parseFloat(item.quantity),
+        unitPrice: parseFloat(item.unitPrice),
+        taxRate: parseFloat(item.taxRate || "0"),
+        discountRate: parseFloat(item.discountRate || "0"),
+      })),
+      updateItems: existingItems.map(item => ({
+        id: item.id!,
+        description: item.description,
+        quantity: parseFloat(item.quantity),
+        unitPrice: parseFloat(item.unitPrice),
+        taxRate: parseFloat(item.taxRate || "0"),
+        discountRate: parseFloat(item.discountRate || "0"),
+      })),
+      removeItemIds: itemsToRemove,
+    };
+  };
+
+  const onSubmit = (values: FormValues) => {
+    const submissionData = prepareSubmissionData(values);
+    if (!submissionData) return;
+
+    setSubmitting(true);
+    updateMutation.mutate(submissionData);
   };
 
   return (
@@ -249,84 +326,17 @@ export function InvoiceEditDialog({
                 />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField
+                  <DateField
                     control={form.control}
                     name="issueDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Issue Date *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "h-10 w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={date => date < new Date("1900-01-01")}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    label="Issue Date"
+                    required
                   />
-
-                  <FormField
+                  <DateField
                     control={form.control}
                     name="dueDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Due Date *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "h-10 w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={date => date < new Date("1900-01-01")}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    label="Due Date"
+                    required
                   />
                 </div>
 
