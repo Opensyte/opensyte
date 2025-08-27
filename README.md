@@ -130,10 +130,8 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | Shared Calendars | ❌ Not implemented | Schedule with team-wide visibility |
 | Notifications | ❌ Not implemented | Stay updated with alerts |
 | **User Management & Access Control (Settings)** | | |
-| User Permissions System | ❌ Not implemented | Settings: Owners can add users and specify granular permissions |
 | Feature-Level Access Control | ❌ Not implemented | Settings: Control which features users can view and access |
-| Permission Levels (Read/Edit) | ❌ Not implemented | Settings: Set read-only, edit, or full access permissions per feature |
-| Role-Based Access Control | ❌ Not implemented | Settings: Create custom roles with predefined permission sets |
+| Role-Based Access Control | ✅ Implemented | Settings: Create custom roles with predefined permission sets |
 | User Invitation Management | ✅ Implemented | Settings: Send invitations and manage user onboarding |
 | **Human Resources (HR) Management** | | |
 | Employee Database | ✅ Implemented | Store employee profiles |

@@ -1,28 +1,30 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../../trpc";
+import {
+  createTRPCRouter,
+  createPermissionProcedure,
+  createAnyPermissionProcedure,
+} from "../../trpc";
 import { db } from "~/server/db";
-
-// Deal status enum for validation (matching Prisma LeadStatus)
-const DealStatusSchema = z.enum([
-  "NEW",
-  "CONTACTED",
-  "QUALIFIED",
-  "PROPOSAL",
-  "NEGOTIATION",
-  "CLOSED_WON",
-  "CLOSED_LOST",
-]);
+import { PERMISSIONS } from "~/lib/rbac";
+import { LeadStatusSchema } from "../../../../../prisma/generated/zod";
 
 export const dealsCrmRoutes = createTRPCRouter({
   // Get deals by organization
-  getDealsByOrganization: publicProcedure
+  getDealsByOrganization: createAnyPermissionProcedure([
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_WRITE,
+    PERMISSIONS.CRM_ADMIN,
+  ])
     .input(
       z.object({
         organizationId: z.string().cuid(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to read from this organization
+        await ctx.requireAnyPermission(input.organizationId);
+
         const deals = await db.deal.findMany({
           where: {
             customer: {
@@ -51,13 +53,14 @@ export const dealsCrmRoutes = createTRPCRouter({
     }),
 
   // Create a new deal
-  createDeal: publicProcedure
+  createDeal: createPermissionProcedure(PERMISSIONS.CRM_WRITE)
     .input(
       z.object({
         customerId: z.string().cuid(),
+        organizationId: z.string().cuid(),
         title: z.string().min(1, "Title is required"),
         value: z.number().min(0, "Value must be positive"),
-        status: DealStatusSchema,
+        status: LeadStatusSchema,
         stage: z.number().min(1).max(5),
         probability: z.number().min(0).max(100).optional(),
         currency: z.string().default("USD"),
@@ -65,10 +68,28 @@ export const dealsCrmRoutes = createTRPCRouter({
         description: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
+        // Verify customer belongs to the organization
+        const customer = await db.customer.findFirst({
+          where: {
+            id: input.customerId,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!customer) {
+          throw new Error("Customer not found or access denied");
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { organizationId, ...dealData } = input;
+
         const deal = await db.deal.create({
-          data: input,
+          data: dealData,
           include: {
             customer: {
               select: {
@@ -90,7 +111,7 @@ export const dealsCrmRoutes = createTRPCRouter({
     }),
 
   // Update a deal
-  updateDeal: publicProcedure
+  updateDeal: createPermissionProcedure(PERMISSIONS.CRM_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
@@ -99,15 +120,18 @@ export const dealsCrmRoutes = createTRPCRouter({
         value: z.number().min(0, "Value must be positive"),
         customerId: z.string().cuid("Valid customer ID is required"),
         customerName: z.string().min(1, "Customer name is required"),
-        status: DealStatusSchema,
+        status: LeadStatusSchema,
         stage: z.number().min(0),
         probability: z.number().min(0).max(100).optional(),
         expectedCloseDate: z.date().optional(),
         description: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
         // First verify the deal belongs to the specified organization
         const existingDeal = await db.deal.findFirst({
           where: {
@@ -125,6 +149,18 @@ export const dealsCrmRoutes = createTRPCRouter({
           throw new Error(
             "Deal not found or does not belong to this organization"
           );
+        }
+
+        // Verify new customer belongs to the organization
+        const customer = await db.customer.findFirst({
+          where: {
+            id: input.customerId,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!customer) {
+          throw new Error("Customer not found or access denied");
         }
 
         const deal = await db.deal.update({
@@ -160,15 +196,18 @@ export const dealsCrmRoutes = createTRPCRouter({
     }),
 
   // Delete a deal
-  deleteDeal: publicProcedure
+  deleteDeal: createPermissionProcedure(PERMISSIONS.CRM_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
         organizationId: z.string().cuid(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
         // First verify the deal belongs to the specified organization
         const existingDeal = await db.deal.findFirst({
           where: {
@@ -197,12 +236,29 @@ export const dealsCrmRoutes = createTRPCRouter({
     }),
 
   // Get a single deal by ID
-  getDealById: publicProcedure
-    .input(z.object({ id: z.string().cuid() }))
-    .query(async ({ input }) => {
+  getDealById: createAnyPermissionProcedure([
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_WRITE,
+    PERMISSIONS.CRM_ADMIN,
+  ])
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
       try {
-        const deal = await db.deal.findUnique({
-          where: { id: input.id },
+        // Verify user has permission to read from this organization
+        await ctx.requireAnyPermission(input.organizationId);
+
+        const deal = await db.deal.findFirst({
+          where: {
+            id: input.id,
+            customer: {
+              organizationId: input.organizationId,
+            },
+          },
           include: {
             customer: {
               select: {
@@ -217,7 +273,7 @@ export const dealsCrmRoutes = createTRPCRouter({
         });
 
         if (!deal) {
-          throw new Error("Deal not found");
+          throw new Error("Deal not found or access denied");
         }
 
         return deal;

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { format } from "date-fns";
-import { PlusCircle, Search } from "lucide-react";
+import { PlusCircle, Search, Shield } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "~/components/ui/button";
+import { PermissionButton } from "~/components/shared/permission-button";
 import {
   Card,
   CardContent,
@@ -32,6 +32,8 @@ import type {
   InteractionMedium,
 } from "@prisma/client";
 import { api } from "~/trpc/react";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
 
 interface InteractionsClientProps {
   organizationId: string;
@@ -40,6 +42,13 @@ interface InteractionsClientProps {
 export function InteractionsClient({
   organizationId,
 }: InteractionsClientProps) {
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId,
+  });
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [currentInteraction, setCurrentInteraction] =
@@ -128,13 +137,14 @@ export function InteractionsClient({
   }) => {
     try {
       await createInteraction.mutateAsync({
+        organizationId,
         customerId: formData.customerId,
         type: formData.type,
         medium: formData.medium,
         subject: formData.subject,
         content: formData.content,
-        scheduledAt: formData.scheduledAt,
-        completedAt: formData.completedAt,
+        scheduledAt: formData.scheduledAt ?? undefined,
+        completedAt: formData.completedAt ?? undefined,
       });
       setIsAddDialogOpen(false);
     } catch {
@@ -145,7 +155,7 @@ export function InteractionsClient({
   // Handle deleting an interaction
   const handleDeleteInteraction = async (id: string) => {
     try {
-      await deleteInteraction.mutateAsync({ id });
+      await deleteInteraction.mutateAsync({ id, organizationId });
       setIsViewDialogOpen(false);
     } catch {
       // Error handled by mutation
@@ -165,6 +175,42 @@ export function InteractionsClient({
     if (!date) return "N/A";
     return format(date, "PPp");
   };
+
+  // Show skeleton loading while data is being fetched
+  if (isLoading) {
+    return <InteractionsSkeleton />;
+  }
+
+  // Permission check
+  if (!permissions.canReadCRM && !permissions.isLoading) {
+    return (
+      <div className="flex flex-col gap-4 p-4 md:p-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Customer Interactions
+            </h1>
+            <p className="text-muted-foreground">
+              Manage and track all communications with your customers.
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view customer interactions.
+                Please contact your administrator to request access.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Show skeleton loading while data is being fetched
   if (isLoading) {
@@ -202,10 +248,16 @@ export function InteractionsClient({
             Manage and track all communications with your customers.
           </p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
+        <PermissionButton
+          userId={session?.user.id ?? ""}
+          organizationId={organizationId}
+          requiredPermission="write"
+          module="crm"
+          onClick={() => setIsAddDialogOpen(true)}
+        >
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Interaction
-        </Button>
+        </PermissionButton>
       </div>
 
       <Card>
@@ -269,6 +321,8 @@ export function InteractionsClient({
             onDeleteInteraction={handleDeleteInteraction}
             getCustomerName={getCustomerName}
             formatDate={formatDate}
+            userId={session?.user.id ?? ""}
+            organizationId={organizationId}
           />
         </TabsContent>
 

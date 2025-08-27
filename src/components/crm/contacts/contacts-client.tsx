@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
+import { PermissionButton } from "~/components/shared/permission-button";
 import {
   Card,
   CardContent,
@@ -12,7 +13,7 @@ import {
 import LeadManagementTable from "~/components/crm/contacts/lead-management-table";
 import LeadFilters from "~/components/crm/contacts/lead-filters";
 import { Button } from "~/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Shield } from "lucide-react";
 import AddLeadDialog from "~/components/crm/contacts/add-lead-dialog";
 import EditLeadDialog from "~/components/crm/contacts/edit-lead-dialog";
 import { toast } from "sonner";
@@ -21,10 +22,19 @@ import type { LeadFormValues as LeadFormValuesAddDialog } from "~/components/crm
 import { api } from "~/trpc/react";
 import type { Customer } from "@prisma/client";
 import { Skeleton } from "~/components/ui/skeleton";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
 
 export function ContactsClient() {
   const params = useParams();
   const orgId = params.orgId as string;
+
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId: orgId,
+  });
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -125,6 +135,7 @@ export function ContactsClient() {
     try {
       await updateContactMutation.mutateAsync({
         id,
+        organizationId: orgId,
         data: {
           firstName: data.firstName,
           lastName: data.lastName,
@@ -154,7 +165,7 @@ export function ContactsClient() {
 
   const handleDeleteLead = async (id: string) => {
     try {
-      await deleteContactMutation.mutateAsync({ id });
+      await deleteContactMutation.mutateAsync({ id, organizationId: orgId });
       toast.success("Lead has been deleted.");
     } catch {
       toast.error("Failed to delete lead. Please try again.");
@@ -196,6 +207,37 @@ export function ContactsClient() {
                   ))}
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Permission check
+  if (!permissions.canReadCRM && !permissions.isLoading) {
+    return (
+      <div className="flex flex-col gap-4 p-4 md:p-8">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              CRM - Contacts
+            </h1>
+            <p className="text-muted-foreground">
+              Manage your leads, customers, and sales pipeline
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view contact information.
+                Please contact your administrator to request access.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -252,13 +294,17 @@ export function ContactsClient() {
             Manage your leads, customers, and sales pipeline
           </p>
         </div>
-        <Button
+        <PermissionButton
+          userId={session?.user.id ?? ""}
+          organizationId={orgId}
+          requiredPermission="write"
+          module="crm"
           onClick={() => setAddDialogOpen(true)}
           disabled={createContactMutation.isPending}
         >
           <Plus className="mr-2 h-4 w-4" />
           Add New Lead
-        </Button>
+        </PermissionButton>
       </div>
 
       <Card className="col-span-full">
@@ -283,6 +329,8 @@ export function ContactsClient() {
             onDeleteLead={handleDeleteLead}
             onEditLead={openEditDialog}
             isDeleting={deleteContactMutation.isPending}
+            organizationId={orgId}
+            userId={session?.user.id ?? ""}
           />
         </CardContent>
       </Card>

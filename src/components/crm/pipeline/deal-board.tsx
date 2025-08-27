@@ -38,6 +38,7 @@ interface DealBoardProps {
   deals: DealWithCustomer[];
   filters: DealFilters;
   organizationId: string;
+  userId: string;
   onDealUpdate: (deal: DealWithCustomer) => void;
 }
 
@@ -45,6 +46,7 @@ export function DealBoard({
   deals,
   filters,
   organizationId,
+  userId,
   onDealUpdate,
 }: DealBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -187,8 +189,15 @@ export function DealBoard({
     const deal = localDeals.find(deal => deal.id === activeId);
     if (!deal) return null;
 
-    return <DealCard deal={deal} isOverlay organizationId={organizationId} />;
-  }, [activeId, localDeals, organizationId]);
+    return (
+      <DealCard
+        deal={deal}
+        isOverlay
+        organizationId={organizationId}
+        userId={userId}
+      />
+    );
+  }, [activeId, localDeals, organizationId, userId]);
 
   return (
     <DndContext
@@ -211,6 +220,7 @@ export function DealBoard({
                 color={column.color}
                 deals={columnDeals}
                 organizationId={organizationId}
+                userId={userId}
               />
             );
           })}

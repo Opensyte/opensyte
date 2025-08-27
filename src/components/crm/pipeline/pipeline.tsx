@@ -7,12 +7,23 @@ import { DealFilters as DealFiltersComponent } from "./deal-filters";
 import { PipelineSkeleton } from "./pipeline-skeleton";
 import { api } from "~/trpc/react";
 import type { DealWithCustomer, DealFilters } from "~/types/crm";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
+import { Card, CardContent } from "~/components/ui/card";
+import { Shield } from "lucide-react";
 
 interface PipelineProps {
   organizationId: string;
 }
 
 export function Pipeline({ organizationId }: PipelineProps) {
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId,
+  });
+
   const [filters, setFilters] = useState<
     DealFilters & { searchQuery?: string }
   >({
@@ -96,6 +107,28 @@ export function Pipeline({ organizationId }: PipelineProps) {
 
   // No transformation needed - deals already have correct type from API
 
+  // Permission check
+  if (!permissions.canReadCRM && !permissions.isLoading) {
+    return (
+      <>
+        <div className="flex flex-col gap-6 p-4 md:p-8">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="py-8 text-center">
+                <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium mb-2">Access Restricted</p>
+                <p className="text-muted-foreground">
+                  You don&apos;t have permission to view pipeline data. Please
+                  contact your administrator to request access.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       {/* Pipeline metrics */}
@@ -155,6 +188,7 @@ export function Pipeline({ organizationId }: PipelineProps) {
             deals={deals}
             filters={filters}
             organizationId={organizationId}
+            userId={session?.user.id ?? ""}
             onDealUpdate={handleDealUpdate}
           />
         )}

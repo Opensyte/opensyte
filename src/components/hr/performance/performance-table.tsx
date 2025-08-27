@@ -5,6 +5,7 @@ import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { WithPermissions } from "~/components/shared/permission-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,8 @@ interface PerformanceTableProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
+  userId: string;
+  organizationId: string;
 }
 
 export function PerformanceTable({
@@ -48,6 +51,8 @@ export function PerformanceTable({
   onEdit,
   onDelete,
   isDeleting = false,
+  userId,
+  organizationId,
 }: PerformanceTableProps) {
   if (reviews.length === 0) {
     return (
@@ -109,18 +114,32 @@ export function PerformanceTable({
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(review.id)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit Review
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete(review.id)}
-                        disabled={isDeleting}
-                        className="text-destructive"
+                      <WithPermissions
+                        userId={userId}
+                        organizationId={organizationId}
+                        requiredPermission="write"
+                        module="hr"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Review
-                      </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit(review.id)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit Review
+                        </DropdownMenuItem>
+                      </WithPermissions>
+                      <WithPermissions
+                        userId={userId}
+                        organizationId={organizationId}
+                        requiredPermission="write"
+                        module="hr"
+                      >
+                        <DropdownMenuItem
+                          onClick={() => onDelete(review.id)}
+                          disabled={isDeleting}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Review
+                        </DropdownMenuItem>
+                      </WithPermissions>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -156,18 +175,32 @@ export function PerformanceTable({
                       <Eye className="mr-2 h-4 w-4" />
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEdit(review.id)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit Review
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(review.id)}
-                      disabled={isDeleting}
-                      className="text-destructive"
+                    <WithPermissions
+                      userId={userId}
+                      organizationId={organizationId}
+                      requiredPermission="write"
+                      module="hr"
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Review
-                    </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(review.id)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit Review
+                      </DropdownMenuItem>
+                    </WithPermissions>
+                    <WithPermissions
+                      userId={userId}
+                      organizationId={organizationId}
+                      requiredPermission="write"
+                      module="hr"
+                    >
+                      <DropdownMenuItem
+                        onClick={() => onDelete(review.id)}
+                        disabled={isDeleting}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Review
+                      </DropdownMenuItem>
+                    </WithPermissions>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

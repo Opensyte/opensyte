@@ -157,7 +157,7 @@ export const organizationRouter = createTRPCRouter({
             users: {
               create: {
                 userId: input.userId,
-                role: UserRole.OWNER,
+                role: "ORGANIZATION_OWNER" as UserRole,
               },
             },
           },
@@ -191,7 +191,7 @@ export const organizationRouter = createTRPCRouter({
           projectsCount: organization._count.projects,
           createdAt: organization.createdAt.toISOString(),
           updatedAt: organization.updatedAt.toISOString(),
-          userRole: UserRole.OWNER,
+          userRole: "ORGANIZATION_OWNER" as UserRole,
         };
       } catch (error) {
         console.error("Error creating organization:", error);
@@ -210,7 +210,7 @@ export const organizationRouter = createTRPCRouter({
             userId: input.userId,
             organizationId: input.id,
             role: {
-              in: [UserRole.OWNER, UserRole.ADMIN],
+              in: ["ORGANIZATION_OWNER", "SUPER_ADMIN"] as UserRole[],
             },
           },
         });
@@ -272,7 +272,7 @@ export const organizationRouter = createTRPCRouter({
           where: {
             userId: input.userId,
             organizationId: input.id,
-            role: UserRole.OWNER,
+            role: "ORGANIZATION_OWNER" as UserRole,
           },
         });
 

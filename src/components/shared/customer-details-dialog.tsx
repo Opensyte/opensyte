@@ -28,6 +28,7 @@ import { api } from "~/trpc/react";
 interface CustomerDetailsDialogProps {
   customerName: string;
   customerId: string;
+  organizationId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -55,6 +56,7 @@ const sourceIconMap = {
 export function CustomerDetailsDialog({
   customerName: _customerName,
   customerId,
+  organizationId,
   open,
   onOpenChange,
 }: CustomerDetailsDialogProps) {
@@ -64,7 +66,7 @@ export function CustomerDetailsDialog({
     isLoading,
     error,
   } = api.contactsCrm.getContactById.useQuery(
-    { id: customerId },
+    { id: customerId, organizationId },
     {
       enabled: open && !!customerId, // Only fetch when dialog is open and customerId exists
       refetchOnWindowFocus: false,

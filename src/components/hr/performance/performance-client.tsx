@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
+import { PermissionButton } from "~/components/shared/permission-button";
 import { Input } from "~/components/ui/input";
 import {
   Card,
@@ -27,7 +28,7 @@ import {
 } from "~/components/ui/popover";
 import { Calendar } from "~/components/ui/calendar";
 import { cn } from "~/lib/utils";
-import { CalendarIcon, Filter, Plus } from "lucide-react";
+import { CalendarIcon, Filter, Plus, Shield } from "lucide-react";
 import { reviewStatusLabels } from "~/types/hr";
 import { PerformanceCreateDialog } from "./performance-create-dialog";
 import { PerformanceEditDialog } from "./performance-edit-dialog";
@@ -39,6 +40,8 @@ import {
   PerformanceStatsSkeleton,
   PerformanceTableSkeleton,
 } from "./performance-skeletons";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
 
 interface PerformanceClientProps {
   organizationId: string;
@@ -47,6 +50,13 @@ interface PerformanceClientProps {
 type ReviewStatusFilter = "all" | keyof typeof reviewStatusLabels;
 
 export function PerformanceClient({ organizationId }: PerformanceClientProps) {
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId,
+  });
+
   const [status, setStatus] = useState<ReviewStatusFilter>("all");
   const [from, setFrom] = useState<Date | undefined>();
   const [to, setTo] = useState<Date | undefined>();
@@ -120,6 +130,37 @@ export function PerformanceClient({ organizationId }: PerformanceClientProps) {
     []
   );
 
+  // Permission check
+  if (!permissions.canReadHR && !permissions.isLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-4 md:p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Performance Tracking
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Track employee performance reviews and goals
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view performance data. Please
+                contact your administrator to request access.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -131,12 +172,16 @@ export function PerformanceClient({ organizationId }: PerformanceClientProps) {
             Track employee performance reviews and goals
           </p>
         </div>
-        <Button
+        <PermissionButton
+          userId={session?.user.id ?? ""}
+          organizationId={organizationId}
+          requiredPermission="write"
+          module="hr"
           onClick={() => setCreateOpen(true)}
           className="w-full md:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" /> New Review
-        </Button>
+        </PermissionButton>
       </div>
 
       {loadingStats ? (
@@ -278,6 +323,8 @@ export function PerformanceClient({ organizationId }: PerformanceClientProps) {
                 }
               }}
               isDeleting={deleteMutation.isPending}
+              userId={session?.user.id ?? ""}
+              organizationId={organizationId}
             />
           )}
           {reviews && isFetching && (

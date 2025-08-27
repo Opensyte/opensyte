@@ -12,6 +12,7 @@ import { ZodError } from "zod";
 
 import { db } from "~/server/db";
 import { auth } from "~/lib/auth";
+import { hasPermission, hasAnyPermission } from "~/lib/rbac";
 
 /**
  * 1. CONTEXT
@@ -118,3 +119,95 @@ const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
  * are logged in.
  */
 export const publicProcedure = t.procedure.use(timingMiddleware);
+
+/**
+ * Permission-based procedure middleware
+ *
+ * Creates procedures that require specific permissions
+ */
+export const createPermissionProcedure = (permission: string) => {
+  return publicProcedure.use(async ({ ctx, next }) => {
+    if (!ctx.user?.id) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "You must be logged in to access this resource",
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        requirePermission: async (organizationId: string) => {
+          const userOrg = await ctx.db.userOrganization.findFirst({
+            where: {
+              userId: ctx.user.id,
+              organizationId,
+            },
+          });
+
+          if (!userOrg) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "User not found in organization",
+            });
+          }
+
+          if (!hasPermission(userOrg.role, permission)) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: `Access denied. Required permission: ${permission}`,
+            });
+          }
+
+          return userOrg.role;
+        },
+      },
+    });
+  });
+};
+
+/**
+ * Multiple permission-based procedure middleware
+ *
+ * Creates procedures that require any of the specified permissions
+ */
+export const createAnyPermissionProcedure = (permissions: string[]) => {
+  return publicProcedure.use(async ({ ctx, next }) => {
+    if (!ctx.user?.id) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "You must be logged in to access this resource",
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        requireAnyPermission: async (organizationId: string) => {
+          const userOrg = await ctx.db.userOrganization.findFirst({
+            where: {
+              userId: ctx.user.id,
+              organizationId,
+            },
+          });
+
+          if (!userOrg) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "User not found in organization",
+            });
+          }
+
+          if (!hasAnyPermission(userOrg.role, permissions)) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: `Access denied. Required permissions: ${permissions.join(" OR ")}`,
+            });
+          }
+
+          return userOrg.role;
+        },
+      },
+    });
+  });
+};

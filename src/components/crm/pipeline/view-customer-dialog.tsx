@@ -26,6 +26,7 @@ import { api } from "~/trpc/react";
 interface ViewCustomerDialogProps {
   customerName: string;
   customerId: string;
+  organizationId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -34,6 +35,7 @@ interface ViewCustomerDialogProps {
 
 export function ViewCustomerDialog({
   customerId,
+  organizationId,
   open,
   onOpenChange,
 }: ViewCustomerDialogProps) {
@@ -43,7 +45,7 @@ export function ViewCustomerDialog({
     isLoading,
     error,
   } = api.contactsCrm.getContactById.useQuery(
-    { id: customerId },
+    { id: customerId, organizationId },
     {
       enabled: open && !!customerId, // Only fetch when dialog is open and customerId exists
       refetchOnWindowFocus: false,

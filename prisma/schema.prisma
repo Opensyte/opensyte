@@ -15,6 +15,40 @@ datasource db {
 }
 
 // ==============================
+// Role-Based Access Control Models
+// ==============================
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "crm:read", "finance:write", "hr:admin"
+  description String?
+  module      String   // e.g., "CRM", "Finance", "HR", "Projects"
+  action      String   // e.g., "read", "write", "admin", "delete"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@index([module])
+  @@index([action])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         UserRole
+  permissionId String
+  createdAt    DateTime   @default(now())
+
+  // Relations
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@index([permissionId])
+}
+
+// ==============================
 // Core Organization Models
 // ==============================
 
@@ -55,9 +89,20 @@ model UserOrganization {
 }
 
 enum UserRole {
-  OWNER
-  ADMIN
-  MEMBER
+  // Organization Level Roles
+  ORGANIZATION_OWNER
+  SUPER_ADMIN
+  DEPARTMENT_MANAGER
+  
+  // Departmental Roles
+  HR_MANAGER
+  SALES_MANAGER
+  FINANCE_MANAGER
+  PROJECT_MANAGER
+  
+  // Standard User Roles
+  EMPLOYEE
+  CONTRACTOR
   VIEWER
 }
 
@@ -581,7 +626,7 @@ model Invitation {
   id             String     @id @default(cuid())
   organizationId String
   email          String
-  role           UserRole   @default(MEMBER)
+  role           UserRole   @default(VIEWER)
   inviterId      String
   token          String     @unique
   status         InvitationStatus @default(PENDING)

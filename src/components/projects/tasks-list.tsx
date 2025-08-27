@@ -53,6 +53,7 @@ import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { TaskEditDialog } from "./task-edit-dialog";
 import TaskViewSheet from "./task-view-sheet";
+import { WithPermissions } from "~/components/shared/permission-button";
 
 import {
   taskStatusColors,
@@ -68,6 +69,7 @@ interface TasksListProps {
   isLoading: boolean;
   organizationId: string;
   projectId: string;
+  userId: string;
 }
 
 // Sortable Task Row Component
@@ -78,6 +80,8 @@ function SortableTaskRow({
   handleDelete,
   setEditingTask,
   setViewingTask,
+  userId,
+  organizationId,
 }: {
   task: TaskWithRelations;
   handleCheckboxChange: (taskId: string, checked: boolean) => void;
@@ -85,6 +89,8 @@ function SortableTaskRow({
   handleDelete: (task: TaskWithRelations) => void;
   setEditingTask: (task: TaskWithRelations | null) => void;
   setViewingTask: (task: TaskWithRelations | null) => void;
+  userId: string;
+  organizationId: string;
 }) {
   const {
     attributes,
@@ -283,17 +289,31 @@ function SortableTaskRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditingTask(task)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleDelete(task)}
-              className="text-red-600"
+            <WithPermissions
+              module="projects"
+              requiredPermission="write"
+              userId={userId}
+              organizationId={organizationId}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+            </WithPermissions>
+            <WithPermissions
+              module="projects"
+              requiredPermission="write"
+              userId={userId}
+              organizationId={organizationId}
+            >
+              <DropdownMenuItem
+                onClick={() => handleDelete(task)}
+                className="text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </WithPermissions>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -306,6 +326,7 @@ export function TasksList({
   isLoading,
   organizationId,
   projectId,
+  userId,
 }: TasksListProps) {
   const [editingTask, setEditingTask] = useState<TaskWithRelations | null>(
     null
@@ -501,6 +522,8 @@ export function TasksList({
                   handleDelete={handleDelete}
                   setEditingTask={setEditingTask}
                   setViewingTask={setViewingTask}
+                  userId={userId}
+                  organizationId={organizationId}
                 />
               ))}
             </TableBody>

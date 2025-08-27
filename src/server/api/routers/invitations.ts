@@ -7,6 +7,7 @@ import { render } from "@react-email/components";
 import { InviteEmail } from "~/server/email/templates/invite-email";
 import { v4 as uuidv4 } from "uuid";
 import { type InvitationStatus, UserRole } from "@prisma/client";
+import { canAssignRole } from "~/lib/rbac";
 
 function getBaseUrl() {
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
@@ -19,10 +20,10 @@ function getBaseUrl() {
 async function requireOrgRole(
   userId: string,
   organizationId: string,
-  roles: UserRole[]
+  roles: readonly UserRole[]
 ) {
   const rel = await db.userOrganization.findFirst({
-    where: { userId, organizationId, role: { in: roles } },
+    where: { userId, organizationId, role: { in: roles as UserRole[] } },
   });
   if (!rel) throw new Error("Insufficient permissions");
   return rel;
@@ -73,16 +74,27 @@ export const invitationsRouter = createTRPCRouter({
       z.object({
         organizationId: z.string(),
         email: z.string().email(),
-        role: z.nativeEnum(UserRole).default(UserRole.MEMBER),
+        role: z.nativeEnum(UserRole).default(UserRole.VIEWER),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user?.id;
       if (!userId) throw new Error("Unauthorized");
       await requireOrgRole(userId, input.organizationId, [
-        UserRole.OWNER,
-        UserRole.ADMIN,
-      ]);
+        UserRole.ORGANIZATION_OWNER,
+        UserRole.SUPER_ADMIN,
+        UserRole.DEPARTMENT_MANAGER,
+      ] as const);
+
+      // Enforce role hierarchy: user cannot invite a role they cannot assign
+      const inviterRel = await db.userOrganization.findFirst({
+        where: { userId, organizationId: input.organizationId },
+        select: { role: true },
+      });
+      if (!inviterRel) throw new Error("Access denied");
+      if (!canAssignRole(inviterRel.role, input.role)) {
+        throw new Error("Cannot invite user with higher or equal role");
+      }
 
       const organization = await db.organization.findUnique({
         where: { id: input.organizationId },
@@ -169,9 +181,10 @@ export const invitationsRouter = createTRPCRouter({
       const userId = ctx.user?.id;
       if (!userId) throw new Error("Unauthorized");
       await requireOrgRole(userId, input.organizationId, [
-        UserRole.OWNER,
-        UserRole.ADMIN,
-      ]);
+        UserRole.ORGANIZATION_OWNER,
+        UserRole.SUPER_ADMIN,
+        UserRole.DEPARTMENT_MANAGER,
+      ] as const);
 
       const invite = await db.invitation.findFirst({
         where: { id: input.id, organizationId: input.organizationId },
@@ -230,9 +243,10 @@ export const invitationsRouter = createTRPCRouter({
       const userId = ctx.user?.id;
       if (!userId) throw new Error("Unauthorized");
       await requireOrgRole(userId, input.organizationId, [
-        UserRole.OWNER,
-        UserRole.ADMIN,
-      ]);
+        UserRole.ORGANIZATION_OWNER,
+        UserRole.SUPER_ADMIN,
+        UserRole.DEPARTMENT_MANAGER,
+      ] as const);
       await db.invitation.update({
         where: { id: input.id },
         data: { status: "REVOKED" },

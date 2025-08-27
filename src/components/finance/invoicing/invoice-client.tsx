@@ -2,6 +2,10 @@
 import { useState } from "react";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
+import {
+  PermissionButton,
+  WithPermissions,
+} from "~/components/shared/permission-button";
 import { Input } from "~/components/ui/input";
 import {
   Table,
@@ -18,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Badge } from "~/components/ui/badge";
-import { MoreHorizontal, Edit, Trash2, Send } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Send, Shield } from "lucide-react";
 import { InvoiceCreateDialog } from "./invoice-create-dialog";
 import { InvoiceEditDialog } from "./invoice-edit-dialog";
 import { InvoiceDeleteDialog } from "./invoice-delete-dialog";
@@ -26,8 +30,18 @@ import { InvoiceTableSkeleton } from "./invoice-skeletons";
 import { invoiceStatusColors, invoiceStatusLabels } from "~/types";
 import type { InvoiceClientProps } from "~/types";
 import { toast } from "sonner";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
+import { Card, CardContent } from "~/components/ui/card";
 
 export function InvoiceClient({ organizationId }: InvoiceClientProps) {
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId,
+  });
+
   function formatAmount(value: unknown): string {
     if (typeof value === "number") return value.toFixed(2);
     if (typeof value === "string") return value;
@@ -75,6 +89,29 @@ export function InvoiceClient({ organizationId }: InvoiceClientProps) {
     sendMutation.mutate({ id: invoiceId, organizationId });
   };
 
+  // Permission check
+  if (!permissions.canReadFinance && !permissions.isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-semibold">Invoices</h2>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view invoicing data. Please
+                contact your administrator to request access.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -86,12 +123,16 @@ export function InvoiceClient({ organizationId }: InvoiceClientProps) {
             onChange={e => setSearch(e.target.value)}
             className="h-10 w-full sm:w-64"
           />
-          <Button
+          <PermissionButton
+            userId={session?.user.id ?? ""}
+            organizationId={organizationId}
+            requiredPermission="write"
+            module="finance"
             onClick={() => setOpenCreate(true)}
             className="w-full sm:w-auto"
           >
             New Invoice
-          </Button>
+          </PermissionButton>
         </div>
       </div>
       {isLoading ? (
@@ -166,19 +207,33 @@ export function InvoiceClient({ organizationId }: InvoiceClientProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => setEditingInvoice(inv.id)}
+                          <WithPermissions
+                            userId={session?.user.id ?? ""}
+                            organizationId={organizationId}
+                            requiredPermission="write"
+                            module="finance"
                           >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeletingInvoice(inv.id)}
-                            className="text-red-600 focus:text-red-600"
+                            <DropdownMenuItem
+                              onClick={() => setEditingInvoice(inv.id)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          </WithPermissions>
+                          <WithPermissions
+                            userId={session?.user.id ?? ""}
+                            organizationId={organizationId}
+                            requiredPermission="write"
+                            module="finance"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeletingInvoice(inv.id)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </WithPermissions>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

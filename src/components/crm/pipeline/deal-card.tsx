@@ -27,6 +27,7 @@ import {
 import { Button } from "~/components/ui/button";
 import type { DealWithCustomer } from "~/types/crm";
 import { useState } from "react";
+import { usePermissions } from "~/hooks/use-permissions";
 
 // Import dialogs
 import { EditDealDialog } from "./edit-deal-dialog";
@@ -37,17 +38,22 @@ interface DealCardProps {
   deal: DealWithCustomer;
   isOverlay?: boolean;
   organizationId: string;
+  userId: string;
 }
 
 export function DealCard({
   deal,
   isOverlay = false,
   organizationId,
+  userId,
 }: DealCardProps) {
   // Dialog visibility states
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
+
+  // Permission checks
+  const permissions = usePermissions({ userId, organizationId });
   const {
     attributes,
     listeners,
@@ -123,22 +129,28 @@ export function DealCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit deal
-              </DropdownMenuItem>
+              {permissions.canWriteCRM && (
+                <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit deal
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setIsViewCustomerOpen(true)}>
                 <User className="mr-2 h-4 w-4" />
                 View customer
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setIsDeleteOpen(true)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete deal
-              </DropdownMenuItem>
+              {permissions.canWriteCRM && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setIsDeleteOpen(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete deal
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
@@ -194,6 +206,7 @@ export function DealCard({
         <CustomerDetailsDialog
           customerName={`${deal.customer.firstName} ${deal.customer.lastName}`.trim()}
           customerId={deal.customerId}
+          organizationId={organizationId}
           open={isViewCustomerOpen}
           onOpenChange={setIsViewCustomerOpen}
         />

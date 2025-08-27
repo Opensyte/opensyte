@@ -14,6 +14,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+import { WithPermissions } from "~/components/shared/permission-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,8 @@ export function TimeOffTable({
   onEdit,
   onDelete,
   isDeleting,
+  userId,
+  organizationId,
 }: TimeOffTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<TimeOffWithEmployee | null>(
@@ -151,19 +154,33 @@ export function TimeOffTable({
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(item.id)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteClick(item)}
-                          className="text-red-600 hover:text-red-700"
-                          disabled={isDeleting}
+                        <WithPermissions
+                          module="hr"
+                          requiredPermission="write"
+                          userId={userId}
+                          organizationId={organizationId}
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onEdit(item.id)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        </WithPermissions>
+                        <DropdownMenuSeparator />
+                        <WithPermissions
+                          module="hr"
+                          requiredPermission="write"
+                          userId={userId}
+                          organizationId={organizationId}
+                        >
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClick(item)}
+                            className="text-red-600 hover:text-red-700"
+                            disabled={isDeleting}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </WithPermissions>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -209,19 +226,33 @@ export function TimeOffTable({
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(item.id)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteClick(item)}
-                        className="text-red-600 hover:text-red-700"
-                        disabled={isDeleting}
+                      <WithPermissions
+                        module="hr"
+                        requiredPermission="write"
+                        userId={userId}
+                        organizationId={organizationId}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit(item.id)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                      </WithPermissions>
+                      <DropdownMenuSeparator />
+                      <WithPermissions
+                        module="hr"
+                        requiredPermission="write"
+                        userId={userId}
+                        organizationId={organizationId}
+                      >
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteClick(item)}
+                          className="text-red-600 hover:text-red-700"
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </WithPermissions>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

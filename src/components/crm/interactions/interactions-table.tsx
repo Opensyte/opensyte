@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { cn } from "~/lib/utils";
+import { WithPermissions } from "~/components/shared/permission-button";
 
 interface InteractionsTableProps {
   interactions: CustomerInteraction[];
@@ -27,6 +28,8 @@ interface InteractionsTableProps {
   onDeleteInteraction: (id: string) => void;
   getCustomerName: (customerId: string) => string;
   formatDate: (date?: Date) => string;
+  userId: string;
+  organizationId: string;
 }
 
 export function InteractionsTable({
@@ -35,6 +38,8 @@ export function InteractionsTable({
   onDeleteInteraction,
   getCustomerName,
   formatDate,
+  userId,
+  organizationId,
 }: InteractionsTableProps) {
   // Get the badge color based on interaction type using centralized mapping
   const getInteractionTypeColor = (type: string) => {
@@ -142,15 +147,22 @@ export function InteractionsTable({
                           <Eye className="h-4 w-4" />
                           <span className="sr-only">View</span>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 w-8"
-                          onClick={() => onDeleteInteraction(interaction.id)}
+                        <WithPermissions
+                          userId={userId}
+                          organizationId={organizationId}
+                          requiredPermission="write"
+                          module="crm"
                         >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 w-8"
+                            onClick={() => onDeleteInteraction(interaction.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </WithPermissions>
                       </div>
                     </TableCell>
                   </TableRow>

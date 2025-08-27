@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
+import { PermissionButton } from "~/components/shared/permission-button";
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ import {
   Clock,
   Receipt,
   X,
+  Shield,
 } from "lucide-react";
 import {
   Select,
@@ -47,10 +49,19 @@ import {
   PayrollStatsSkeleton,
   PayrollTableSkeleton,
 } from "./payroll-skeletons";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
 
 export function PayrollClient() {
   const params = useParams();
   const orgId = params.orgId as string;
+
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId: orgId,
+  });
 
   const statuses = useMemo(
     () => ["all", "DRAFT", "APPROVED", "PAID", "CANCELLED"] as const,
@@ -179,6 +190,37 @@ export function PayrollClient() {
     } as const;
   }, [payroll]);
 
+  // Permission check
+  if (!permissions.canReadHR && !permissions.isLoading) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Payroll Management
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage employee payrolls and compensation
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view payroll data. Please
+                contact your administrator to request access.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -191,14 +233,18 @@ export function PayrollClient() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
+          <PermissionButton
+            userId={session?.user.id ?? ""}
+            organizationId={orgId}
+            requiredPermission="write"
+            module="hr"
             onClick={() => setCreateOpen(true)}
             size="default"
             className="w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Payroll
-          </Button>
+          </PermissionButton>
         </div>
       </div>
 
@@ -419,6 +465,8 @@ export function PayrollClient() {
             onEdit={openEdit}
             onDelete={onDeleted}
             isDeleting={deleteMutation.isPending}
+            userId={session?.user.id ?? ""}
+            organizationId={orgId}
           />
         )}
       </div>

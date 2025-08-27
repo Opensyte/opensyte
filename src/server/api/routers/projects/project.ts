@@ -1,12 +1,22 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  createPermissionProcedure,
+  createAnyPermissionProcedure,
+} from "~/server/api/trpc";
 import { ProjectStatusSchema } from "../../../../../prisma/generated/zod/index";
+import { PERMISSIONS } from "~/lib/rbac";
 
 export const projectRouter = createTRPCRouter({
   // Get all projects for an organization
-  getAll: publicProcedure
+  getAll: createAnyPermissionProcedure([
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.PROJECTS_ADMIN,
+  ])
     .input(z.object({ organizationId: z.string().cuid() }))
     .query(async ({ ctx, input }) => {
+      await ctx.requireAnyPermission(input.organizationId);
       return ctx.db.project.findMany({
         where: {
           organizationId: input.organizationId,
@@ -25,7 +35,11 @@ export const projectRouter = createTRPCRouter({
     }),
 
   // Get project by ID
-  getById: publicProcedure
+  getById: createAnyPermissionProcedure([
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.PROJECTS_ADMIN,
+  ])
     .input(
       z.object({
         id: z.string().cuid(),
@@ -33,6 +47,7 @@ export const projectRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
+      await ctx.requireAnyPermission(input.organizationId);
       return ctx.db.project.findFirst({
         where: {
           id: input.id,
@@ -55,7 +70,7 @@ export const projectRouter = createTRPCRouter({
     }),
 
   // Create new project
-  create: publicProcedure
+  create: createPermissionProcedure(PERMISSIONS.PROJECTS_WRITE)
     .input(
       z.object({
         organizationId: z.string().cuid(),
@@ -70,6 +85,7 @@ export const projectRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await ctx.requirePermission(input.organizationId);
       return ctx.db.project.create({
         data: {
           organizationId: input.organizationId,
@@ -93,7 +109,7 @@ export const projectRouter = createTRPCRouter({
     }),
 
   // Update project
-  update: publicProcedure
+  update: createPermissionProcedure(PERMISSIONS.PROJECTS_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
@@ -108,6 +124,7 @@ export const projectRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await ctx.requirePermission(input.organizationId);
       const { id, organizationId, ...updateData } = input;
 
       return ctx.db.project.update({
@@ -127,7 +144,7 @@ export const projectRouter = createTRPCRouter({
     }),
 
   // Delete project
-  delete: publicProcedure
+  delete: createPermissionProcedure(PERMISSIONS.PROJECTS_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
@@ -135,6 +152,7 @@ export const projectRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await ctx.requirePermission(input.organizationId);
       return ctx.db.project.delete({
         where: {
           id: input.id,
@@ -144,9 +162,14 @@ export const projectRouter = createTRPCRouter({
     }),
 
   // Get project statistics
-  getStats: publicProcedure
+  getStats: createAnyPermissionProcedure([
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.PROJECTS_ADMIN,
+  ])
     .input(z.object({ organizationId: z.string().cuid() }))
     .query(async ({ ctx, input }) => {
+      await ctx.requireAnyPermission(input.organizationId);
       const projects = await ctx.db.project.findMany({
         where: {
           organizationId: input.organizationId,

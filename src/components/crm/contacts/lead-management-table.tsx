@@ -26,6 +26,7 @@ import DeleteLeadDialog from "./delete-lead-dialog";
 import type { Customer } from "@prisma/client";
 import { leadStatusColors, leadStatusLabels } from "~/types/crm";
 import { cn } from "~/lib/utils";
+import { WithPermissions } from "~/components/shared/permission-button";
 
 // Extended Customer type for the CRM leads
 
@@ -48,6 +49,8 @@ interface LeadManagementTableProps {
   onDeleteLead: (id: string) => void;
   onEditLead: (lead: Customer) => void;
   isDeleting?: boolean;
+  organizationId: string;
+  userId: string;
 }
 
 // Color maps and icon maps are now centralized in ~/types/crm and handled by helper functions
@@ -57,6 +60,8 @@ export default function LeadManagementTable({
   onDeleteLead,
   onEditLead,
   isDeleting = false,
+  organizationId,
+  userId,
 }: LeadManagementTableProps) {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -232,20 +237,34 @@ export default function LeadManagementTable({
                           >
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleEditLead(lead)}
-                            disabled={isDeleting}
+                          <WithPermissions
+                            userId={userId}
+                            organizationId={organizationId}
+                            requiredPermission="write"
+                            module="crm"
                           >
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleEditLead(lead)}
+                              disabled={isDeleting}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                          </WithPermissions>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDeleteLead(lead)}
-                            disabled={isDeleting}
+                          <WithPermissions
+                            userId={userId}
+                            organizationId={organizationId}
+                            requiredPermission="write"
+                            module="crm"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteLead(lead)}
+                              disabled={isDeleting}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </WithPermissions>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -265,6 +284,7 @@ export default function LeadManagementTable({
             : ""
         }
         customerId={selectedLead?.id ?? ""}
+        organizationId={organizationId}
         open={viewDialogOpen}
         onOpenChange={setViewDialogOpen}
       />

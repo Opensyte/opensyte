@@ -142,6 +142,8 @@ export interface TimeOffTableProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   isDeleting: boolean;
+  userId: string;
+  organizationId: string;
 }
 
 // Form validation schemas

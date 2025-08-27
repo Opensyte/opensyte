@@ -17,164 +17,23 @@ import { NavMain } from "~/components/nav-main";
 import { NavUser } from "~/components/nav-user";
 import { TeamSwitcher } from "~/components/team-switcher";
 import {
+  NavMainSkeleton,
+  TeamSwitcherSkeleton,
+  NavUserSkeleton,
+} from "~/components/ui/sidebar-skeleton";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuSkeleton,
 } from "~/components/ui/sidebar";
 import { api } from "~/trpc/react";
 import { authClient } from "~/lib/auth-client";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { ProjectCreateDialog } from "~/components/projects/project-create-dialog";
-
-// Sample data for the sidebar
-const getNavData = (setIsCreateProjectDialogOpen: (open: boolean) => void) => ({
-  user: {
-    name: "User",
-    email: "user@example.com",
-    avatar: "/avatars/user.jpg",
-  },
-  navMain: [
-    {
-      title: "CRM",
-      url: "/[orgId]/crm",
-      icon: Users,
-      items: [
-        {
-          title: "Contacts",
-          url: "/[orgId]/crm/contacts",
-        },
-        {
-          title: "Interactions",
-          url: "/[orgId]/crm/interactions",
-        },
-        {
-          title: "Sales Pipeline",
-          url: "/[orgId]/crm/pipeline",
-        },
-      ],
-    },
-    {
-      title: "Projects",
-      url: "/[orgId]/projects",
-      icon: FileSpreadsheet,
-      action: {
-        icon: Plus,
-        onClick: () => setIsCreateProjectDialogOpen(true),
-        tooltip: "Create new project",
-      },
-      items: [],
-    },
-    {
-      title: "Finance",
-      url: "/[orgId]/finance",
-      icon: CreditCard,
-      items: [
-        {
-          title: "Invoices",
-          url: "/[orgId]/finance/invoices",
-        },
-        {
-          title: "Expenses",
-          url: "/[orgId]/finance/expenses",
-        },
-        {
-          title: "Reports",
-          url: "/[orgId]/finance/reports",
-        },
-      ],
-    },
-    {
-      title: "Collaboration",
-      url: "/[orgId]/collaboration",
-      icon: MessageSquare,
-      items: [
-        {
-          title: "Chat",
-          url: "/[orgId]/chat",
-        },
-        {
-          title: "Calendar",
-          url: "/[orgId]/calendar",
-        },
-        {
-          title: "Documents",
-          url: "/[orgId]/collaboration/documents",
-        },
-      ],
-    },
-    {
-      title: "HR",
-      url: "/[orgId]/hr",
-      icon: Users,
-      items: [
-        {
-          title: "Employees",
-          url: "/[orgId]/hr/employees",
-        },
-        {
-          title: "Payroll",
-          url: "/[orgId]/hr/payroll",
-        },
-        {
-          title: "Time Off",
-          url: "/[orgId]/hr/timeoff",
-        },
-        {
-          title: "Performance",
-          url: "/[orgId]/hr/performance",
-        },
-      ],
-    },
-    {
-      title: "Marketing",
-      url: "/[orgId]/marketing",
-      icon: Mail,
-      items: [
-        {
-          title: "Campaigns",
-          url: "/[orgId]/marketing/campaigns",
-        },
-        {
-          title: "Social Media",
-          url: "/[orgId]/marketing/social",
-        },
-        {
-          title: "Analytics",
-          url: "/[orgId]/marketing/analytics",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "/[orgId]/settings",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "/[orgId]/settings/general",
-        },
-        {
-          title: "Team",
-          url: "/[orgId]/settings/team",
-        },
-        {
-          title: "Invitations",
-          url: "/[orgId]/settings/invitations",
-        },
-        {
-          title: "Billing",
-          url: "/[orgId]/settings/billing",
-        },
-      ],
-    },
-  ],
-});
+import { getRoleDisplayName } from "~/lib/rbac";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
@@ -188,8 +47,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { enabled: !!session?.user?.id }
   );
 
-  // Get navigation data with the state setter
-  const data = getNavData(setIsCreateProjectDialogOpen);
+  // Get user permissions for the current organization
+  const { data: userPermissions } = api.rbac.getUserPermissions.useQuery(
+    {
+      userId: session?.user?.id ?? "",
+      organizationId: orgId,
+    },
+    { enabled: !!session?.user?.id && !!orgId }
+  );
 
   // Fetch projects for the current organization
   const { data: projects } = api.project.getAll.useQuery(
@@ -205,13 +70,196 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       id: org.id,
       name: org.name,
       logo: Building2, // Using Building2 as default icon for all orgs
-      plan: org.userRole, // Using user role as plan
+      plan: getRoleDisplayName(org.userRole), // Convert role enum to display name
     }));
   }, [organizations]);
 
+  // Create navigation data based on user permissions
+  const getNavData = React.useCallback(() => {
+    if (!userPermissions?.permissions) {
+      return [];
+    }
+
+    const permissions = userPermissions.permissions;
+    const navItems = [];
+
+    // CRM Module
+    if (permissions.canViewCRM) {
+      navItems.push({
+        title: "CRM",
+        url: "/[orgId]/crm",
+        icon: Users,
+        items: [
+          {
+            title: "Contacts",
+            url: "/[orgId]/crm/contacts",
+          },
+          {
+            title: "Interactions",
+            url: "/[orgId]/crm/interactions",
+          },
+          {
+            title: "Sales Pipeline",
+            url: "/[orgId]/crm/pipeline",
+          },
+        ],
+      });
+    }
+
+    // Projects Module
+    if (permissions.canViewProjects) {
+      navItems.push({
+        title: "Projects",
+        url: "/[orgId]/projects",
+        icon: FileSpreadsheet,
+        action: permissions.canWriteProjects
+          ? {
+              icon: Plus,
+              onClick: () => setIsCreateProjectDialogOpen(true),
+              tooltip: "Create new project",
+            }
+          : undefined,
+        items: [],
+      });
+    }
+
+    // Finance Module
+    if (permissions.canViewFinance) {
+      navItems.push({
+        title: "Finance",
+        url: "/[orgId]/finance",
+        icon: CreditCard,
+        items: [
+          {
+            title: "Invoices",
+            url: "/[orgId]/finance/invoices",
+          },
+          {
+            title: "Expenses",
+            url: "/[orgId]/finance/expenses",
+          },
+          {
+            title: "Reports",
+            url: "/[orgId]/finance/reports",
+          },
+        ],
+      });
+    }
+
+    // Collaboration Module
+    if (permissions.canViewCollaboration) {
+      navItems.push({
+        title: "Collaboration",
+        url: "/[orgId]/collaboration",
+        icon: MessageSquare,
+        items: [
+          {
+            title: "Chat",
+            url: "/[orgId]/chat",
+          },
+          {
+            title: "Calendar",
+            url: "/[orgId]/calendar",
+          },
+          {
+            title: "Documents",
+            url: "/[orgId]/collaboration/documents",
+          },
+        ],
+      });
+    }
+
+    // HR Module
+    if (permissions.canViewHR) {
+      navItems.push({
+        title: "HR",
+        url: "/[orgId]/hr",
+        icon: Users,
+        items: [
+          {
+            title: "Employees",
+            url: "/[orgId]/hr/employees",
+          },
+          {
+            title: "Payroll",
+            url: "/[orgId]/hr/payroll",
+          },
+          {
+            title: "Time Off",
+            url: "/[orgId]/hr/timeoff",
+          },
+          {
+            title: "Performance",
+            url: "/[orgId]/hr/performance",
+          },
+        ],
+      });
+    }
+
+    // Marketing Module
+    if (permissions.canViewMarketing) {
+      navItems.push({
+        title: "Marketing",
+        url: "/[orgId]/marketing",
+        icon: Mail,
+        items: [
+          {
+            title: "Campaigns",
+            url: "/[orgId]/marketing/campaigns",
+          },
+          {
+            title: "Social Media",
+            url: "/[orgId]/marketing/social",
+          },
+          {
+            title: "Analytics",
+            url: "/[orgId]/marketing/analytics",
+          },
+        ],
+      });
+    }
+
+    // Settings Module - always show but with different items based on permissions
+    if (permissions.canViewSettings) {
+      const settingsItems = [
+        {
+          title: "General",
+          url: "/[orgId]/settings/general",
+        },
+      ];
+
+      if (permissions.canManageMembers) {
+        settingsItems.push({
+          title: "Role Management",
+          url: "/[orgId]/settings/team",
+        });
+        settingsItems.push({
+          title: "Invitations",
+          url: "/[orgId]/settings/invitations",
+        });
+      }
+
+      if (permissions.canManageBilling) {
+        settingsItems.push({
+          title: "Billing",
+          url: "/[orgId]/settings/billing",
+        });
+      }
+
+      navItems.push({
+        title: "Settings",
+        url: "/[orgId]/settings",
+        icon: Settings2,
+        items: settingsItems,
+      });
+    }
+
+    return navItems;
+  }, [userPermissions?.permissions]);
+
   // Create dynamic navigation with projects
   const dynamicNavMain = React.useMemo(() => {
-    const baseNav = [...data.navMain];
+    const baseNav = getNavData();
 
     // Find the Projects section and update it with dynamic project items
     const projectsIndex = baseNav.findIndex(item => item.title === "Projects");
@@ -223,43 +271,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }));
 
       const currentProjectSection = baseNav[projectsIndex]!;
-      // Type-safe way to update the items
       baseNav[projectsIndex] = {
         ...currentProjectSection,
         items: projectItems,
-      } as typeof currentProjectSection; // Ensure type compatibility
+      } as typeof currentProjectSection;
     }
 
     return baseNav;
-  }, [projects, data.navMain]);
+  }, [getNavData, projects]);
 
   // Show loading state
   if (isLoading || !session?.user?.id) {
     return (
       <Sidebar collapsible="icon" {...props}>
         <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuSkeleton showIcon />
-            </SidebarMenuItem>
-          </SidebarMenu>
+          <TeamSwitcherSkeleton />
         </SidebarHeader>
         <SidebarContent>
-          <NavMain items={dynamicNavMain} />
+          <NavMainSkeleton />
         </SidebarContent>
         <SidebarFooter>
-          <NavUser user={data.user} />
+          <NavUserSkeleton />
         </SidebarFooter>
         <SidebarRail />
-
-        {/* Project Creation Dialog */}
-        {orgId && (
-          <ProjectCreateDialog
-            open={isCreateProjectDialogOpen}
-            onOpenChange={setIsCreateProjectDialogOpen}
-            organizationId={orgId}
-          />
-        )}
       </Sidebar>
     );
   }
@@ -273,12 +307,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={dynamicNavMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            name: session.user.name ?? "User",
+            email: session.user.email ?? "user@example.com",
+            avatar: session.user.image ?? "/avatars/user.jpg",
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
 
       {/* Project Creation Dialog */}
-      {orgId && (
+      {orgId && userPermissions?.permissions.canWriteProjects && (
         <ProjectCreateDialog
           open={isCreateProjectDialogOpen}
           onOpenChange={setIsCreateProjectDialogOpen}

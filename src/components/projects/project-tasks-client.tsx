@@ -10,6 +10,7 @@ import {
   LayoutList,
   KanbanSquare,
   GanttChartSquare,
+  Shield,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
@@ -46,6 +47,13 @@ import {
 } from "~/components/ui/alert-dialog";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
+import { Card, CardContent } from "~/components/ui/card";
+import {
+  PermissionButton,
+  WithPermissions,
+} from "~/components/shared/permission-button";
 
 interface ProjectTasksClientProps {
   organizationId: string;
@@ -56,6 +64,13 @@ export function ProjectTasksClient({
   organizationId,
   projectId,
 }: ProjectTasksClientProps) {
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId,
+  });
+
   const [isCreateTaskDialogOpen, setIsCreateTaskDialogOpen] = useState(false);
   const [isEditProjectDialogOpen, setIsEditProjectDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -142,6 +157,30 @@ export function ProjectTasksClient({
     return <ProjectTasksSkeleton />;
   }
 
+  // Permission check
+  if (!permissions.canReadProjects && !permissions.isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view project data. Please
+                contact your administrator to request access.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoadingProject) {
+    return <ProjectTasksSkeleton />;
+  }
+
   if (!project) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -177,10 +216,17 @@ export function ProjectTasksClient({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => setIsCreateTaskDialogOpen(true)} size="sm">
+            <PermissionButton
+              module="projects"
+              requiredPermission="write"
+              userId={session?.user.id ?? ""}
+              organizationId={organizationId}
+              onClick={() => setIsCreateTaskDialogOpen(true)}
+              size="sm"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Task
-            </Button>
+            </PermissionButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="h-9 w-9">
@@ -188,19 +234,33 @@ export function ProjectTasksClient({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => setIsEditProjectDialogOpen(true)}
+                <WithPermissions
+                  module="projects"
+                  requiredPermission="write"
+                  userId={session?.user.id ?? ""}
+                  organizationId={organizationId}
                 >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Project
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  className="text-red-600 focus:text-red-600"
+                  <DropdownMenuItem
+                    onClick={() => setIsEditProjectDialogOpen(true)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Project
+                  </DropdownMenuItem>
+                </WithPermissions>
+                <WithPermissions
+                  module="projects"
+                  requiredPermission="write"
+                  userId={session?.user.id ?? ""}
+                  organizationId={organizationId}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Project
-                </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Project
+                  </DropdownMenuItem>
+                </WithPermissions>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -263,6 +323,7 @@ export function ProjectTasksClient({
               isLoading={isLoadingTasks}
               organizationId={organizationId}
               projectId={projectId}
+              userId={session?.user.id ?? ""}
             />
           </div>
         </TabsContent>

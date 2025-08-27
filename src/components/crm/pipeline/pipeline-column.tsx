@@ -15,6 +15,7 @@ interface PipelineColumnProps {
   color: string;
   deals: DealWithCustomer[];
   organizationId: string;
+  userId: string;
 }
 
 export function PipelineColumn({
@@ -23,6 +24,7 @@ export function PipelineColumn({
   color,
   deals,
   organizationId,
+  userId,
 }: PipelineColumnProps) {
   const columnId = useId();
   const { setNodeRef, isOver } = useDroppable({
@@ -64,6 +66,7 @@ export function PipelineColumn({
                 key={deal.id}
                 deal={deal}
                 organizationId={organizationId}
+                userId={userId}
               />
             ))}
 

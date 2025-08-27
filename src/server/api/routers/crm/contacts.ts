@@ -1,17 +1,25 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../../trpc";
+import {
+  createTRPCRouter,
+  createPermissionProcedure,
+  createAnyPermissionProcedure,
+} from "../../trpc";
 import {
   CustomerUncheckedCreateInputSchema,
   CustomerUpdateInputSchema,
 } from "prisma/generated/zod";
 import { db } from "~/server/db";
+import { PERMISSIONS } from "~/lib/rbac";
 
 export const contactsCrmRoutes = createTRPCRouter({
   // Create a new contact
-  createContact: publicProcedure
+  createContact: createPermissionProcedure(PERMISSIONS.CRM_WRITE)
     .input(CustomerUncheckedCreateInputSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
         const contact = await db.customer.create({
           data: input,
           include: {
@@ -24,18 +32,31 @@ export const contactsCrmRoutes = createTRPCRouter({
           },
         });
         return contact;
-      } catch {
+      } catch (error) {
+        console.error("Failed to create contact:", error);
         throw new Error("Failed to create contact");
       }
     }),
 
   // Get a single contact by ID
-  getContactById: publicProcedure
-    .input(z.object({ id: z.string().cuid() }))
-    .query(async ({ input }) => {
+  getContactById: createAnyPermissionProcedure([
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_WRITE,
+    PERMISSIONS.CRM_ADMIN,
+  ])
+    .input(
+      z.object({ id: z.string().cuid(), organizationId: z.string().cuid() })
+    )
+    .query(async ({ input, ctx }) => {
       try {
-        const contact = await db.customer.findUnique({
-          where: { id: input.id },
+        // Verify user has permission to read from this organization
+        await ctx.requireAnyPermission(input.organizationId);
+
+        const contact = await db.customer.findFirst({
+          where: {
+            id: input.id,
+            organizationId: input.organizationId,
+          },
           include: {
             organization: {
               select: {
@@ -53,25 +74,42 @@ export const contactsCrmRoutes = createTRPCRouter({
         });
 
         if (!contact) {
-          throw new Error("Contact not found");
+          throw new Error("Contact not found or access denied");
         }
 
         return contact;
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch contact:", error);
         throw new Error("Failed to fetch contact");
       }
     }),
 
   // Update a contact
-  updateContact: publicProcedure
+  updateContact: createPermissionProcedure(PERMISSIONS.CRM_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
+        organizationId: z.string().cuid(),
         data: CustomerUpdateInputSchema,
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
+        // Verify contact belongs to the organization
+        const existingContact = await db.customer.findFirst({
+          where: {
+            id: input.id,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!existingContact) {
+          throw new Error("Contact not found or access denied");
+        }
+
         const contact = await db.customer.update({
           where: { id: input.id },
           data: input.data,
@@ -86,35 +124,64 @@ export const contactsCrmRoutes = createTRPCRouter({
         });
 
         return contact;
-      } catch {
+      } catch (error) {
+        console.error("Failed to update contact:", error);
         throw new Error("Failed to update contact");
       }
     }),
 
   // Delete a contact
-  deleteContact: publicProcedure
-    .input(z.object({ id: z.string().cuid() }))
-    .mutation(async ({ input }) => {
+  deleteContact: createPermissionProcedure(PERMISSIONS.CRM_WRITE)
+    .input(
+      z.object({
+        id: z.string().cuid(),
+        organizationId: z.string().cuid(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
+        // Verify contact belongs to the organization
+        const existingContact = await db.customer.findFirst({
+          where: {
+            id: input.id,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!existingContact) {
+          throw new Error("Contact not found or access denied");
+        }
+
         const contact = await db.customer.delete({
           where: { id: input.id },
         });
 
         return { success: true, deletedId: contact.id };
-      } catch {
+      } catch (error) {
+        console.error("Failed to delete contact:", error);
         throw new Error("Failed to delete contact");
       }
     }),
 
   // Get contacts by organization
-  getContactsByOrganization: publicProcedure
+  getContactsByOrganization: createAnyPermissionProcedure([
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_WRITE,
+    PERMISSIONS.CRM_ADMIN,
+  ])
     .input(
       z.object({
         organizationId: z.string().cuid(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to read from this organization
+        await ctx.requireAnyPermission(input.organizationId);
+
         const contacts = await db.customer.findMany({
           where: {
             organizationId: input.organizationId,
@@ -131,7 +198,8 @@ export const contactsCrmRoutes = createTRPCRouter({
         });
 
         return contacts;
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch contacts by organization:", error);
         throw new Error("Failed to fetch contacts by organization");
       }
     }),

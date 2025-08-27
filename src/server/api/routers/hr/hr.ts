@@ -1,12 +1,19 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  createPermissionProcedure,
+  createAnyPermissionProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { PERMISSIONS } from "~/lib/rbac";
 import {
   PayrollStatusSchema,
   TimeOffTypeSchema,
   TimeOffStatusSchema,
   ReviewStatusSchema,
+  EmployeeStatusSchema,
 } from "../../../../../prisma/generated/zod";
 
 // Employee input schemas
@@ -19,9 +26,7 @@ const createEmployeeSchema = z.object({
   position: z.string().optional(),
   department: z.string().optional(),
   hireDate: z.date().optional(),
-  status: z
-    .enum(["ACTIVE", "ON_LEAVE", "TERMINATED", "PROBATION"])
-    .default("ACTIVE"),
+  status: EmployeeStatusSchema.default("ACTIVE"),
   managerId: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -44,7 +49,7 @@ const updateEmployeeSchema = z.object({
   department: z.string().optional(),
   hireDate: z.date().optional(),
   terminationDate: z.date().optional(),
-  status: z.enum(["ACTIVE", "ON_LEAVE", "TERMINATED", "PROBATION"]),
+  status: EmployeeStatusSchema,
   managerId: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -59,14 +64,21 @@ const updateEmployeeSchema = z.object({
 
 export const hrRouter = createTRPCRouter({
   // Get employees by organization
-  getEmployeesByOrganization: publicProcedure
+  getEmployeesByOrganization: createAnyPermissionProcedure([
+    PERMISSIONS.HR_READ,
+    PERMISSIONS.HR_WRITE,
+    PERMISSIONS.HR_ADMIN,
+  ])
     .input(
       z.object({
         organizationId: z.string().cuid(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to read from this organization
+        await ctx.requireAnyPermission(input.organizationId);
+
         const employees = await db.employee.findMany({
           where: {
             organizationId: input.organizationId,
@@ -84,16 +96,27 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Get employee by ID
-  getEmployeeById: publicProcedure
+  getEmployeeById: createAnyPermissionProcedure([
+    PERMISSIONS.HR_READ,
+    PERMISSIONS.HR_WRITE,
+    PERMISSIONS.HR_ADMIN,
+  ])
     .input(
       z.object({
         id: z.string().cuid(),
+        organizationId: z.string().cuid(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
-        const employee = await db.employee.findUnique({
-          where: { id: input.id },
+        // Verify user has permission to read from this organization
+        await ctx.requireAnyPermission(input.organizationId);
+
+        const employee = await db.employee.findFirst({
+          where: {
+            id: input.id,
+            organizationId: input.organizationId,
+          },
           include: {
             organization: {
               select: {
@@ -117,7 +140,7 @@ export const hrRouter = createTRPCRouter({
         });
 
         if (!employee) {
-          throw new Error("Employee not found");
+          throw new Error("Employee not found or access denied");
         }
 
         return employee;
@@ -128,10 +151,13 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Create new employee
-  createEmployee: publicProcedure
+  createEmployee: createPermissionProcedure(PERMISSIONS.HR_WRITE)
     .input(createEmployeeSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
         const employee = await db.employee.create({
           data: {
             organizationId: input.organizationId,
@@ -172,11 +198,31 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Update employee
-  updateEmployee: publicProcedure
-    .input(updateEmployeeSchema)
-    .mutation(async ({ input }) => {
+  updateEmployee: createPermissionProcedure(PERMISSIONS.HR_WRITE)
+    .input(
+      updateEmployeeSchema.extend({
+        organizationId: z.string().cuid(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
       try {
-        const { id, ...updateData } = input;
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
+        // Verify employee belongs to the organization
+        const existingEmployee = await db.employee.findFirst({
+          where: {
+            id: input.id,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!existingEmployee) {
+          throw new Error("Employee not found or access denied");
+        }
+
+        const { id, organizationId: _orgId, ...updateData } = input;
+        void _orgId;
 
         const employee = await db.employee.update({
           where: { id },
@@ -199,14 +245,30 @@ export const hrRouter = createTRPCRouter({
     }),
 
   // Delete employee
-  deleteEmployee: publicProcedure
+  deleteEmployee: createPermissionProcedure(PERMISSIONS.HR_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
+        organizationId: z.string().cuid(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        // Verify user has permission to write to this organization
+        await ctx.requirePermission(input.organizationId);
+
+        // Verify employee belongs to the organization
+        const existingEmployee = await db.employee.findFirst({
+          where: {
+            id: input.id,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!existingEmployee) {
+          throw new Error("Employee not found or access denied");
+        }
+
         const employee = await db.employee.delete({
           where: { id: input.id },
         });

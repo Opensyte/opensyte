@@ -89,11 +89,20 @@ function getRoleBadgeVariant(
   role: UserRole
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (role) {
-    case "OWNER":
+    case "ORGANIZATION_OWNER":
       return "default";
-    case "ADMIN":
+    case "SUPER_ADMIN":
       return "secondary";
-    case "MEMBER":
+    case "DEPARTMENT_MANAGER":
+      return "secondary";
+    case "HR_MANAGER":
+    case "SALES_MANAGER":
+    case "FINANCE_MANAGER":
+    case "PROJECT_MANAGER":
+      return "secondary";
+    case "EMPLOYEE":
+      return "outline";
+    case "CONTRACTOR":
       return "outline";
     case "VIEWER":
       return "secondary";
@@ -124,7 +133,7 @@ export function InvitationPageClient() {
   const orgId = params?.orgId as string;
 
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<UserRole>("MEMBER");
+  const [role, setRole] = useState<UserRole>("VIEWER");
 
   const utils = api.useUtils();
   const { data: allInvitations, isLoading } = api.invitations.list.useQuery(
@@ -139,7 +148,7 @@ export function InvitationPageClient() {
     onSuccess: () => {
       toast.success("Invitation sent successfully");
       setEmail("");
-      setRole("MEMBER");
+      setRole("VIEWER");
       void utils.invitations.list.invalidate({ organizationId: orgId });
     },
     onError: (e: unknown) => toast.error((e as Error).message),
@@ -222,11 +231,23 @@ export function InvitationPageClient() {
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OWNER" disabled>
-                    Owner
+                  <SelectItem value="ORGANIZATION_OWNER" disabled>
+                    Organization Owner
                   </SelectItem>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="MEMBER">Member</SelectItem>
+                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  <SelectItem value="DEPARTMENT_MANAGER">
+                    Department Manager
+                  </SelectItem>
+                  <SelectItem value="HR_MANAGER">HR Manager</SelectItem>
+                  <SelectItem value="SALES_MANAGER">Sales Manager</SelectItem>
+                  <SelectItem value="FINANCE_MANAGER">
+                    Finance Manager
+                  </SelectItem>
+                  <SelectItem value="PROJECT_MANAGER">
+                    Project Manager
+                  </SelectItem>
+                  <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                  <SelectItem value="CONTRACTOR">Contractor</SelectItem>
                   <SelectItem value="VIEWER">Viewer</SelectItem>
                 </SelectContent>
               </Select>

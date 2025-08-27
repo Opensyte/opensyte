@@ -44,6 +44,7 @@ import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { api } from "~/trpc/react";
+import { usePermissions } from "~/hooks/use-permissions";
 
 // Schema for form validation with enhanced validation rules
 const formSchema = z.object({
@@ -74,10 +75,14 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface AddDealDialogProps {
   organizationId: string;
+  userId: string;
 }
 
-export function AddDealDialog({ organizationId }: AddDealDialogProps) {
+export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
   const [open, setOpen] = useState(false);
+
+  // Permission checks - call hooks first
+  const permissions = usePermissions({ userId, organizationId });
 
   // tRPC queries and mutations
   const utils = api.useUtils();
@@ -120,6 +125,7 @@ export function AddDealDialog({ organizationId }: AddDealDialogProps) {
 
   const onSubmit = (data: FormValues) => {
     createDeal.mutate({
+      organizationId,
       customerId: data.customerId,
       title: data.title,
       value: data.value,
@@ -153,6 +159,11 @@ export function AddDealDialog({ organizationId }: AddDealDialogProps) {
     };
     return stageMap[status] ?? 1; // Default to 1 instead of 0
   };
+
+  // Don't render the component if user doesn't have write permissions
+  if (!permissions.canWriteCRM) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

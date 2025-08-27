@@ -8,6 +8,7 @@ import { taskRouter } from "./routers/projects/task";
 import { hrRouter } from "./routers/hr/hr";
 import { invoiceRouter } from "./routers/finance/invoice";
 import { invitationsRouter } from "./routers/invitations";
+import { rbacRouter } from "./routers/rbac";
 
 /**
  * This is the primary router for your server.
@@ -24,6 +25,7 @@ export const appRouter = createTRPCRouter({
   hr: hrRouter,
   invoice: invoiceRouter,
   invitations: invitationsRouter,
+  rbac: rbacRouter,
 });
 
 // export type definition of API

@@ -53,7 +53,7 @@ export default function ViewLeadDialog({
     isLoading,
     error,
   } = api.contactsCrm.getContactById.useQuery(
-    { id: lead?.id ?? "" },
+    { id: lead?.id ?? "", organizationId: lead?.organizationId ?? "" },
     {
       enabled: !!lead?.id && isOpen,
     }

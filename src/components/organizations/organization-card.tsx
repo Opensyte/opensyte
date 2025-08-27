@@ -29,6 +29,8 @@ import {
 import { EditOrganizationDialog } from "./edit-organization-dialog";
 import { DeleteOrganizationDialog } from "./delete-organization-dialog";
 import type { EditOrganizationFormValues } from "./edit-organization-dialog";
+import { canManageRoles } from "~/lib/rbac";
+import type { UserRole } from "@prisma/client";
 
 type OrganizationProps = {
   id: string;
@@ -38,7 +40,7 @@ type OrganizationProps = {
   website?: string | null;
   industry?: string | null;
   membersCount: number;
-  userRole?: string;
+  userRole?: UserRole;
   createdAt?: string;
   onEdit?: (id: string, data: EditOrganizationFormValues) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
@@ -73,8 +75,8 @@ export function OrganizationCard({
       })
     : null;
 
-  const canEdit = userRole === "OWNER" || userRole === "ADMIN";
-  const canDelete = userRole === "OWNER";
+  const canEdit = canManageRoles(userRole);
+  const canDelete = userRole === "ORGANIZATION_OWNER";
 
   const handleEdit = async (id: string, data: EditOrganizationFormValues) => {
     if (onEdit) {

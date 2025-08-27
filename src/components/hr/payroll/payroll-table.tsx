@@ -11,6 +11,7 @@ import {
 } from "~/components/ui/table";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { WithPermissions } from "~/components/shared/permission-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,6 +99,8 @@ interface PayrollTableProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
+  userId: string;
+  organizationId: string;
 }
 
 export function PayrollTable({
@@ -106,6 +109,8 @@ export function PayrollTable({
   onEdit,
   onDelete,
   isDeleting = false,
+  userId,
+  organizationId,
 }: PayrollTableProps) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
@@ -253,16 +258,30 @@ export function PayrollTable({
                         <DropdownMenuItem onClick={() => onView(row.id)}>
                           <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(row.id)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => setConfirmId(row.id)}
+                        <WithPermissions
+                          userId={userId}
+                          organizationId={organizationId}
+                          requiredPermission="write"
+                          module="hr"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onEdit(row.id)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                        </WithPermissions>
+                        <DropdownMenuSeparator />
+                        <WithPermissions
+                          userId={userId}
+                          organizationId={organizationId}
+                          requiredPermission="write"
+                          module="hr"
+                        >
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => setConfirmId(row.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </WithPermissions>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

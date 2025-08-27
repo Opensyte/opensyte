@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  createPermissionProcedure,
+  createAnyPermissionProcedure,
+} from "~/server/api/trpc";
 import { db } from "~/server/db";
+import { PERMISSIONS } from "~/lib/rbac";
 import { InvoiceStatusSchema } from "../../../../../prisma/generated/zod";
 import { Resend } from "resend";
 import { env } from "~/env";
@@ -66,7 +71,7 @@ async function validateCustomer(customerId: string, organizationId: string) {
 }
 
 export const invoiceRouter = createTRPCRouter({
-  createInvoice: publicProcedure
+  createInvoice: createPermissionProcedure(PERMISSIONS.FINANCE_WRITE)
     .input(
       z.object({
         organizationId: z.string().cuid(),
@@ -81,7 +86,8 @@ export const invoiceRouter = createTRPCRouter({
         items: z.array(invoiceItemSchema).min(1),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
       const customer = await validateCustomer(
         input.customerId,
         input.organizationId
@@ -148,7 +154,7 @@ export const invoiceRouter = createTRPCRouter({
       });
       return created;
     }),
-  updateInvoice: publicProcedure
+  updateInvoice: createPermissionProcedure(PERMISSIONS.FINANCE_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
@@ -167,7 +173,8 @@ export const invoiceRouter = createTRPCRouter({
         removeItemIds: z.array(z.string().cuid()).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
       // Validate invoice exists
       const existing = await db.invoice.findUnique({
         where: { id: input.id },
@@ -286,11 +293,12 @@ export const invoiceRouter = createTRPCRouter({
       });
       return refreshed;
     }),
-  deleteInvoice: publicProcedure
+  deleteInvoice: createPermissionProcedure(PERMISSIONS.FINANCE_WRITE)
     .input(
       z.object({ id: z.string().cuid(), organizationId: z.string().cuid() })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
       const existing = await db.invoice.findUnique({ where: { id: input.id } });
       if (!existing || existing.organizationId !== input.organizationId) {
         throw new Error("Invoice not found for organization");
@@ -298,17 +306,27 @@ export const invoiceRouter = createTRPCRouter({
       await db.invoice.delete({ where: { id: input.id } });
       return { success: true, deletedId: input.id };
     }),
-  getInvoiceById: publicProcedure
+  getInvoiceById: createAnyPermissionProcedure([
+    PERMISSIONS.FINANCE_READ,
+    PERMISSIONS.FINANCE_WRITE,
+    PERMISSIONS.FINANCE_ADMIN,
+  ])
     .input(z.object({ id: z.string().cuid() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      // Note: invoice access is organization specific; we fetch invoice then verify organization permissions
       const invoice = await db.invoice.findUnique({
         where: { id: input.id },
         include: { items: true, payments: true, customer: true },
       });
       if (!invoice) throw new Error("Invoice not found");
+      await ctx.requireAnyPermission(invoice.organizationId);
       return invoice;
     }),
-  listInvoices: publicProcedure
+  listInvoices: createAnyPermissionProcedure([
+    PERMISSIONS.FINANCE_READ,
+    PERMISSIONS.FINANCE_WRITE,
+    PERMISSIONS.FINANCE_ADMIN,
+  ])
     .input(
       z.object({
         organizationId: z.string().cuid(),
@@ -318,7 +336,8 @@ export const invoiceRouter = createTRPCRouter({
         to: z.coerce.date().optional(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      await ctx.requireAnyPermission(input.organizationId);
       const invoices = await db.invoice.findMany({
         where: {
           organizationId: input.organizationId,
@@ -342,11 +361,12 @@ export const invoiceRouter = createTRPCRouter({
       });
       return invoices;
     }),
-  sendInvoice: publicProcedure
+  sendInvoice: createPermissionProcedure(PERMISSIONS.FINANCE_WRITE)
     .input(
       z.object({ id: z.string().cuid(), organizationId: z.string().cuid() })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
       const invoice = await db.invoice.findUnique({
         where: { id: input.id },
         include: { items: true, customer: true },

@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Plus, Users, UserCheck, UserX, Clock } from "lucide-react";
+import { Plus, Users, UserCheck, UserX, Clock, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "~/trpc/react";
 import type { Employee } from "~/types";
@@ -21,14 +21,24 @@ import {
   AddEmployeeDialog,
   type AddEmployeeFormValues,
 } from "./add-employee-dialog";
+import { PermissionButton } from "~/components/shared/permission-button";
 import {
   EditEmployeeDialog,
   type EditEmployeeFormValues,
 } from "./edit-employee-dialog";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
 
 export function EmployeesClient() {
   const params = useParams();
   const orgId = params.orgId as string;
+
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId: orgId,
+  });
 
   // State management
   const [searchQuery, setSearchQuery] = useState("");
@@ -144,12 +154,13 @@ export function EmployeesClient() {
   ) => {
     await updateEmployeeMutation.mutateAsync({
       id,
+      organizationId: orgId,
       ...data,
     });
   };
 
   const handleDeleteEmployee = async (id: string) => {
-    await deleteEmployeeMutation.mutateAsync({ id });
+    await deleteEmployeeMutation.mutateAsync({ id, organizationId: orgId });
   };
 
   const openEditDialog = (employee: Employee) => {
@@ -212,6 +223,37 @@ export function EmployeesClient() {
     );
   }
 
+  // Permission check
+  if (!permissions.canReadHR && !permissions.isLoading) {
+    return (
+      <div className="flex flex-col gap-4 p-4 md:p-8">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              HR - Employees
+            </h1>
+            <p className="text-muted-foreground">
+              Manage your organization&apos;s employee database
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view employee information.
+                Please contact your administrator to request access.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Error state
   if (error) {
     return (
@@ -261,13 +303,17 @@ export function EmployeesClient() {
             Manage your organization&apos;s employee database
           </p>
         </div>
-        <Button
+        <PermissionButton
+          userId={session?.user.id ?? ""}
+          organizationId={orgId}
+          requiredPermission="write"
+          module="hr"
           onClick={() => setAddDialogOpen(true)}
           disabled={createEmployeeMutation.isPending}
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Employee
-        </Button>
+        </PermissionButton>
       </div>
 
       {/* Statistics Cards */}
@@ -356,6 +402,8 @@ export function EmployeesClient() {
             onEditEmployee={openEditDialog}
             onDeleteEmployee={handleDeleteEmployee}
             isDeleting={deleteEmployeeMutation.isPending}
+            userId={session?.user.id ?? ""}
+            organizationId={orgId}
           />
         </CardContent>
       </Card>

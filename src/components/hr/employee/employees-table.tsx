@@ -43,12 +43,15 @@ import {
 import { cn } from "~/lib/utils";
 import type { Employee } from "~/types";
 import { EmployeeDetailsDialog } from "./employee-details-dialog";
+import { WithPermissions } from "~/components/shared/permission-button";
 
 interface EmployeesTableProps {
   employees: Employee[];
   onEditEmployee: (employee: Employee) => void;
   onDeleteEmployee: (id: string) => void;
   isDeleting?: boolean;
+  userId: string;
+  organizationId: string;
 }
 
 // Status color mappings
@@ -71,6 +74,8 @@ export function EmployeesTable({
   onEditEmployee,
   onDeleteEmployee,
   isDeleting = false,
+  userId,
+  organizationId,
 }: EmployeesTableProps) {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -250,20 +255,34 @@ export function EmployeesTable({
                           >
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleEditEmployee(employee)}
-                            disabled={isDeleting}
+                          <WithPermissions
+                            userId={userId}
+                            organizationId={organizationId}
+                            requiredPermission="write"
+                            module="hr"
                           >
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleEditEmployee(employee)}
+                              disabled={isDeleting}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                          </WithPermissions>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDeleteEmployee(employee)}
-                            disabled={isDeleting}
+                          <WithPermissions
+                            userId={userId}
+                            organizationId={organizationId}
+                            requiredPermission="write"
+                            module="hr"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteEmployee(employee)}
+                              disabled={isDeleting}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </WithPermissions>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

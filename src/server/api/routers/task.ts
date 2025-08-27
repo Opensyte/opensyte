@@ -1,13 +1,23 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { TaskStatus, Priority, type Prisma } from "@prisma/client";
-
-const TaskStatusSchema = z.nativeEnum(TaskStatus);
-const PrioritySchema = z.nativeEnum(Priority);
+import {
+  createTRPCRouter,
+  createPermissionProcedure,
+  createAnyPermissionProcedure,
+} from "~/server/api/trpc";
+import { PERMISSIONS } from "~/lib/rbac";
+import { type Prisma } from "@prisma/client";
+import {
+  TaskStatusSchema,
+  PrioritySchema,
+} from "../../../../prisma/generated/zod";
 
 export const taskRouter = createTRPCRouter({
   // Get all tasks for an organization
-  getAll: publicProcedure
+  getAll: createAnyPermissionProcedure([
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.PROJECTS_ADMIN,
+  ])
     .input(
       z.object({
         organizationId: z.string().cuid(),
@@ -18,15 +28,16 @@ export const taskRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
+      await ctx.requireAnyPermission(input.organizationId);
       const { organizationId, projectId, status, priority, assignedToId } =
         input;
 
       const whereClause: Prisma.TaskWhereInput = {
         organizationId,
-        ...(projectId && { projectId }),
-        ...(status && { status }),
-        ...(priority && { priority }),
-        ...(assignedToId && { assignedToId }),
+        projectId: projectId ?? undefined,
+        status: status ?? undefined,
+        priority: priority ?? undefined,
+        assignedToId: assignedToId ?? undefined,
       };
 
       return ctx.db.task.findMany({
@@ -52,7 +63,11 @@ export const taskRouter = createTRPCRouter({
     }),
 
   // Get task statistics
-  getStats: publicProcedure
+  getStats: createAnyPermissionProcedure([
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.PROJECTS_ADMIN,
+  ])
     .input(
       z.object({
         organizationId: z.string().cuid(),
@@ -60,6 +75,7 @@ export const taskRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
+      await ctx.requireAnyPermission(input.organizationId);
       const { organizationId, projectId } = input;
 
       const whereClause: Prisma.TaskWhereInput = {
@@ -126,7 +142,7 @@ export const taskRouter = createTRPCRouter({
     }),
 
   // Create a new task
-  create: publicProcedure
+  create: createPermissionProcedure(PERMISSIONS.PROJECTS_WRITE)
     .input(
       z.object({
         organizationId: z.string().cuid(),
@@ -143,6 +159,7 @@ export const taskRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await ctx.requirePermission(input.organizationId);
       return ctx.db.task.create({
         data: input,
         include: {
@@ -158,7 +175,7 @@ export const taskRouter = createTRPCRouter({
     }),
 
   // Update a task
-  update: publicProcedure
+  update: createPermissionProcedure(PERMISSIONS.PROJECTS_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
@@ -174,6 +191,7 @@ export const taskRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await ctx.requirePermission(input.organizationId);
       const { id, organizationId, ...updateData } = input;
 
       // Remove undefined values
@@ -200,7 +218,7 @@ export const taskRouter = createTRPCRouter({
     }),
 
   // Delete a task
-  delete: publicProcedure
+  delete: createPermissionProcedure(PERMISSIONS.PROJECTS_WRITE)
     .input(
       z.object({
         id: z.string().cuid(),
@@ -208,6 +226,7 @@ export const taskRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await ctx.requirePermission(input.organizationId);
       return ctx.db.task.delete({
         where: {
           id: input.id,
@@ -217,13 +236,18 @@ export const taskRouter = createTRPCRouter({
     }),
 
   // Get organization members for assignment
-  getAssignableMembers: publicProcedure
+  getAssignableMembers: createAnyPermissionProcedure([
+    PERMISSIONS.PROJECTS_READ,
+    PERMISSIONS.PROJECTS_WRITE,
+    PERMISSIONS.PROJECTS_ADMIN,
+  ])
     .input(
       z.object({
         organizationId: z.string().cuid(),
       })
     )
     .query(async ({ ctx, input }) => {
+      await ctx.requireAnyPermission(input.organizationId);
       // Get users who are members of this organization
       const members = await ctx.db.userOrganization.findMany({
         where: {

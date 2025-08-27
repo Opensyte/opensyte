@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
+import { PermissionButton } from "~/components/shared/permission-button";
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Shield,
 } from "lucide-react";
 import {
   Select,
@@ -55,8 +57,17 @@ import {
   TimeOffStatsSkeleton,
   TimeOffTableSkeleton,
 } from "./timeoff-skeletons";
+import { usePermissions } from "~/hooks/use-permissions";
+import { authClient } from "~/lib/auth-client";
 
 export function TimeOffClient({ organizationId }: TimeOffClientProps) {
+  // Authentication and permissions
+  const { data: session } = authClient.useSession();
+  const permissions = usePermissions({
+    userId: session?.user.id ?? "",
+    organizationId,
+  });
+
   const statuses = useMemo(() => TIME_OFF_STATUS_FILTERS, []);
   const types = useMemo(() => TIME_OFF_TYPE_FILTERS, []);
 
@@ -143,6 +154,37 @@ export function TimeOffClient({ organizationId }: TimeOffClientProps) {
     if (isTypeFilter(value)) setTypeFilter(value);
   };
 
+  // Permission check
+  if (!permissions.canReadHR && !permissions.isLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-4 md:p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Time-Off Management
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage and track employee time-off requests
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="py-8 text-center">
+              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Access Restricted</p>
+              <p className="text-muted-foreground">
+                You don&apos;t have permission to view time-off data. Please
+                contact your administrator to request access.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8">
       {/* Header */}
@@ -155,13 +197,17 @@ export function TimeOffClient({ organizationId }: TimeOffClientProps) {
             Manage and track employee time-off requests
           </p>
         </div>
-        <Button
+        <PermissionButton
+          userId={session?.user.id ?? ""}
+          organizationId={organizationId}
+          requiredPermission="write"
+          module="hr"
           onClick={() => setCreateOpen(true)}
           className="w-full md:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" />
           New Request
-        </Button>
+        </PermissionButton>
       </div>
 
       {/* Compact Stats */}
@@ -371,6 +417,8 @@ export function TimeOffClient({ organizationId }: TimeOffClientProps) {
               onEdit={openEdit}
               onDelete={onDeleted}
               isDeleting={deleteMutation.isPending}
+              userId={session?.user.id ?? ""}
+              organizationId={organizationId}
             />
           )}
         </CardContent>
