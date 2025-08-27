@@ -219,7 +219,6 @@ export function ChangeRoleDialog({
                           <p className="text-sm font-medium">
                             {ROLE_INFO[selectedRole]?.name}
                           </p>
-
                         </div>
                       </div>
                     </SelectValue>
