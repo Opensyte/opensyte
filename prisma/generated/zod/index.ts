@@ -37,9 +37,13 @@ export const PermissionScalarFieldEnumSchema = z.enum(['id','name','description'
 
 export const RolePermissionScalarFieldEnumSchema = z.enum(['id','role','permissionId','createdAt']);
 
+export const CustomRoleScalarFieldEnumSchema = z.enum(['id','organizationId','name','description','color','isActive','createdById','createdAt','updatedAt']);
+
+export const CustomRolePermissionScalarFieldEnumSchema = z.enum(['id','customRoleId','permissionId','createdAt']);
+
 export const OrganizationScalarFieldEnumSchema = z.enum(['id','name','logo','website','industry','description','createdAt','updatedAt']);
 
-export const UserOrganizationScalarFieldEnumSchema = z.enum(['userId','organizationId','role','joinedAt']);
+export const UserOrganizationScalarFieldEnumSchema = z.enum(['userId','organizationId','role','customRoleId','joinedAt']);
 
 export const CustomerScalarFieldEnumSchema = z.enum(['id','organizationId','type','status','firstName','lastName','email','phone','company','position','address','city','state','country','postalCode','source','notes','createdAt','updatedAt']);
 
@@ -229,6 +233,37 @@ export const RolePermissionSchema = z.object({
 export type RolePermission = z.infer<typeof RolePermissionSchema>
 
 /////////////////////////////////////////
+// CUSTOM ROLE SCHEMA
+/////////////////////////////////////////
+
+export const CustomRoleSchema = z.object({
+  id: z.string().cuid(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  color: z.string(),
+  isActive: z.boolean(),
+  createdById: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type CustomRole = z.infer<typeof CustomRoleSchema>
+
+/////////////////////////////////////////
+// CUSTOM ROLE PERMISSION SCHEMA
+/////////////////////////////////////////
+
+export const CustomRolePermissionSchema = z.object({
+  id: z.string().cuid(),
+  customRoleId: z.string(),
+  permissionId: z.string(),
+  createdAt: z.coerce.date(),
+})
+
+export type CustomRolePermission = z.infer<typeof CustomRolePermissionSchema>
+
+/////////////////////////////////////////
 // ORGANIZATION SCHEMA
 /////////////////////////////////////////
 
@@ -250,9 +285,10 @@ export type Organization = z.infer<typeof OrganizationSchema>
 /////////////////////////////////////////
 
 export const UserOrganizationSchema = z.object({
-  role: UserRoleSchema,
+  role: UserRoleSchema.nullable(),
   userId: z.string(),
   organizationId: z.string(),
+  customRoleId: z.string().nullable(),
   joinedAt: z.coerce.date(),
 })
 
@@ -877,6 +913,7 @@ export type Verification = z.infer<typeof VerificationSchema>
 
 export const PermissionIncludeSchema: z.ZodType<Prisma.PermissionInclude> = z.object({
   rolePermissions: z.union([z.boolean(),z.lazy(() => RolePermissionFindManyArgsSchema)]).optional(),
+  customRolePermissions: z.union([z.boolean(),z.lazy(() => CustomRolePermissionFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => PermissionCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -891,6 +928,7 @@ export const PermissionCountOutputTypeArgsSchema: z.ZodType<Prisma.PermissionCou
 
 export const PermissionCountOutputTypeSelectSchema: z.ZodType<Prisma.PermissionCountOutputTypeSelect> = z.object({
   rolePermissions: z.boolean().optional(),
+  customRolePermissions: z.boolean().optional(),
 }).strict();
 
 export const PermissionSelectSchema: z.ZodType<Prisma.PermissionSelect> = z.object({
@@ -902,6 +940,7 @@ export const PermissionSelectSchema: z.ZodType<Prisma.PermissionSelect> = z.obje
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
   rolePermissions: z.union([z.boolean(),z.lazy(() => RolePermissionFindManyArgsSchema)]).optional(),
+  customRolePermissions: z.union([z.boolean(),z.lazy(() => CustomRolePermissionFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => PermissionCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -925,6 +964,68 @@ export const RolePermissionSelectSchema: z.ZodType<Prisma.RolePermissionSelect> 
   permission: z.union([z.boolean(),z.lazy(() => PermissionArgsSchema)]).optional(),
 }).strict()
 
+// CUSTOM ROLE
+//------------------------------------------------------
+
+export const CustomRoleIncludeSchema: z.ZodType<Prisma.CustomRoleInclude> = z.object({
+  organization: z.union([z.boolean(),z.lazy(() => OrganizationArgsSchema)]).optional(),
+  permissions: z.union([z.boolean(),z.lazy(() => CustomRolePermissionFindManyArgsSchema)]).optional(),
+  userAssignments: z.union([z.boolean(),z.lazy(() => UserOrganizationFindManyArgsSchema)]).optional(),
+  _count: z.union([z.boolean(),z.lazy(() => CustomRoleCountOutputTypeArgsSchema)]).optional(),
+}).strict()
+
+export const CustomRoleArgsSchema: z.ZodType<Prisma.CustomRoleDefaultArgs> = z.object({
+  select: z.lazy(() => CustomRoleSelectSchema).optional(),
+  include: z.lazy(() => CustomRoleIncludeSchema).optional(),
+}).strict();
+
+export const CustomRoleCountOutputTypeArgsSchema: z.ZodType<Prisma.CustomRoleCountOutputTypeDefaultArgs> = z.object({
+  select: z.lazy(() => CustomRoleCountOutputTypeSelectSchema).nullish(),
+}).strict();
+
+export const CustomRoleCountOutputTypeSelectSchema: z.ZodType<Prisma.CustomRoleCountOutputTypeSelect> = z.object({
+  permissions: z.boolean().optional(),
+  userAssignments: z.boolean().optional(),
+}).strict();
+
+export const CustomRoleSelectSchema: z.ZodType<Prisma.CustomRoleSelect> = z.object({
+  id: z.boolean().optional(),
+  organizationId: z.boolean().optional(),
+  name: z.boolean().optional(),
+  description: z.boolean().optional(),
+  color: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  updatedAt: z.boolean().optional(),
+  organization: z.union([z.boolean(),z.lazy(() => OrganizationArgsSchema)]).optional(),
+  permissions: z.union([z.boolean(),z.lazy(() => CustomRolePermissionFindManyArgsSchema)]).optional(),
+  userAssignments: z.union([z.boolean(),z.lazy(() => UserOrganizationFindManyArgsSchema)]).optional(),
+  _count: z.union([z.boolean(),z.lazy(() => CustomRoleCountOutputTypeArgsSchema)]).optional(),
+}).strict()
+
+// CUSTOM ROLE PERMISSION
+//------------------------------------------------------
+
+export const CustomRolePermissionIncludeSchema: z.ZodType<Prisma.CustomRolePermissionInclude> = z.object({
+  customRole: z.union([z.boolean(),z.lazy(() => CustomRoleArgsSchema)]).optional(),
+  permission: z.union([z.boolean(),z.lazy(() => PermissionArgsSchema)]).optional(),
+}).strict()
+
+export const CustomRolePermissionArgsSchema: z.ZodType<Prisma.CustomRolePermissionDefaultArgs> = z.object({
+  select: z.lazy(() => CustomRolePermissionSelectSchema).optional(),
+  include: z.lazy(() => CustomRolePermissionIncludeSchema).optional(),
+}).strict();
+
+export const CustomRolePermissionSelectSchema: z.ZodType<Prisma.CustomRolePermissionSelect> = z.object({
+  id: z.boolean().optional(),
+  customRoleId: z.boolean().optional(),
+  permissionId: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  customRole: z.union([z.boolean(),z.lazy(() => CustomRoleArgsSchema)]).optional(),
+  permission: z.union([z.boolean(),z.lazy(() => PermissionArgsSchema)]).optional(),
+}).strict()
+
 // ORGANIZATION
 //------------------------------------------------------
 
@@ -938,6 +1039,7 @@ export const OrganizationIncludeSchema: z.ZodType<Prisma.OrganizationInclude> = 
   employees: z.union([z.boolean(),z.lazy(() => EmployeeFindManyArgsSchema)]).optional(),
   campaigns: z.union([z.boolean(),z.lazy(() => MarketingCampaignFindManyArgsSchema)]).optional(),
   invitations: z.union([z.boolean(),z.lazy(() => InvitationFindManyArgsSchema)]).optional(),
+  customRoles: z.union([z.boolean(),z.lazy(() => CustomRoleFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => OrganizationCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -960,6 +1062,7 @@ export const OrganizationCountOutputTypeSelectSchema: z.ZodType<Prisma.Organizat
   employees: z.boolean().optional(),
   campaigns: z.boolean().optional(),
   invitations: z.boolean().optional(),
+  customRoles: z.boolean().optional(),
 }).strict();
 
 export const OrganizationSelectSchema: z.ZodType<Prisma.OrganizationSelect> = z.object({
@@ -980,6 +1083,7 @@ export const OrganizationSelectSchema: z.ZodType<Prisma.OrganizationSelect> = z.
   employees: z.union([z.boolean(),z.lazy(() => EmployeeFindManyArgsSchema)]).optional(),
   campaigns: z.union([z.boolean(),z.lazy(() => MarketingCampaignFindManyArgsSchema)]).optional(),
   invitations: z.union([z.boolean(),z.lazy(() => InvitationFindManyArgsSchema)]).optional(),
+  customRoles: z.union([z.boolean(),z.lazy(() => CustomRoleFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => OrganizationCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -988,6 +1092,7 @@ export const OrganizationSelectSchema: z.ZodType<Prisma.OrganizationSelect> = z.
 
 export const UserOrganizationIncludeSchema: z.ZodType<Prisma.UserOrganizationInclude> = z.object({
   organization: z.union([z.boolean(),z.lazy(() => OrganizationArgsSchema)]).optional(),
+  customRole: z.union([z.boolean(),z.lazy(() => CustomRoleArgsSchema)]).optional(),
 }).strict()
 
 export const UserOrganizationArgsSchema: z.ZodType<Prisma.UserOrganizationDefaultArgs> = z.object({
@@ -999,8 +1104,10 @@ export const UserOrganizationSelectSchema: z.ZodType<Prisma.UserOrganizationSele
   userId: z.boolean().optional(),
   organizationId: z.boolean().optional(),
   role: z.boolean().optional(),
+  customRoleId: z.boolean().optional(),
   joinedAt: z.boolean().optional(),
   organization: z.union([z.boolean(),z.lazy(() => OrganizationArgsSchema)]).optional(),
+  customRole: z.union([z.boolean(),z.lazy(() => CustomRoleArgsSchema)]).optional(),
 }).strict()
 
 // CUSTOMER
@@ -1955,7 +2062,8 @@ export const PermissionWhereInputSchema: z.ZodType<Prisma.PermissionWhereInput> 
   action: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  rolePermissions: z.lazy(() => RolePermissionListRelationFilterSchema).optional()
+  rolePermissions: z.lazy(() => RolePermissionListRelationFilterSchema).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionListRelationFilterSchema).optional()
 }).strict();
 
 export const PermissionOrderByWithRelationInputSchema: z.ZodType<Prisma.PermissionOrderByWithRelationInput> = z.object({
@@ -1966,7 +2074,8 @@ export const PermissionOrderByWithRelationInputSchema: z.ZodType<Prisma.Permissi
   action: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
-  rolePermissions: z.lazy(() => RolePermissionOrderByRelationAggregateInputSchema).optional()
+  rolePermissions: z.lazy(() => RolePermissionOrderByRelationAggregateInputSchema).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionOrderByRelationAggregateInputSchema).optional()
 }).strict();
 
 export const PermissionWhereUniqueInputSchema: z.ZodType<Prisma.PermissionWhereUniqueInput> = z.union([
@@ -1992,7 +2101,8 @@ export const PermissionWhereUniqueInputSchema: z.ZodType<Prisma.PermissionWhereU
   action: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  rolePermissions: z.lazy(() => RolePermissionListRelationFilterSchema).optional()
+  rolePermissions: z.lazy(() => RolePermissionListRelationFilterSchema).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionListRelationFilterSchema).optional()
 }).strict());
 
 export const PermissionOrderByWithAggregationInputSchema: z.ZodType<Prisma.PermissionOrderByWithAggregationInput> = z.object({
@@ -2084,6 +2194,166 @@ export const RolePermissionScalarWhereWithAggregatesInputSchema: z.ZodType<Prism
   createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
+export const CustomRoleWhereInputSchema: z.ZodType<Prisma.CustomRoleWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => CustomRoleWhereInputSchema),z.lazy(() => CustomRoleWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRoleWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRoleWhereInputSchema),z.lazy(() => CustomRoleWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  color: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  organization: z.union([ z.lazy(() => OrganizationRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional(),
+  permissions: z.lazy(() => CustomRolePermissionListRelationFilterSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationListRelationFilterSchema).optional()
+}).strict();
+
+export const CustomRoleOrderByWithRelationInputSchema: z.ZodType<Prisma.CustomRoleOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  color: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  organization: z.lazy(() => OrganizationOrderByWithRelationInputSchema).optional(),
+  permissions: z.lazy(() => CustomRolePermissionOrderByRelationAggregateInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationOrderByRelationAggregateInputSchema).optional()
+}).strict();
+
+export const CustomRoleWhereUniqueInputSchema: z.ZodType<Prisma.CustomRoleWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    organizationId_name: z.lazy(() => CustomRoleOrganizationIdNameCompoundUniqueInputSchema)
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    organizationId_name: z.lazy(() => CustomRoleOrganizationIdNameCompoundUniqueInputSchema),
+  }),
+])
+.and(z.object({
+  id: z.string().cuid().optional(),
+  organizationId_name: z.lazy(() => CustomRoleOrganizationIdNameCompoundUniqueInputSchema).optional(),
+  AND: z.union([ z.lazy(() => CustomRoleWhereInputSchema),z.lazy(() => CustomRoleWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRoleWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRoleWhereInputSchema),z.lazy(() => CustomRoleWhereInputSchema).array() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  color: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  organization: z.union([ z.lazy(() => OrganizationRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional(),
+  permissions: z.lazy(() => CustomRolePermissionListRelationFilterSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationListRelationFilterSchema).optional()
+}).strict());
+
+export const CustomRoleOrderByWithAggregationInputSchema: z.ZodType<Prisma.CustomRoleOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  color: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => CustomRoleCountOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => CustomRoleMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => CustomRoleMinOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const CustomRoleScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.CustomRoleScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => CustomRoleScalarWhereWithAggregatesInputSchema),z.lazy(() => CustomRoleScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRoleScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRoleScalarWhereWithAggregatesInputSchema),z.lazy(() => CustomRoleScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  color: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
+  createdById: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const CustomRolePermissionWhereInputSchema: z.ZodType<Prisma.CustomRolePermissionWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => CustomRolePermissionWhereInputSchema),z.lazy(() => CustomRolePermissionWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRolePermissionWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRolePermissionWhereInputSchema),z.lazy(() => CustomRolePermissionWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  customRoleId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  permissionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  customRole: z.union([ z.lazy(() => CustomRoleRelationFilterSchema),z.lazy(() => CustomRoleWhereInputSchema) ]).optional(),
+  permission: z.union([ z.lazy(() => PermissionRelationFilterSchema),z.lazy(() => PermissionWhereInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionOrderByWithRelationInputSchema: z.ZodType<Prisma.CustomRolePermissionOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
+  permissionId: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  customRole: z.lazy(() => CustomRoleOrderByWithRelationInputSchema).optional(),
+  permission: z.lazy(() => PermissionOrderByWithRelationInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionWhereUniqueInputSchema: z.ZodType<Prisma.CustomRolePermissionWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    customRoleId_permissionId: z.lazy(() => CustomRolePermissionCustomRoleIdPermissionIdCompoundUniqueInputSchema)
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    customRoleId_permissionId: z.lazy(() => CustomRolePermissionCustomRoleIdPermissionIdCompoundUniqueInputSchema),
+  }),
+])
+.and(z.object({
+  id: z.string().cuid().optional(),
+  customRoleId_permissionId: z.lazy(() => CustomRolePermissionCustomRoleIdPermissionIdCompoundUniqueInputSchema).optional(),
+  AND: z.union([ z.lazy(() => CustomRolePermissionWhereInputSchema),z.lazy(() => CustomRolePermissionWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRolePermissionWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRolePermissionWhereInputSchema),z.lazy(() => CustomRolePermissionWhereInputSchema).array() ]).optional(),
+  customRoleId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  permissionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  customRole: z.union([ z.lazy(() => CustomRoleRelationFilterSchema),z.lazy(() => CustomRoleWhereInputSchema) ]).optional(),
+  permission: z.union([ z.lazy(() => PermissionRelationFilterSchema),z.lazy(() => PermissionWhereInputSchema) ]).optional(),
+}).strict());
+
+export const CustomRolePermissionOrderByWithAggregationInputSchema: z.ZodType<Prisma.CustomRolePermissionOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
+  permissionId: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => CustomRolePermissionCountOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => CustomRolePermissionMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => CustomRolePermissionMinOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.CustomRolePermissionScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => CustomRolePermissionScalarWhereWithAggregatesInputSchema),z.lazy(() => CustomRolePermissionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRolePermissionScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRolePermissionScalarWhereWithAggregatesInputSchema),z.lazy(() => CustomRolePermissionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  customRoleId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  permissionId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const OrganizationWhereInputSchema: z.ZodType<Prisma.OrganizationWhereInput> = z.object({
   AND: z.union([ z.lazy(() => OrganizationWhereInputSchema),z.lazy(() => OrganizationWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => OrganizationWhereInputSchema).array().optional(),
@@ -2104,7 +2374,8 @@ export const OrganizationWhereInputSchema: z.ZodType<Prisma.OrganizationWhereInp
   expenses: z.lazy(() => ExpenseListRelationFilterSchema).optional(),
   employees: z.lazy(() => EmployeeListRelationFilterSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignListRelationFilterSchema).optional(),
-  invitations: z.lazy(() => InvitationListRelationFilterSchema).optional()
+  invitations: z.lazy(() => InvitationListRelationFilterSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleListRelationFilterSchema).optional()
 }).strict();
 
 export const OrganizationOrderByWithRelationInputSchema: z.ZodType<Prisma.OrganizationOrderByWithRelationInput> = z.object({
@@ -2124,7 +2395,8 @@ export const OrganizationOrderByWithRelationInputSchema: z.ZodType<Prisma.Organi
   expenses: z.lazy(() => ExpenseOrderByRelationAggregateInputSchema).optional(),
   employees: z.lazy(() => EmployeeOrderByRelationAggregateInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignOrderByRelationAggregateInputSchema).optional(),
-  invitations: z.lazy(() => InvitationOrderByRelationAggregateInputSchema).optional()
+  invitations: z.lazy(() => InvitationOrderByRelationAggregateInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleOrderByRelationAggregateInputSchema).optional()
 }).strict();
 
 export const OrganizationWhereUniqueInputSchema: z.ZodType<Prisma.OrganizationWhereUniqueInput> = z.object({
@@ -2150,7 +2422,8 @@ export const OrganizationWhereUniqueInputSchema: z.ZodType<Prisma.OrganizationWh
   expenses: z.lazy(() => ExpenseListRelationFilterSchema).optional(),
   employees: z.lazy(() => EmployeeListRelationFilterSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignListRelationFilterSchema).optional(),
-  invitations: z.lazy(() => InvitationListRelationFilterSchema).optional()
+  invitations: z.lazy(() => InvitationListRelationFilterSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleListRelationFilterSchema).optional()
 }).strict());
 
 export const OrganizationOrderByWithAggregationInputSchema: z.ZodType<Prisma.OrganizationOrderByWithAggregationInput> = z.object({
@@ -2187,17 +2460,21 @@ export const UserOrganizationWhereInputSchema: z.ZodType<Prisma.UserOrganization
   NOT: z.union([ z.lazy(() => UserOrganizationWhereInputSchema),z.lazy(() => UserOrganizationWhereInputSchema).array() ]).optional(),
   userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  role: z.union([ z.lazy(() => EnumUserRoleFilterSchema),z.lazy(() => UserRoleSchema) ]).optional(),
+  role: z.union([ z.lazy(() => EnumUserRoleNullableFilterSchema),z.lazy(() => UserRoleSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   joinedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   organization: z.union([ z.lazy(() => OrganizationRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional(),
+  customRole: z.union([ z.lazy(() => CustomRoleNullableRelationFilterSchema),z.lazy(() => CustomRoleWhereInputSchema) ]).optional().nullable(),
 }).strict();
 
 export const UserOrganizationOrderByWithRelationInputSchema: z.ZodType<Prisma.UserOrganizationOrderByWithRelationInput> = z.object({
   userId: z.lazy(() => SortOrderSchema).optional(),
   organizationId: z.lazy(() => SortOrderSchema).optional(),
-  role: z.lazy(() => SortOrderSchema).optional(),
+  role: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  customRoleId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   joinedAt: z.lazy(() => SortOrderSchema).optional(),
-  organization: z.lazy(() => OrganizationOrderByWithRelationInputSchema).optional()
+  organization: z.lazy(() => OrganizationOrderByWithRelationInputSchema).optional(),
+  customRole: z.lazy(() => CustomRoleOrderByWithRelationInputSchema).optional()
 }).strict();
 
 export const UserOrganizationWhereUniqueInputSchema: z.ZodType<Prisma.UserOrganizationWhereUniqueInput> = z.object({
@@ -2210,15 +2487,18 @@ export const UserOrganizationWhereUniqueInputSchema: z.ZodType<Prisma.UserOrgani
   NOT: z.union([ z.lazy(() => UserOrganizationWhereInputSchema),z.lazy(() => UserOrganizationWhereInputSchema).array() ]).optional(),
   userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  role: z.union([ z.lazy(() => EnumUserRoleFilterSchema),z.lazy(() => UserRoleSchema) ]).optional(),
+  role: z.union([ z.lazy(() => EnumUserRoleNullableFilterSchema),z.lazy(() => UserRoleSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   joinedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   organization: z.union([ z.lazy(() => OrganizationRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional(),
+  customRole: z.union([ z.lazy(() => CustomRoleNullableRelationFilterSchema),z.lazy(() => CustomRoleWhereInputSchema) ]).optional().nullable(),
 }).strict());
 
 export const UserOrganizationOrderByWithAggregationInputSchema: z.ZodType<Prisma.UserOrganizationOrderByWithAggregationInput> = z.object({
   userId: z.lazy(() => SortOrderSchema).optional(),
   organizationId: z.lazy(() => SortOrderSchema).optional(),
-  role: z.lazy(() => SortOrderSchema).optional(),
+  role: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  customRoleId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   joinedAt: z.lazy(() => SortOrderSchema).optional(),
   _count: z.lazy(() => UserOrganizationCountOrderByAggregateInputSchema).optional(),
   _max: z.lazy(() => UserOrganizationMaxOrderByAggregateInputSchema).optional(),
@@ -2231,7 +2511,8 @@ export const UserOrganizationScalarWhereWithAggregatesInputSchema: z.ZodType<Pri
   NOT: z.union([ z.lazy(() => UserOrganizationScalarWhereWithAggregatesInputSchema),z.lazy(() => UserOrganizationScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   userId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   organizationId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  role: z.union([ z.lazy(() => EnumUserRoleWithAggregatesFilterSchema),z.lazy(() => UserRoleSchema) ]).optional(),
+  role: z.union([ z.lazy(() => EnumUserRoleNullableWithAggregatesFilterSchema),z.lazy(() => UserRoleSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   joinedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
@@ -5111,7 +5392,8 @@ export const PermissionCreateInputSchema: z.ZodType<Prisma.PermissionCreateInput
   action: z.string(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  rolePermissions: z.lazy(() => RolePermissionCreateNestedManyWithoutPermissionInputSchema).optional()
+  rolePermissions: z.lazy(() => RolePermissionCreateNestedManyWithoutPermissionInputSchema).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionCreateNestedManyWithoutPermissionInputSchema).optional()
 }).strict();
 
 export const PermissionUncheckedCreateInputSchema: z.ZodType<Prisma.PermissionUncheckedCreateInput> = z.object({
@@ -5122,7 +5404,8 @@ export const PermissionUncheckedCreateInputSchema: z.ZodType<Prisma.PermissionUn
   action: z.string(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  rolePermissions: z.lazy(() => RolePermissionUncheckedCreateNestedManyWithoutPermissionInputSchema).optional()
+  rolePermissions: z.lazy(() => RolePermissionUncheckedCreateNestedManyWithoutPermissionInputSchema).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionUncheckedCreateNestedManyWithoutPermissionInputSchema).optional()
 }).strict();
 
 export const PermissionUpdateInputSchema: z.ZodType<Prisma.PermissionUpdateInput> = z.object({
@@ -5133,7 +5416,8 @@ export const PermissionUpdateInputSchema: z.ZodType<Prisma.PermissionUpdateInput
   action: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  rolePermissions: z.lazy(() => RolePermissionUpdateManyWithoutPermissionNestedInputSchema).optional()
+  rolePermissions: z.lazy(() => RolePermissionUpdateManyWithoutPermissionNestedInputSchema).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionUpdateManyWithoutPermissionNestedInputSchema).optional()
 }).strict();
 
 export const PermissionUncheckedUpdateInputSchema: z.ZodType<Prisma.PermissionUncheckedUpdateInput> = z.object({
@@ -5144,7 +5428,8 @@ export const PermissionUncheckedUpdateInputSchema: z.ZodType<Prisma.PermissionUn
   action: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  rolePermissions: z.lazy(() => RolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema).optional()
+  rolePermissions: z.lazy(() => RolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema).optional()
 }).strict();
 
 export const PermissionCreateManyInputSchema: z.ZodType<Prisma.PermissionCreateManyInput> = z.object({
@@ -5225,6 +5510,144 @@ export const RolePermissionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.Role
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
+export const CustomRoleCreateInputSchema: z.ZodType<Prisma.CustomRoleCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutCustomRolesInputSchema),
+  permissions: z.lazy(() => CustomRolePermissionCreateNestedManyWithoutCustomRoleInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedCreateInputSchema: z.ZodType<Prisma.CustomRoleUncheckedCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  permissions: z.lazy(() => CustomRolePermissionUncheckedCreateNestedManyWithoutCustomRoleInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUncheckedCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleUpdateInputSchema: z.ZodType<Prisma.CustomRoleUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutCustomRolesNestedInputSchema).optional(),
+  permissions: z.lazy(() => CustomRolePermissionUpdateManyWithoutCustomRoleNestedInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUpdateManyWithoutCustomRoleNestedInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedUpdateInputSchema: z.ZodType<Prisma.CustomRoleUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  permissions: z.lazy(() => CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleNestedInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUncheckedUpdateManyWithoutCustomRoleNestedInputSchema).optional()
+}).strict();
+
+export const CustomRoleCreateManyInputSchema: z.ZodType<Prisma.CustomRoleCreateManyInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const CustomRoleUpdateManyMutationInputSchema: z.ZodType<Prisma.CustomRoleUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRoleUncheckedUpdateManyInputSchema: z.ZodType<Prisma.CustomRoleUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionCreateInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  createdAt: z.coerce.date().optional(),
+  customRole: z.lazy(() => CustomRoleCreateNestedOneWithoutPermissionsInputSchema),
+  permission: z.lazy(() => PermissionCreateNestedOneWithoutCustomRolePermissionsInputSchema)
+}).strict();
+
+export const CustomRolePermissionUncheckedCreateInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  customRoleId: z.string(),
+  permissionId: z.string(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const CustomRolePermissionUpdateInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customRole: z.lazy(() => CustomRoleUpdateOneRequiredWithoutPermissionsNestedInputSchema).optional(),
+  permission: z.lazy(() => PermissionUpdateOneRequiredWithoutCustomRolePermissionsNestedInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customRoleId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  permissionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionCreateManyInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateManyInput> = z.object({
+  id: z.string().cuid().optional(),
+  customRoleId: z.string(),
+  permissionId: z.string(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const CustomRolePermissionUpdateManyMutationInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customRoleId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  permissionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
 export const OrganizationCreateInputSchema: z.ZodType<Prisma.OrganizationCreateInput> = z.object({
   id: z.string().cuid().optional(),
   name: z.string(),
@@ -5242,7 +5665,8 @@ export const OrganizationCreateInputSchema: z.ZodType<Prisma.OrganizationCreateI
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateInput> = z.object({
@@ -5262,7 +5686,8 @@ export const OrganizationUncheckedCreateInputSchema: z.ZodType<Prisma.Organizati
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUpdateInputSchema: z.ZodType<Prisma.OrganizationUpdateInput> = z.object({
@@ -5282,7 +5707,8 @@ export const OrganizationUpdateInputSchema: z.ZodType<Prisma.OrganizationUpdateI
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateInput> = z.object({
@@ -5302,7 +5728,8 @@ export const OrganizationUncheckedUpdateInputSchema: z.ZodType<Prisma.Organizati
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateManyInputSchema: z.ZodType<Prisma.OrganizationCreateManyInput> = z.object({
@@ -5340,49 +5767,55 @@ export const OrganizationUncheckedUpdateManyInputSchema: z.ZodType<Prisma.Organi
 
 export const UserOrganizationCreateInputSchema: z.ZodType<Prisma.UserOrganizationCreateInput> = z.object({
   userId: z.string(),
-  role: z.lazy(() => UserRoleSchema),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
   joinedAt: z.coerce.date().optional(),
-  organization: z.lazy(() => OrganizationCreateNestedOneWithoutUsersInputSchema)
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutUsersInputSchema),
+  customRole: z.lazy(() => CustomRoleCreateNestedOneWithoutUserAssignmentsInputSchema).optional()
 }).strict();
 
 export const UserOrganizationUncheckedCreateInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedCreateInput> = z.object({
   userId: z.string(),
   organizationId: z.string(),
-  role: z.lazy(() => UserRoleSchema),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  customRoleId: z.string().optional().nullable(),
   joinedAt: z.coerce.date().optional()
 }).strict();
 
 export const UserOrganizationUpdateInputSchema: z.ZodType<Prisma.UserOrganizationUpdateInput> = z.object({
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutUsersNestedInputSchema).optional()
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutUsersNestedInputSchema).optional(),
+  customRole: z.lazy(() => CustomRoleUpdateOneWithoutUserAssignmentsNestedInputSchema).optional()
 }).strict();
 
 export const UserOrganizationUncheckedUpdateInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateInput> = z.object({
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
 export const UserOrganizationCreateManyInputSchema: z.ZodType<Prisma.UserOrganizationCreateManyInput> = z.object({
   userId: z.string(),
   organizationId: z.string(),
-  role: z.lazy(() => UserRoleSchema),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  customRoleId: z.string().optional().nullable(),
   joinedAt: z.coerce.date().optional()
 }).strict();
 
 export const UserOrganizationUpdateManyMutationInputSchema: z.ZodType<Prisma.UserOrganizationUpdateManyMutationInput> = z.object({
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
 export const UserOrganizationUncheckedUpdateManyInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateManyInput> = z.object({
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
@@ -8582,12 +9015,22 @@ export const RolePermissionListRelationFilterSchema: z.ZodType<Prisma.RolePermis
   none: z.lazy(() => RolePermissionWhereInputSchema).optional()
 }).strict();
 
+export const CustomRolePermissionListRelationFilterSchema: z.ZodType<Prisma.CustomRolePermissionListRelationFilter> = z.object({
+  every: z.lazy(() => CustomRolePermissionWhereInputSchema).optional(),
+  some: z.lazy(() => CustomRolePermissionWhereInputSchema).optional(),
+  none: z.lazy(() => CustomRolePermissionWhereInputSchema).optional()
+}).strict();
+
 export const SortOrderInputSchema: z.ZodType<Prisma.SortOrderInput> = z.object({
   sort: z.lazy(() => SortOrderSchema),
   nulls: z.lazy(() => NullsOrderSchema).optional()
 }).strict();
 
 export const RolePermissionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.RolePermissionOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const CustomRolePermissionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.CustomRolePermissionOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -8719,10 +9162,104 @@ export const EnumUserRoleWithAggregatesFilterSchema: z.ZodType<Prisma.EnumUserRo
   _max: z.lazy(() => NestedEnumUserRoleFilterSchema).optional()
 }).strict();
 
+export const BoolFilterSchema: z.ZodType<Prisma.BoolFilter> = z.object({
+  equals: z.boolean().optional(),
+  not: z.union([ z.boolean(),z.lazy(() => NestedBoolFilterSchema) ]).optional(),
+}).strict();
+
+export const OrganizationRelationFilterSchema: z.ZodType<Prisma.OrganizationRelationFilter> = z.object({
+  is: z.lazy(() => OrganizationWhereInputSchema).optional(),
+  isNot: z.lazy(() => OrganizationWhereInputSchema).optional()
+}).strict();
+
 export const UserOrganizationListRelationFilterSchema: z.ZodType<Prisma.UserOrganizationListRelationFilter> = z.object({
   every: z.lazy(() => UserOrganizationWhereInputSchema).optional(),
   some: z.lazy(() => UserOrganizationWhereInputSchema).optional(),
   none: z.lazy(() => UserOrganizationWhereInputSchema).optional()
+}).strict();
+
+export const UserOrganizationOrderByRelationAggregateInputSchema: z.ZodType<Prisma.UserOrganizationOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const CustomRoleOrganizationIdNameCompoundUniqueInputSchema: z.ZodType<Prisma.CustomRoleOrganizationIdNameCompoundUniqueInput> = z.object({
+  organizationId: z.string(),
+  name: z.string()
+}).strict();
+
+export const CustomRoleCountOrderByAggregateInputSchema: z.ZodType<Prisma.CustomRoleCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.lazy(() => SortOrderSchema).optional(),
+  color: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const CustomRoleMaxOrderByAggregateInputSchema: z.ZodType<Prisma.CustomRoleMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.lazy(() => SortOrderSchema).optional(),
+  color: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const CustomRoleMinOrderByAggregateInputSchema: z.ZodType<Prisma.CustomRoleMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.lazy(() => SortOrderSchema).optional(),
+  color: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BoolWithAggregatesFilterSchema: z.ZodType<Prisma.BoolWithAggregatesFilter> = z.object({
+  equals: z.boolean().optional(),
+  not: z.union([ z.boolean(),z.lazy(() => NestedBoolWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedBoolFilterSchema).optional(),
+  _max: z.lazy(() => NestedBoolFilterSchema).optional()
+}).strict();
+
+export const CustomRoleRelationFilterSchema: z.ZodType<Prisma.CustomRoleRelationFilter> = z.object({
+  is: z.lazy(() => CustomRoleWhereInputSchema).optional(),
+  isNot: z.lazy(() => CustomRoleWhereInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionCustomRoleIdPermissionIdCompoundUniqueInputSchema: z.ZodType<Prisma.CustomRolePermissionCustomRoleIdPermissionIdCompoundUniqueInput> = z.object({
+  customRoleId: z.string(),
+  permissionId: z.string()
+}).strict();
+
+export const CustomRolePermissionCountOrderByAggregateInputSchema: z.ZodType<Prisma.CustomRolePermissionCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
+  permissionId: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const CustomRolePermissionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.CustomRolePermissionMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
+  permissionId: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const CustomRolePermissionMinOrderByAggregateInputSchema: z.ZodType<Prisma.CustomRolePermissionMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
+  permissionId: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
 export const CustomerListRelationFilterSchema: z.ZodType<Prisma.CustomerListRelationFilter> = z.object({
@@ -8773,8 +9310,10 @@ export const InvitationListRelationFilterSchema: z.ZodType<Prisma.InvitationList
   none: z.lazy(() => InvitationWhereInputSchema).optional()
 }).strict();
 
-export const UserOrganizationOrderByRelationAggregateInputSchema: z.ZodType<Prisma.UserOrganizationOrderByRelationAggregateInput> = z.object({
-  _count: z.lazy(() => SortOrderSchema).optional()
+export const CustomRoleListRelationFilterSchema: z.ZodType<Prisma.CustomRoleListRelationFilter> = z.object({
+  every: z.lazy(() => CustomRoleWhereInputSchema).optional(),
+  some: z.lazy(() => CustomRoleWhereInputSchema).optional(),
+  none: z.lazy(() => CustomRoleWhereInputSchema).optional()
 }).strict();
 
 export const CustomerOrderByRelationAggregateInputSchema: z.ZodType<Prisma.CustomerOrderByRelationAggregateInput> = z.object({
@@ -8806,6 +9345,10 @@ export const MarketingCampaignOrderByRelationAggregateInputSchema: z.ZodType<Pri
 }).strict();
 
 export const InvitationOrderByRelationAggregateInputSchema: z.ZodType<Prisma.InvitationOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const CustomRoleOrderByRelationAggregateInputSchema: z.ZodType<Prisma.CustomRoleOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -8842,9 +9385,16 @@ export const OrganizationMinOrderByAggregateInputSchema: z.ZodType<Prisma.Organi
   updatedAt: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
-export const OrganizationRelationFilterSchema: z.ZodType<Prisma.OrganizationRelationFilter> = z.object({
-  is: z.lazy(() => OrganizationWhereInputSchema).optional(),
-  isNot: z.lazy(() => OrganizationWhereInputSchema).optional()
+export const EnumUserRoleNullableFilterSchema: z.ZodType<Prisma.EnumUserRoleNullableFilter> = z.object({
+  equals: z.lazy(() => UserRoleSchema).optional().nullable(),
+  in: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  notIn: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NestedEnumUserRoleNullableFilterSchema) ]).optional().nullable(),
+}).strict();
+
+export const CustomRoleNullableRelationFilterSchema: z.ZodType<Prisma.CustomRoleNullableRelationFilter> = z.object({
+  is: z.lazy(() => CustomRoleWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => CustomRoleWhereInputSchema).optional().nullable()
 }).strict();
 
 export const UserOrganizationUserIdOrganizationIdCompoundUniqueInputSchema: z.ZodType<Prisma.UserOrganizationUserIdOrganizationIdCompoundUniqueInput> = z.object({
@@ -8856,6 +9406,7 @@ export const UserOrganizationCountOrderByAggregateInputSchema: z.ZodType<Prisma.
   userId: z.lazy(() => SortOrderSchema).optional(),
   organizationId: z.lazy(() => SortOrderSchema).optional(),
   role: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
   joinedAt: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -8863,6 +9414,7 @@ export const UserOrganizationMaxOrderByAggregateInputSchema: z.ZodType<Prisma.Us
   userId: z.lazy(() => SortOrderSchema).optional(),
   organizationId: z.lazy(() => SortOrderSchema).optional(),
   role: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
   joinedAt: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -8870,7 +9422,18 @@ export const UserOrganizationMinOrderByAggregateInputSchema: z.ZodType<Prisma.Us
   userId: z.lazy(() => SortOrderSchema).optional(),
   organizationId: z.lazy(() => SortOrderSchema).optional(),
   role: z.lazy(() => SortOrderSchema).optional(),
+  customRoleId: z.lazy(() => SortOrderSchema).optional(),
   joinedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const EnumUserRoleNullableWithAggregatesFilterSchema: z.ZodType<Prisma.EnumUserRoleNullableWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => UserRoleSchema).optional().nullable(),
+  in: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  notIn: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NestedEnumUserRoleNullableWithAggregatesFilterSchema) ]).optional().nullable(),
+  _count: z.lazy(() => NestedIntNullableFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumUserRoleNullableFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumUserRoleNullableFilterSchema).optional()
 }).strict();
 
 export const EnumCustomerTypeFilterSchema: z.ZodType<Prisma.EnumCustomerTypeFilter> = z.object({
@@ -9611,11 +10174,6 @@ export const IntNullableFilterSchema: z.ZodType<Prisma.IntNullableFilter> = z.ob
   not: z.union([ z.number(),z.lazy(() => NestedIntNullableFilterSchema) ]).optional().nullable(),
 }).strict();
 
-export const BoolFilterSchema: z.ZodType<Prisma.BoolFilter> = z.object({
-  equals: z.boolean().optional(),
-  not: z.union([ z.boolean(),z.lazy(() => NestedBoolFilterSchema) ]).optional(),
-}).strict();
-
 export const TimeEntryCountOrderByAggregateInputSchema: z.ZodType<Prisma.TimeEntryCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   projectId: z.lazy(() => SortOrderSchema).optional(),
@@ -9686,14 +10244,6 @@ export const IntNullableWithAggregatesFilterSchema: z.ZodType<Prisma.IntNullable
   _sum: z.lazy(() => NestedIntNullableFilterSchema).optional(),
   _min: z.lazy(() => NestedIntNullableFilterSchema).optional(),
   _max: z.lazy(() => NestedIntNullableFilterSchema).optional()
-}).strict();
-
-export const BoolWithAggregatesFilterSchema: z.ZodType<Prisma.BoolWithAggregatesFilter> = z.object({
-  equals: z.boolean().optional(),
-  not: z.union([ z.boolean(),z.lazy(() => NestedBoolWithAggregatesFilterSchema) ]).optional(),
-  _count: z.lazy(() => NestedIntFilterSchema).optional(),
-  _min: z.lazy(() => NestedBoolFilterSchema).optional(),
-  _max: z.lazy(() => NestedBoolFilterSchema).optional()
 }).strict();
 
 export const EnumInvoiceStatusFilterSchema: z.ZodType<Prisma.EnumInvoiceStatusFilter> = z.object({
@@ -11212,11 +11762,25 @@ export const RolePermissionCreateNestedManyWithoutPermissionInputSchema: z.ZodTy
   connect: z.union([ z.lazy(() => RolePermissionWhereUniqueInputSchema),z.lazy(() => RolePermissionWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
+export const CustomRolePermissionCreateNestedManyWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateNestedManyWithoutPermissionInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyPermissionInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
 export const RolePermissionUncheckedCreateNestedManyWithoutPermissionInputSchema: z.ZodType<Prisma.RolePermissionUncheckedCreateNestedManyWithoutPermissionInput> = z.object({
   create: z.union([ z.lazy(() => RolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => RolePermissionCreateWithoutPermissionInputSchema).array(),z.lazy(() => RolePermissionUncheckedCreateWithoutPermissionInputSchema),z.lazy(() => RolePermissionUncheckedCreateWithoutPermissionInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => RolePermissionCreateOrConnectWithoutPermissionInputSchema),z.lazy(() => RolePermissionCreateOrConnectWithoutPermissionInputSchema).array() ]).optional(),
   createMany: z.lazy(() => RolePermissionCreateManyPermissionInputEnvelopeSchema).optional(),
   connect: z.union([ z.lazy(() => RolePermissionWhereUniqueInputSchema),z.lazy(() => RolePermissionWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUncheckedCreateNestedManyWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedCreateNestedManyWithoutPermissionInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyPermissionInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
 export const StringFieldUpdateOperationsInputSchema: z.ZodType<Prisma.StringFieldUpdateOperationsInput> = z.object({
@@ -11245,6 +11809,20 @@ export const RolePermissionUpdateManyWithoutPermissionNestedInputSchema: z.ZodTy
   deleteMany: z.union([ z.lazy(() => RolePermissionScalarWhereInputSchema),z.lazy(() => RolePermissionScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
+export const CustomRolePermissionUpdateManyWithoutPermissionNestedInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateManyWithoutPermissionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutPermissionInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyPermissionInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutPermissionInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutPermissionInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => CustomRolePermissionScalarWhereInputSchema),z.lazy(() => CustomRolePermissionScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
 export const RolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema: z.ZodType<Prisma.RolePermissionUncheckedUpdateManyWithoutPermissionNestedInput> = z.object({
   create: z.union([ z.lazy(() => RolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => RolePermissionCreateWithoutPermissionInputSchema).array(),z.lazy(() => RolePermissionUncheckedCreateWithoutPermissionInputSchema),z.lazy(() => RolePermissionUncheckedCreateWithoutPermissionInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => RolePermissionCreateOrConnectWithoutPermissionInputSchema),z.lazy(() => RolePermissionCreateOrConnectWithoutPermissionInputSchema).array() ]).optional(),
@@ -11257,6 +11835,20 @@ export const RolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema
   update: z.union([ z.lazy(() => RolePermissionUpdateWithWhereUniqueWithoutPermissionInputSchema),z.lazy(() => RolePermissionUpdateWithWhereUniqueWithoutPermissionInputSchema).array() ]).optional(),
   updateMany: z.union([ z.lazy(() => RolePermissionUpdateManyWithWhereWithoutPermissionInputSchema),z.lazy(() => RolePermissionUpdateManyWithWhereWithoutPermissionInputSchema).array() ]).optional(),
   deleteMany: z.union([ z.lazy(() => RolePermissionScalarWhereInputSchema),z.lazy(() => RolePermissionScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateManyWithoutPermissionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutPermissionInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyPermissionInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutPermissionInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutPermissionInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => CustomRolePermissionScalarWhereInputSchema),z.lazy(() => CustomRolePermissionScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
 export const PermissionCreateNestedOneWithoutRolePermissionsInputSchema: z.ZodType<Prisma.PermissionCreateNestedOneWithoutRolePermissionsInput> = z.object({
@@ -11275,6 +11867,136 @@ export const PermissionUpdateOneRequiredWithoutRolePermissionsNestedInputSchema:
   upsert: z.lazy(() => PermissionUpsertWithoutRolePermissionsInputSchema).optional(),
   connect: z.lazy(() => PermissionWhereUniqueInputSchema).optional(),
   update: z.union([ z.lazy(() => PermissionUpdateToOneWithWhereWithoutRolePermissionsInputSchema),z.lazy(() => PermissionUpdateWithoutRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedUpdateWithoutRolePermissionsInputSchema) ]).optional(),
+}).strict();
+
+export const OrganizationCreateNestedOneWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationCreateNestedOneWithoutCustomRolesInput> = z.object({
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutCustomRolesInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => OrganizationCreateOrConnectWithoutCustomRolesInputSchema).optional(),
+  connect: z.lazy(() => OrganizationWhereUniqueInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionCreateNestedManyWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateNestedManyWithoutCustomRoleInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const UserOrganizationCreateNestedManyWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationCreateNestedManyWithoutCustomRoleInput> = z.object({
+  create: z.union([ z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => UserOrganizationCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUncheckedCreateNestedManyWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedCreateNestedManyWithoutCustomRoleInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const UserOrganizationUncheckedCreateNestedManyWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedCreateNestedManyWithoutCustomRoleInput> = z.object({
+  create: z.union([ z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => UserOrganizationCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const BoolFieldUpdateOperationsInputSchema: z.ZodType<Prisma.BoolFieldUpdateOperationsInput> = z.object({
+  set: z.boolean().optional()
+}).strict();
+
+export const OrganizationUpdateOneRequiredWithoutCustomRolesNestedInputSchema: z.ZodType<Prisma.OrganizationUpdateOneRequiredWithoutCustomRolesNestedInput> = z.object({
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutCustomRolesInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => OrganizationCreateOrConnectWithoutCustomRolesInputSchema).optional(),
+  upsert: z.lazy(() => OrganizationUpsertWithoutCustomRolesInputSchema).optional(),
+  connect: z.lazy(() => OrganizationWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => OrganizationUpdateToOneWithWhereWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUpdateWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutCustomRolesInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUpdateManyWithoutCustomRoleNestedInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateManyWithoutCustomRoleNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutCustomRoleInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => CustomRolePermissionScalarWhereInputSchema),z.lazy(() => CustomRolePermissionScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const UserOrganizationUpdateManyWithoutCustomRoleNestedInputSchema: z.ZodType<Prisma.UserOrganizationUpdateManyWithoutCustomRoleNestedInput> = z.object({
+  create: z.union([ z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => UserOrganizationUpsertWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUpsertWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => UserOrganizationCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => UserOrganizationUpdateWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUpdateWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => UserOrganizationUpdateManyWithWhereWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUpdateManyWithWhereWithoutCustomRoleInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => UserOrganizationScalarWhereInputSchema),z.lazy(() => UserOrganizationScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleNestedInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRolePermissionCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),z.lazy(() => CustomRolePermissionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUpdateWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUpdateManyWithWhereWithoutCustomRoleInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => CustomRolePermissionScalarWhereInputSchema),z.lazy(() => CustomRolePermissionScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const UserOrganizationUncheckedUpdateManyWithoutCustomRoleNestedInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateManyWithoutCustomRoleNestedInput> = z.object({
+  create: z.union([ z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => UserOrganizationUpsertWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUpsertWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => UserOrganizationCreateManyCustomRoleInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => UserOrganizationWhereUniqueInputSchema),z.lazy(() => UserOrganizationWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => UserOrganizationUpdateWithWhereUniqueWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUpdateWithWhereUniqueWithoutCustomRoleInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => UserOrganizationUpdateManyWithWhereWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUpdateManyWithWhereWithoutCustomRoleInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => UserOrganizationScalarWhereInputSchema),z.lazy(() => UserOrganizationScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const CustomRoleCreateNestedOneWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleCreateNestedOneWithoutPermissionsInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutPermissionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CustomRoleCreateOrConnectWithoutPermissionsInputSchema).optional(),
+  connect: z.lazy(() => CustomRoleWhereUniqueInputSchema).optional()
+}).strict();
+
+export const PermissionCreateNestedOneWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionCreateNestedOneWithoutCustomRolePermissionsInput> = z.object({
+  create: z.union([ z.lazy(() => PermissionCreateWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedCreateWithoutCustomRolePermissionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => PermissionCreateOrConnectWithoutCustomRolePermissionsInputSchema).optional(),
+  connect: z.lazy(() => PermissionWhereUniqueInputSchema).optional()
+}).strict();
+
+export const CustomRoleUpdateOneRequiredWithoutPermissionsNestedInputSchema: z.ZodType<Prisma.CustomRoleUpdateOneRequiredWithoutPermissionsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutPermissionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CustomRoleCreateOrConnectWithoutPermissionsInputSchema).optional(),
+  upsert: z.lazy(() => CustomRoleUpsertWithoutPermissionsInputSchema).optional(),
+  connect: z.lazy(() => CustomRoleWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => CustomRoleUpdateToOneWithWhereWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUpdateWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutPermissionsInputSchema) ]).optional(),
+}).strict();
+
+export const PermissionUpdateOneRequiredWithoutCustomRolePermissionsNestedInputSchema: z.ZodType<Prisma.PermissionUpdateOneRequiredWithoutCustomRolePermissionsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => PermissionCreateWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedCreateWithoutCustomRolePermissionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => PermissionCreateOrConnectWithoutCustomRolePermissionsInputSchema).optional(),
+  upsert: z.lazy(() => PermissionUpsertWithoutCustomRolePermissionsInputSchema).optional(),
+  connect: z.lazy(() => PermissionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => PermissionUpdateToOneWithWhereWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUpdateWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedUpdateWithoutCustomRolePermissionsInputSchema) ]).optional(),
 }).strict();
 
 export const UserOrganizationCreateNestedManyWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationCreateNestedManyWithoutOrganizationInput> = z.object({
@@ -11340,6 +12062,13 @@ export const InvitationCreateNestedManyWithoutOrganizationInputSchema: z.ZodType
   connect: z.union([ z.lazy(() => InvitationWhereUniqueInputSchema),z.lazy(() => InvitationWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
+export const CustomRoleCreateNestedManyWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleCreateNestedManyWithoutOrganizationInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema).array(),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRoleCreateManyOrganizationInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
 export const UserOrganizationUncheckedCreateNestedManyWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedCreateNestedManyWithoutOrganizationInput> = z.object({
   create: z.union([ z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
@@ -11401,6 +12130,13 @@ export const InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema: 
   connectOrCreate: z.union([ z.lazy(() => InvitationCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => InvitationCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
   createMany: z.lazy(() => InvitationCreateManyOrganizationInputEnvelopeSchema).optional(),
   connect: z.union([ z.lazy(() => InvitationWhereUniqueInputSchema),z.lazy(() => InvitationWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema).array(),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRoleCreateManyOrganizationInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
 export const UserOrganizationUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.UserOrganizationUpdateManyWithoutOrganizationNestedInput> = z.object({
@@ -11529,6 +12265,20 @@ export const InvitationUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType
   deleteMany: z.union([ z.lazy(() => InvitationScalarWhereInputSchema),z.lazy(() => InvitationScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
+export const CustomRoleUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.CustomRoleUpdateManyWithoutOrganizationNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema).array(),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => CustomRoleUpsertWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpsertWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRoleCreateManyOrganizationInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => CustomRoleUpdateWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpdateWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => CustomRoleUpdateManyWithWhereWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpdateManyWithWhereWithoutOrganizationInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => CustomRoleScalarWhereInputSchema),z.lazy(() => CustomRoleScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
 export const UserOrganizationUncheckedUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateManyWithoutOrganizationNestedInput> = z.object({
   create: z.union([ z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
@@ -11655,10 +12405,34 @@ export const InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema: 
   deleteMany: z.union([ z.lazy(() => InvitationScalarWhereInputSchema),z.lazy(() => InvitationScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
+export const CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema).array(),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => CustomRoleUpsertWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpsertWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => CustomRoleCreateManyOrganizationInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => CustomRoleUpdateWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpdateWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => CustomRoleUpdateManyWithWhereWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpdateManyWithWhereWithoutOrganizationInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => CustomRoleScalarWhereInputSchema),z.lazy(() => CustomRoleScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
 export const OrganizationCreateNestedOneWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationCreateNestedOneWithoutUsersInput> = z.object({
   create: z.union([ z.lazy(() => OrganizationCreateWithoutUsersInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutUsersInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => OrganizationCreateOrConnectWithoutUsersInputSchema).optional(),
   connect: z.lazy(() => OrganizationWhereUniqueInputSchema).optional()
+}).strict();
+
+export const CustomRoleCreateNestedOneWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleCreateNestedOneWithoutUserAssignmentsInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutUserAssignmentsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CustomRoleCreateOrConnectWithoutUserAssignmentsInputSchema).optional(),
+  connect: z.lazy(() => CustomRoleWhereUniqueInputSchema).optional()
+}).strict();
+
+export const NullableEnumUserRoleFieldUpdateOperationsInputSchema: z.ZodType<Prisma.NullableEnumUserRoleFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => UserRoleSchema).optional().nullable()
 }).strict();
 
 export const OrganizationUpdateOneRequiredWithoutUsersNestedInputSchema: z.ZodType<Prisma.OrganizationUpdateOneRequiredWithoutUsersNestedInput> = z.object({
@@ -11667,6 +12441,16 @@ export const OrganizationUpdateOneRequiredWithoutUsersNestedInputSchema: z.ZodTy
   upsert: z.lazy(() => OrganizationUpsertWithoutUsersInputSchema).optional(),
   connect: z.lazy(() => OrganizationWhereUniqueInputSchema).optional(),
   update: z.union([ z.lazy(() => OrganizationUpdateToOneWithWhereWithoutUsersInputSchema),z.lazy(() => OrganizationUpdateWithoutUsersInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutUsersInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRoleUpdateOneWithoutUserAssignmentsNestedInputSchema: z.ZodType<Prisma.CustomRoleUpdateOneWithoutUserAssignmentsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutUserAssignmentsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CustomRoleCreateOrConnectWithoutUserAssignmentsInputSchema).optional(),
+  upsert: z.lazy(() => CustomRoleUpsertWithoutUserAssignmentsInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => CustomRoleWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => CustomRoleWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => CustomRoleWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => CustomRoleUpdateToOneWithWhereWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUpdateWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutUserAssignmentsInputSchema) ]).optional(),
 }).strict();
 
 export const OrganizationCreateNestedOneWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationCreateNestedOneWithoutCustomersInput> = z.object({
@@ -12353,10 +13137,6 @@ export const NullableIntFieldUpdateOperationsInputSchema: z.ZodType<Prisma.Nulla
   decrement: z.number().optional(),
   multiply: z.number().optional(),
   divide: z.number().optional()
-}).strict();
-
-export const BoolFieldUpdateOperationsInputSchema: z.ZodType<Prisma.BoolFieldUpdateOperationsInput> = z.object({
-  set: z.boolean().optional()
 }).strict();
 
 export const ProjectUpdateOneWithoutTimeEntriesNestedInputSchema: z.ZodType<Prisma.ProjectUpdateOneWithoutTimeEntriesNestedInput> = z.object({
@@ -13241,6 +14021,36 @@ export const NestedEnumUserRoleWithAggregatesFilterSchema: z.ZodType<Prisma.Nest
   _max: z.lazy(() => NestedEnumUserRoleFilterSchema).optional()
 }).strict();
 
+export const NestedBoolFilterSchema: z.ZodType<Prisma.NestedBoolFilter> = z.object({
+  equals: z.boolean().optional(),
+  not: z.union([ z.boolean(),z.lazy(() => NestedBoolFilterSchema) ]).optional(),
+}).strict();
+
+export const NestedBoolWithAggregatesFilterSchema: z.ZodType<Prisma.NestedBoolWithAggregatesFilter> = z.object({
+  equals: z.boolean().optional(),
+  not: z.union([ z.boolean(),z.lazy(() => NestedBoolWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedBoolFilterSchema).optional(),
+  _max: z.lazy(() => NestedBoolFilterSchema).optional()
+}).strict();
+
+export const NestedEnumUserRoleNullableFilterSchema: z.ZodType<Prisma.NestedEnumUserRoleNullableFilter> = z.object({
+  equals: z.lazy(() => UserRoleSchema).optional().nullable(),
+  in: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  notIn: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NestedEnumUserRoleNullableFilterSchema) ]).optional().nullable(),
+}).strict();
+
+export const NestedEnumUserRoleNullableWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumUserRoleNullableWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => UserRoleSchema).optional().nullable(),
+  in: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  notIn: z.lazy(() => UserRoleSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NestedEnumUserRoleNullableWithAggregatesFilterSchema) ]).optional().nullable(),
+  _count: z.lazy(() => NestedIntNullableFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumUserRoleNullableFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumUserRoleNullableFilterSchema).optional()
+}).strict();
+
 export const NestedEnumCustomerTypeFilterSchema: z.ZodType<Prisma.NestedEnumCustomerTypeFilter> = z.object({
   equals: z.lazy(() => CustomerTypeSchema).optional(),
   in: z.lazy(() => CustomerTypeSchema).array().optional(),
@@ -13527,11 +14337,6 @@ export const NestedEnumPriorityWithAggregatesFilterSchema: z.ZodType<Prisma.Nest
   _max: z.lazy(() => NestedEnumPriorityFilterSchema).optional()
 }).strict();
 
-export const NestedBoolFilterSchema: z.ZodType<Prisma.NestedBoolFilter> = z.object({
-  equals: z.boolean().optional(),
-  not: z.union([ z.boolean(),z.lazy(() => NestedBoolFilterSchema) ]).optional(),
-}).strict();
-
 export const NestedIntNullableWithAggregatesFilterSchema: z.ZodType<Prisma.NestedIntNullableWithAggregatesFilter> = z.object({
   equals: z.number().optional().nullable(),
   in: z.number().array().optional().nullable(),
@@ -13546,14 +14351,6 @@ export const NestedIntNullableWithAggregatesFilterSchema: z.ZodType<Prisma.Neste
   _sum: z.lazy(() => NestedIntNullableFilterSchema).optional(),
   _min: z.lazy(() => NestedIntNullableFilterSchema).optional(),
   _max: z.lazy(() => NestedIntNullableFilterSchema).optional()
-}).strict();
-
-export const NestedBoolWithAggregatesFilterSchema: z.ZodType<Prisma.NestedBoolWithAggregatesFilter> = z.object({
-  equals: z.boolean().optional(),
-  not: z.union([ z.boolean(),z.lazy(() => NestedBoolWithAggregatesFilterSchema) ]).optional(),
-  _count: z.lazy(() => NestedIntFilterSchema).optional(),
-  _min: z.lazy(() => NestedBoolFilterSchema).optional(),
-  _max: z.lazy(() => NestedBoolFilterSchema).optional()
 }).strict();
 
 export const NestedEnumInvoiceStatusFilterSchema: z.ZodType<Prisma.NestedEnumInvoiceStatusFilter> = z.object({
@@ -13832,6 +14629,28 @@ export const RolePermissionCreateManyPermissionInputEnvelopeSchema: z.ZodType<Pr
   skipDuplicates: z.boolean().optional()
 }).strict();
 
+export const CustomRolePermissionCreateWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateWithoutPermissionInput> = z.object({
+  id: z.string().cuid().optional(),
+  createdAt: z.coerce.date().optional(),
+  customRole: z.lazy(() => CustomRoleCreateNestedOneWithoutPermissionsInputSchema)
+}).strict();
+
+export const CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedCreateWithoutPermissionInput> = z.object({
+  id: z.string().cuid().optional(),
+  customRoleId: z.string(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const CustomRolePermissionCreateOrConnectWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateOrConnectWithoutPermissionInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionCreateManyPermissionInputEnvelopeSchema: z.ZodType<Prisma.CustomRolePermissionCreateManyPermissionInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => CustomRolePermissionCreateManyPermissionInputSchema),z.lazy(() => CustomRolePermissionCreateManyPermissionInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
 export const RolePermissionUpsertWithWhereUniqueWithoutPermissionInputSchema: z.ZodType<Prisma.RolePermissionUpsertWithWhereUniqueWithoutPermissionInput> = z.object({
   where: z.lazy(() => RolePermissionWhereUniqueInputSchema),
   update: z.union([ z.lazy(() => RolePermissionUpdateWithoutPermissionInputSchema),z.lazy(() => RolePermissionUncheckedUpdateWithoutPermissionInputSchema) ]),
@@ -13858,6 +14677,32 @@ export const RolePermissionScalarWhereInputSchema: z.ZodType<Prisma.RolePermissi
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
+export const CustomRolePermissionUpsertWithWhereUniqueWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUpsertWithWhereUniqueWithoutPermissionInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => CustomRolePermissionUpdateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedUpdateWithoutPermissionInputSchema) ]),
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutPermissionInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionUpdateWithWhereUniqueWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateWithWhereUniqueWithoutPermissionInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => CustomRolePermissionUpdateWithoutPermissionInputSchema),z.lazy(() => CustomRolePermissionUncheckedUpdateWithoutPermissionInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionUpdateManyWithWhereWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateManyWithWhereWithoutPermissionInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => CustomRolePermissionUpdateManyMutationInputSchema),z.lazy(() => CustomRolePermissionUncheckedUpdateManyWithoutPermissionInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionScalarWhereInputSchema: z.ZodType<Prisma.CustomRolePermissionScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => CustomRolePermissionScalarWhereInputSchema),z.lazy(() => CustomRolePermissionScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRolePermissionScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRolePermissionScalarWhereInputSchema),z.lazy(() => CustomRolePermissionScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  customRoleId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  permissionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const PermissionCreateWithoutRolePermissionsInputSchema: z.ZodType<Prisma.PermissionCreateWithoutRolePermissionsInput> = z.object({
   id: z.string().cuid().optional(),
   name: z.string(),
@@ -13865,7 +14710,8 @@ export const PermissionCreateWithoutRolePermissionsInputSchema: z.ZodType<Prisma
   module: z.string(),
   action: z.string(),
   createdAt: z.coerce.date().optional(),
-  updatedAt: z.coerce.date().optional()
+  updatedAt: z.coerce.date().optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionCreateNestedManyWithoutPermissionInputSchema).optional()
 }).strict();
 
 export const PermissionUncheckedCreateWithoutRolePermissionsInputSchema: z.ZodType<Prisma.PermissionUncheckedCreateWithoutRolePermissionsInput> = z.object({
@@ -13875,7 +14721,8 @@ export const PermissionUncheckedCreateWithoutRolePermissionsInputSchema: z.ZodTy
   module: z.string(),
   action: z.string(),
   createdAt: z.coerce.date().optional(),
-  updatedAt: z.coerce.date().optional()
+  updatedAt: z.coerce.date().optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionUncheckedCreateNestedManyWithoutPermissionInputSchema).optional()
 }).strict();
 
 export const PermissionCreateOrConnectWithoutRolePermissionsInputSchema: z.ZodType<Prisma.PermissionCreateOrConnectWithoutRolePermissionsInput> = z.object({
@@ -13902,6 +14749,7 @@ export const PermissionUpdateWithoutRolePermissionsInputSchema: z.ZodType<Prisma
   action: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionUpdateManyWithoutPermissionNestedInputSchema).optional()
 }).strict();
 
 export const PermissionUncheckedUpdateWithoutRolePermissionsInputSchema: z.ZodType<Prisma.PermissionUncheckedUpdateWithoutRolePermissionsInput> = z.object({
@@ -13912,17 +14760,333 @@ export const PermissionUncheckedUpdateWithoutRolePermissionsInputSchema: z.ZodTy
   action: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customRolePermissions: z.lazy(() => CustomRolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema).optional()
+}).strict();
+
+export const OrganizationCreateWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutCustomRolesInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  logo: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  industry: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  users: z.lazy(() => UserOrganizationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customers: z.lazy(() => CustomerCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  projects: z.lazy(() => ProjectCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  tasks: z.lazy(() => TaskCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+}).strict();
+
+export const OrganizationUncheckedCreateWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutCustomRolesInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  logo: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  industry: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  users: z.lazy(() => UserOrganizationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customers: z.lazy(() => CustomerUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  projects: z.lazy(() => ProjectUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  tasks: z.lazy(() => TaskUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+}).strict();
+
+export const OrganizationCreateOrConnectWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutCustomRolesInput> = z.object({
+  where: z.lazy(() => OrganizationWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutCustomRolesInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionCreateWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateWithoutCustomRoleInput> = z.object({
+  id: z.string().cuid().optional(),
+  createdAt: z.coerce.date().optional(),
+  permission: z.lazy(() => PermissionCreateNestedOneWithoutCustomRolePermissionsInputSchema)
+}).strict();
+
+export const CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedCreateWithoutCustomRoleInput> = z.object({
+  id: z.string().cuid().optional(),
+  permissionId: z.string(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const CustomRolePermissionCreateOrConnectWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateOrConnectWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionCreateManyCustomRoleInputEnvelopeSchema: z.ZodType<Prisma.CustomRolePermissionCreateManyCustomRoleInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => CustomRolePermissionCreateManyCustomRoleInputSchema),z.lazy(() => CustomRolePermissionCreateManyCustomRoleInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const UserOrganizationCreateWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationCreateWithoutCustomRoleInput> = z.object({
+  userId: z.string(),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  joinedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutUsersInputSchema)
+}).strict();
+
+export const UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedCreateWithoutCustomRoleInput> = z.object({
+  userId: z.string(),
+  organizationId: z.string(),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  joinedAt: z.coerce.date().optional()
+}).strict();
+
+export const UserOrganizationCreateOrConnectWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationCreateOrConnectWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => UserOrganizationWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const UserOrganizationCreateManyCustomRoleInputEnvelopeSchema: z.ZodType<Prisma.UserOrganizationCreateManyCustomRoleInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => UserOrganizationCreateManyCustomRoleInputSchema),z.lazy(() => UserOrganizationCreateManyCustomRoleInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const OrganizationUpsertWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationUpsertWithoutCustomRolesInput> = z.object({
+  update: z.union([ z.lazy(() => OrganizationUpdateWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutCustomRolesInputSchema) ]),
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutCustomRolesInputSchema) ]),
+  where: z.lazy(() => OrganizationWhereInputSchema).optional()
+}).strict();
+
+export const OrganizationUpdateToOneWithWhereWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationUpdateToOneWithWhereWithoutCustomRolesInput> = z.object({
+  where: z.lazy(() => OrganizationWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => OrganizationUpdateWithoutCustomRolesInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutCustomRolesInputSchema) ]),
+}).strict();
+
+export const OrganizationUpdateWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationUpdateWithoutCustomRolesInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  logo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  website: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  industry: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  users: z.lazy(() => UserOrganizationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customers: z.lazy(() => CustomerUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  projects: z.lazy(() => ProjectUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  tasks: z.lazy(() => TaskUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+}).strict();
+
+export const OrganizationUncheckedUpdateWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutCustomRolesInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  logo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  website: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  industry: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  users: z.lazy(() => UserOrganizationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customers: z.lazy(() => CustomerUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  projects: z.lazy(() => ProjectUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  tasks: z.lazy(() => TaskUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => CustomRolePermissionUpdateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedUpdateWithoutCustomRoleInputSchema) ]),
+  create: z.union([ z.lazy(() => CustomRolePermissionCreateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedCreateWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionUpdateWithWhereUniqueWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateWithWhereUniqueWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => CustomRolePermissionUpdateWithoutCustomRoleInputSchema),z.lazy(() => CustomRolePermissionUncheckedUpdateWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const CustomRolePermissionUpdateManyWithWhereWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateManyWithWhereWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => CustomRolePermissionScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => CustomRolePermissionUpdateManyMutationInputSchema),z.lazy(() => CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const UserOrganizationUpsertWithWhereUniqueWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUpsertWithWhereUniqueWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => UserOrganizationWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => UserOrganizationUpdateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedUpdateWithoutCustomRoleInputSchema) ]),
+  create: z.union([ z.lazy(() => UserOrganizationCreateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const UserOrganizationUpdateWithWhereUniqueWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUpdateWithWhereUniqueWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => UserOrganizationWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => UserOrganizationUpdateWithoutCustomRoleInputSchema),z.lazy(() => UserOrganizationUncheckedUpdateWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const UserOrganizationUpdateManyWithWhereWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUpdateManyWithWhereWithoutCustomRoleInput> = z.object({
+  where: z.lazy(() => UserOrganizationScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => UserOrganizationUpdateManyMutationInputSchema),z.lazy(() => UserOrganizationUncheckedUpdateManyWithoutCustomRoleInputSchema) ]),
+}).strict();
+
+export const UserOrganizationScalarWhereInputSchema: z.ZodType<Prisma.UserOrganizationScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => UserOrganizationScalarWhereInputSchema),z.lazy(() => UserOrganizationScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => UserOrganizationScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => UserOrganizationScalarWhereInputSchema),z.lazy(() => UserOrganizationScalarWhereInputSchema).array() ]).optional(),
+  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  role: z.union([ z.lazy(() => EnumUserRoleNullableFilterSchema),z.lazy(() => UserRoleSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  joinedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const CustomRoleCreateWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleCreateWithoutPermissionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutCustomRolesInputSchema),
+  userAssignments: z.lazy(() => UserOrganizationCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedCreateWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleUncheckedCreateWithoutPermissionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  userAssignments: z.lazy(() => UserOrganizationUncheckedCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleCreateOrConnectWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleCreateOrConnectWithoutPermissionsInput> = z.object({
+  where: z.lazy(() => CustomRoleWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutPermissionsInputSchema) ]),
+}).strict();
+
+export const PermissionCreateWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionCreateWithoutCustomRolePermissionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  module: z.string(),
+  action: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  rolePermissions: z.lazy(() => RolePermissionCreateNestedManyWithoutPermissionInputSchema).optional()
+}).strict();
+
+export const PermissionUncheckedCreateWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionUncheckedCreateWithoutCustomRolePermissionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  module: z.string(),
+  action: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  rolePermissions: z.lazy(() => RolePermissionUncheckedCreateNestedManyWithoutPermissionInputSchema).optional()
+}).strict();
+
+export const PermissionCreateOrConnectWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionCreateOrConnectWithoutCustomRolePermissionsInput> = z.object({
+  where: z.lazy(() => PermissionWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => PermissionCreateWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedCreateWithoutCustomRolePermissionsInputSchema) ]),
+}).strict();
+
+export const CustomRoleUpsertWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleUpsertWithoutPermissionsInput> = z.object({
+  update: z.union([ z.lazy(() => CustomRoleUpdateWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutPermissionsInputSchema) ]),
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutPermissionsInputSchema) ]),
+  where: z.lazy(() => CustomRoleWhereInputSchema).optional()
+}).strict();
+
+export const CustomRoleUpdateToOneWithWhereWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleUpdateToOneWithWhereWithoutPermissionsInput> = z.object({
+  where: z.lazy(() => CustomRoleWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => CustomRoleUpdateWithoutPermissionsInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutPermissionsInputSchema) ]),
+}).strict();
+
+export const CustomRoleUpdateWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleUpdateWithoutPermissionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutCustomRolesNestedInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUpdateManyWithoutCustomRoleNestedInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedUpdateWithoutPermissionsInputSchema: z.ZodType<Prisma.CustomRoleUncheckedUpdateWithoutPermissionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUncheckedUpdateManyWithoutCustomRoleNestedInputSchema).optional()
+}).strict();
+
+export const PermissionUpsertWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionUpsertWithoutCustomRolePermissionsInput> = z.object({
+  update: z.union([ z.lazy(() => PermissionUpdateWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedUpdateWithoutCustomRolePermissionsInputSchema) ]),
+  create: z.union([ z.lazy(() => PermissionCreateWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedCreateWithoutCustomRolePermissionsInputSchema) ]),
+  where: z.lazy(() => PermissionWhereInputSchema).optional()
+}).strict();
+
+export const PermissionUpdateToOneWithWhereWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionUpdateToOneWithWhereWithoutCustomRolePermissionsInput> = z.object({
+  where: z.lazy(() => PermissionWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => PermissionUpdateWithoutCustomRolePermissionsInputSchema),z.lazy(() => PermissionUncheckedUpdateWithoutCustomRolePermissionsInputSchema) ]),
+}).strict();
+
+export const PermissionUpdateWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionUpdateWithoutCustomRolePermissionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  module: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  action: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  rolePermissions: z.lazy(() => RolePermissionUpdateManyWithoutPermissionNestedInputSchema).optional()
+}).strict();
+
+export const PermissionUncheckedUpdateWithoutCustomRolePermissionsInputSchema: z.ZodType<Prisma.PermissionUncheckedUpdateWithoutCustomRolePermissionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  module: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  action: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  rolePermissions: z.lazy(() => RolePermissionUncheckedUpdateManyWithoutPermissionNestedInputSchema).optional()
 }).strict();
 
 export const UserOrganizationCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationCreateWithoutOrganizationInput> = z.object({
   userId: z.string(),
-  role: z.lazy(() => UserRoleSchema),
-  joinedAt: z.coerce.date().optional()
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  joinedAt: z.coerce.date().optional(),
+  customRole: z.lazy(() => CustomRoleCreateNestedOneWithoutUserAssignmentsInputSchema).optional()
 }).strict();
 
 export const UserOrganizationUncheckedCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedCreateWithoutOrganizationInput> = z.object({
   userId: z.string(),
-  role: z.lazy(() => UserRoleSchema),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  customRoleId: z.string().optional().nullable(),
   joinedAt: z.coerce.date().optional()
 }).strict();
 
@@ -14372,6 +15536,42 @@ export const InvitationCreateManyOrganizationInputEnvelopeSchema: z.ZodType<Pris
   skipDuplicates: z.boolean().optional()
 }).strict();
 
+export const CustomRoleCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleCreateWithoutOrganizationInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  permissions: z.lazy(() => CustomRolePermissionCreateNestedManyWithoutCustomRoleInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUncheckedCreateWithoutOrganizationInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  permissions: z.lazy(() => CustomRolePermissionUncheckedCreateNestedManyWithoutCustomRoleInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUncheckedCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleCreateOrConnectWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleCreateOrConnectWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => CustomRoleWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const CustomRoleCreateManyOrganizationInputEnvelopeSchema: z.ZodType<Prisma.CustomRoleCreateManyOrganizationInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => CustomRoleCreateManyOrganizationInputSchema),z.lazy(() => CustomRoleCreateManyOrganizationInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
 export const UserOrganizationUpsertWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUpsertWithWhereUniqueWithoutOrganizationInput> = z.object({
   where: z.lazy(() => UserOrganizationWhereUniqueInputSchema),
   update: z.union([ z.lazy(() => UserOrganizationUpdateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationUncheckedUpdateWithoutOrganizationInputSchema) ]),
@@ -14386,16 +15586,6 @@ export const UserOrganizationUpdateWithWhereUniqueWithoutOrganizationInputSchema
 export const UserOrganizationUpdateManyWithWhereWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUpdateManyWithWhereWithoutOrganizationInput> = z.object({
   where: z.lazy(() => UserOrganizationScalarWhereInputSchema),
   data: z.union([ z.lazy(() => UserOrganizationUpdateManyMutationInputSchema),z.lazy(() => UserOrganizationUncheckedUpdateManyWithoutOrganizationInputSchema) ]),
-}).strict();
-
-export const UserOrganizationScalarWhereInputSchema: z.ZodType<Prisma.UserOrganizationScalarWhereInput> = z.object({
-  AND: z.union([ z.lazy(() => UserOrganizationScalarWhereInputSchema),z.lazy(() => UserOrganizationScalarWhereInputSchema).array() ]).optional(),
-  OR: z.lazy(() => UserOrganizationScalarWhereInputSchema).array().optional(),
-  NOT: z.union([ z.lazy(() => UserOrganizationScalarWhereInputSchema),z.lazy(() => UserOrganizationScalarWhereInputSchema).array() ]).optional(),
-  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  role: z.union([ z.lazy(() => EnumUserRoleFilterSchema),z.lazy(() => UserRoleSchema) ]).optional(),
-  joinedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
 export const CustomerUpsertWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomerUpsertWithWhereUniqueWithoutOrganizationInput> = z.object({
@@ -14719,6 +15909,37 @@ export const InvitationScalarWhereInputSchema: z.ZodType<Prisma.InvitationScalar
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
+export const CustomRoleUpsertWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUpsertWithWhereUniqueWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => CustomRoleWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => CustomRoleUpdateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutOrganizationInputSchema) ]),
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const CustomRoleUpdateWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUpdateWithWhereUniqueWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => CustomRoleWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => CustomRoleUpdateWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const CustomRoleUpdateManyWithWhereWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUpdateManyWithWhereWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => CustomRoleScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => CustomRoleUpdateManyMutationInputSchema),z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const CustomRoleScalarWhereInputSchema: z.ZodType<Prisma.CustomRoleScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => CustomRoleScalarWhereInputSchema),z.lazy(() => CustomRoleScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => CustomRoleScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => CustomRoleScalarWhereInputSchema),z.lazy(() => CustomRoleScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  color: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const OrganizationCreateWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutUsersInput> = z.object({
   id: z.string().cuid().optional(),
   name: z.string(),
@@ -14735,7 +15956,8 @@ export const OrganizationCreateWithoutUsersInputSchema: z.ZodType<Prisma.Organiz
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutUsersInput> = z.object({
@@ -14754,12 +15976,44 @@ export const OrganizationUncheckedCreateWithoutUsersInputSchema: z.ZodType<Prism
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutUsersInput> = z.object({
   where: z.lazy(() => OrganizationWhereUniqueInputSchema),
   create: z.union([ z.lazy(() => OrganizationCreateWithoutUsersInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutUsersInputSchema) ]),
+}).strict();
+
+export const CustomRoleCreateWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleCreateWithoutUserAssignmentsInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutCustomRolesInputSchema),
+  permissions: z.lazy(() => CustomRolePermissionCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedCreateWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleUncheckedCreateWithoutUserAssignmentsInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  permissions: z.lazy(() => CustomRolePermissionUncheckedCreateNestedManyWithoutCustomRoleInputSchema).optional()
+}).strict();
+
+export const CustomRoleCreateOrConnectWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleCreateOrConnectWithoutUserAssignmentsInput> = z.object({
+  where: z.lazy(() => CustomRoleWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutUserAssignmentsInputSchema) ]),
 }).strict();
 
 export const OrganizationUpsertWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationUpsertWithoutUsersInput> = z.object({
@@ -14789,7 +16043,8 @@ export const OrganizationUpdateWithoutUsersInputSchema: z.ZodType<Prisma.Organiz
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutUsersInput> = z.object({
@@ -14808,7 +16063,45 @@ export const OrganizationUncheckedUpdateWithoutUsersInputSchema: z.ZodType<Prism
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+}).strict();
+
+export const CustomRoleUpsertWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleUpsertWithoutUserAssignmentsInput> = z.object({
+  update: z.union([ z.lazy(() => CustomRoleUpdateWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutUserAssignmentsInputSchema) ]),
+  create: z.union([ z.lazy(() => CustomRoleCreateWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUncheckedCreateWithoutUserAssignmentsInputSchema) ]),
+  where: z.lazy(() => CustomRoleWhereInputSchema).optional()
+}).strict();
+
+export const CustomRoleUpdateToOneWithWhereWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleUpdateToOneWithWhereWithoutUserAssignmentsInput> = z.object({
+  where: z.lazy(() => CustomRoleWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => CustomRoleUpdateWithoutUserAssignmentsInputSchema),z.lazy(() => CustomRoleUncheckedUpdateWithoutUserAssignmentsInputSchema) ]),
+}).strict();
+
+export const CustomRoleUpdateWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleUpdateWithoutUserAssignmentsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutCustomRolesNestedInputSchema).optional(),
+  permissions: z.lazy(() => CustomRolePermissionUpdateManyWithoutCustomRoleNestedInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedUpdateWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleUncheckedUpdateWithoutUserAssignmentsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  permissions: z.lazy(() => CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutCustomersInput> = z.object({
@@ -14827,7 +16120,8 @@ export const OrganizationCreateWithoutCustomersInputSchema: z.ZodType<Prisma.Org
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutCustomersInput> = z.object({
@@ -14846,7 +16140,8 @@ export const OrganizationUncheckedCreateWithoutCustomersInputSchema: z.ZodType<P
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutCustomersInput> = z.object({
@@ -15041,7 +16336,8 @@ export const OrganizationUpdateWithoutCustomersInputSchema: z.ZodType<Prisma.Org
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutCustomersInput> = z.object({
@@ -15060,7 +16356,8 @@ export const OrganizationUncheckedUpdateWithoutCustomersInputSchema: z.ZodType<P
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const CustomerInteractionUpsertWithWhereUniqueWithoutCustomerInputSchema: z.ZodType<Prisma.CustomerInteractionUpsertWithWhereUniqueWithoutCustomerInput> = z.object({
@@ -15464,7 +16761,8 @@ export const OrganizationCreateWithoutProjectsInputSchema: z.ZodType<Prisma.Orga
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutProjectsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutProjectsInput> = z.object({
@@ -15483,7 +16781,8 @@ export const OrganizationUncheckedCreateWithoutProjectsInputSchema: z.ZodType<Pr
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutProjectsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutProjectsInput> = z.object({
@@ -15652,7 +16951,8 @@ export const OrganizationUpdateWithoutProjectsInputSchema: z.ZodType<Prisma.Orga
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutProjectsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutProjectsInput> = z.object({
@@ -15671,7 +16971,8 @@ export const OrganizationUncheckedUpdateWithoutProjectsInputSchema: z.ZodType<Pr
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const TaskUpsertWithWhereUniqueWithoutProjectInputSchema: z.ZodType<Prisma.TaskUpsertWithWhereUniqueWithoutProjectInput> = z.object({
@@ -15773,7 +17074,8 @@ export const OrganizationCreateWithoutTasksInputSchema: z.ZodType<Prisma.Organiz
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutTasksInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutTasksInput> = z.object({
@@ -15792,7 +17094,8 @@ export const OrganizationUncheckedCreateWithoutTasksInputSchema: z.ZodType<Prism
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutTasksInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutTasksInput> = z.object({
@@ -16112,7 +17415,8 @@ export const OrganizationUpdateWithoutTasksInputSchema: z.ZodType<Prisma.Organiz
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutTasksInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutTasksInput> = z.object({
@@ -16131,7 +17435,8 @@ export const OrganizationUncheckedUpdateWithoutTasksInputSchema: z.ZodType<Prism
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const ProjectUpsertWithoutTasksInputSchema: z.ZodType<Prisma.ProjectUpsertWithoutTasksInput> = z.object({
@@ -16670,7 +17975,8 @@ export const OrganizationCreateWithoutInvoicesInputSchema: z.ZodType<Prisma.Orga
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutInvoicesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutInvoicesInput> = z.object({
@@ -16689,7 +17995,8 @@ export const OrganizationUncheckedCreateWithoutInvoicesInputSchema: z.ZodType<Pr
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutInvoicesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutInvoicesInput> = z.object({
@@ -16859,7 +18166,8 @@ export const OrganizationUpdateWithoutInvoicesInputSchema: z.ZodType<Prisma.Orga
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutInvoicesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutInvoicesInput> = z.object({
@@ -16878,7 +18186,8 @@ export const OrganizationUncheckedUpdateWithoutInvoicesInputSchema: z.ZodType<Pr
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUpsertWithoutInvoicesInputSchema: z.ZodType<Prisma.CustomerUpsertWithoutInvoicesInput> = z.object({
@@ -17339,7 +18648,8 @@ export const OrganizationCreateWithoutExpensesInputSchema: z.ZodType<Prisma.Orga
   invoices: z.lazy(() => InvoiceCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutExpensesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutExpensesInput> = z.object({
@@ -17358,7 +18668,8 @@ export const OrganizationUncheckedCreateWithoutExpensesInputSchema: z.ZodType<Pr
   invoices: z.lazy(() => InvoiceUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutExpensesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutExpensesInput> = z.object({
@@ -17393,7 +18704,8 @@ export const OrganizationUpdateWithoutExpensesInputSchema: z.ZodType<Prisma.Orga
   invoices: z.lazy(() => InvoiceUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutExpensesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutExpensesInput> = z.object({
@@ -17412,7 +18724,8 @@ export const OrganizationUncheckedUpdateWithoutExpensesInputSchema: z.ZodType<Pr
   invoices: z.lazy(() => InvoiceUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const TaskCreateWithoutCommentsInputSchema: z.ZodType<Prisma.TaskCreateWithoutCommentsInput> = z.object({
@@ -17782,7 +19095,8 @@ export const OrganizationCreateWithoutInvitationsInputSchema: z.ZodType<Prisma.O
   invoices: z.lazy(() => InvoiceCreateNestedManyWithoutOrganizationInputSchema).optional(),
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional()
+  campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutInvitationsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutInvitationsInput> = z.object({
@@ -17801,7 +19115,8 @@ export const OrganizationUncheckedCreateWithoutInvitationsInputSchema: z.ZodType
   invoices: z.lazy(() => InvoiceUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutInvitationsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutInvitationsInput> = z.object({
@@ -17836,7 +19151,8 @@ export const OrganizationUpdateWithoutInvitationsInputSchema: z.ZodType<Prisma.O
   invoices: z.lazy(() => InvoiceUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutInvitationsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutInvitationsInput> = z.object({
@@ -17855,7 +19171,8 @@ export const OrganizationUncheckedUpdateWithoutInvitationsInputSchema: z.ZodType
   invoices: z.lazy(() => InvoiceUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutEmployeesInput> = z.object({
@@ -17874,7 +19191,8 @@ export const OrganizationCreateWithoutEmployeesInputSchema: z.ZodType<Prisma.Org
   invoices: z.lazy(() => InvoiceCreateNestedManyWithoutOrganizationInputSchema).optional(),
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutEmployeesInput> = z.object({
@@ -17893,7 +19211,8 @@ export const OrganizationUncheckedCreateWithoutEmployeesInputSchema: z.ZodType<P
   invoices: z.lazy(() => InvoiceUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutEmployeesInput> = z.object({
@@ -18054,7 +19373,8 @@ export const OrganizationUpdateWithoutEmployeesInputSchema: z.ZodType<Prisma.Org
   invoices: z.lazy(() => InvoiceUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutEmployeesInput> = z.object({
@@ -18073,7 +19393,8 @@ export const OrganizationUncheckedUpdateWithoutEmployeesInputSchema: z.ZodType<P
   invoices: z.lazy(() => InvoiceUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const PayrollUpsertWithWhereUniqueWithoutEmployeeInputSchema: z.ZodType<Prisma.PayrollUpsertWithWhereUniqueWithoutEmployeeInput> = z.object({
@@ -18584,7 +19905,8 @@ export const OrganizationCreateWithoutCampaignsInputSchema: z.ZodType<Prisma.Org
   invoices: z.lazy(() => InvoiceCreateNestedManyWithoutOrganizationInputSchema).optional(),
   expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutCampaignsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutCampaignsInput> = z.object({
@@ -18603,7 +19925,8 @@ export const OrganizationUncheckedCreateWithoutCampaignsInputSchema: z.ZodType<P
   invoices: z.lazy(() => InvoiceUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutCampaignsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutCampaignsInput> = z.object({
@@ -18714,7 +20037,8 @@ export const OrganizationUpdateWithoutCampaignsInputSchema: z.ZodType<Prisma.Org
   invoices: z.lazy(() => InvoiceUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutCampaignsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutCampaignsInput> = z.object({
@@ -18733,7 +20057,8 @@ export const OrganizationUncheckedUpdateWithoutCampaignsInputSchema: z.ZodType<P
   invoices: z.lazy(() => InvoiceUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const EmailCampaignUpsertWithWhereUniqueWithoutCampaignInputSchema: z.ZodType<Prisma.EmailCampaignUpsertWithWhereUniqueWithoutCampaignInput> = z.object({
@@ -19241,6 +20566,12 @@ export const RolePermissionCreateManyPermissionInputSchema: z.ZodType<Prisma.Rol
   createdAt: z.coerce.date().optional()
 }).strict();
 
+export const CustomRolePermissionCreateManyPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateManyPermissionInput> = z.object({
+  id: z.string().cuid().optional(),
+  customRoleId: z.string(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
 export const RolePermissionUpdateWithoutPermissionInputSchema: z.ZodType<Prisma.RolePermissionUpdateWithoutPermissionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
@@ -19259,9 +20590,80 @@ export const RolePermissionUncheckedUpdateManyWithoutPermissionInputSchema: z.Zo
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
+export const CustomRolePermissionUpdateWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateWithoutPermissionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customRole: z.lazy(() => CustomRoleUpdateOneRequiredWithoutPermissionsNestedInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateWithoutPermissionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customRoleId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateManyWithoutPermissionInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateManyWithoutPermissionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customRoleId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionCreateManyCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionCreateManyCustomRoleInput> = z.object({
+  id: z.string().cuid().optional(),
+  permissionId: z.string(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const UserOrganizationCreateManyCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationCreateManyCustomRoleInput> = z.object({
+  userId: z.string(),
+  organizationId: z.string(),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  joinedAt: z.coerce.date().optional()
+}).strict();
+
+export const CustomRolePermissionUpdateWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUpdateWithoutCustomRoleInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  permission: z.lazy(() => PermissionUpdateOneRequiredWithoutCustomRolePermissionsNestedInputSchema).optional()
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateWithoutCustomRoleInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  permissionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  permissionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const UserOrganizationUpdateWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUpdateWithoutCustomRoleInput> = z.object({
+  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutUsersNestedInputSchema).optional()
+}).strict();
+
+export const UserOrganizationUncheckedUpdateWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateWithoutCustomRoleInput> = z.object({
+  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const UserOrganizationUncheckedUpdateManyWithoutCustomRoleInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateManyWithoutCustomRoleInput> = z.object({
+  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
 export const UserOrganizationCreateManyOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationCreateManyOrganizationInput> = z.object({
   userId: z.string(),
-  role: z.lazy(() => UserRoleSchema),
+  role: z.lazy(() => UserRoleSchema).optional().nullable(),
+  customRoleId: z.string().optional().nullable(),
   joinedAt: z.coerce.date().optional()
 }).strict();
 
@@ -19426,21 +20828,35 @@ export const InvitationCreateManyOrganizationInputSchema: z.ZodType<Prisma.Invit
   updatedAt: z.coerce.date().optional()
 }).strict();
 
+export const CustomRoleCreateManyOrganizationInputSchema: z.ZodType<Prisma.CustomRoleCreateManyOrganizationInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  color: z.string().optional(),
+  isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
 export const UserOrganizationUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUpdateWithoutOrganizationInput> = z.object({
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customRole: z.lazy(() => CustomRoleUpdateOneWithoutUserAssignmentsNestedInputSchema).optional()
 }).strict();
 
 export const UserOrganizationUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateWithoutOrganizationInput> = z.object({
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
 export const UserOrganizationUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateManyWithoutOrganizationInput> = z.object({
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => EnumUserRoleFieldUpdateOperationsInputSchema) ]).optional(),
+  role: z.union([ z.lazy(() => UserRoleSchema),z.lazy(() => NullableEnumUserRoleFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  customRoleId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   joinedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
@@ -19957,6 +21373,43 @@ export const InvitationUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodT
   status: z.union([ z.lazy(() => InvitationStatusSchema),z.lazy(() => EnumInvitationStatusFieldUpdateOperationsInputSchema) ]).optional(),
   expiresAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   acceptedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CustomRoleUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUpdateWithoutOrganizationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  permissions: z.lazy(() => CustomRolePermissionUpdateManyWithoutCustomRoleNestedInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUpdateManyWithoutCustomRoleNestedInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUncheckedUpdateWithoutOrganizationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  permissions: z.lazy(() => CustomRolePermissionUncheckedUpdateManyWithoutCustomRoleNestedInputSchema).optional(),
+  userAssignments: z.lazy(() => UserOrganizationUncheckedUpdateManyWithoutCustomRoleNestedInputSchema).optional()
+}).strict();
+
+export const CustomRoleUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodType<Prisma.CustomRoleUncheckedUpdateManyWithoutOrganizationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -21417,6 +22870,130 @@ export const RolePermissionFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.RolePer
   select: RolePermissionSelectSchema.optional(),
   include: RolePermissionIncludeSchema.optional(),
   where: RolePermissionWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRoleFindFirstArgsSchema: z.ZodType<Prisma.CustomRoleFindFirstArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  where: CustomRoleWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRoleOrderByWithRelationInputSchema.array(),CustomRoleOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRoleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ CustomRoleScalarFieldEnumSchema,CustomRoleScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const CustomRoleFindFirstOrThrowArgsSchema: z.ZodType<Prisma.CustomRoleFindFirstOrThrowArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  where: CustomRoleWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRoleOrderByWithRelationInputSchema.array(),CustomRoleOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRoleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ CustomRoleScalarFieldEnumSchema,CustomRoleScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const CustomRoleFindManyArgsSchema: z.ZodType<Prisma.CustomRoleFindManyArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  where: CustomRoleWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRoleOrderByWithRelationInputSchema.array(),CustomRoleOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRoleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ CustomRoleScalarFieldEnumSchema,CustomRoleScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const CustomRoleAggregateArgsSchema: z.ZodType<Prisma.CustomRoleAggregateArgs> = z.object({
+  where: CustomRoleWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRoleOrderByWithRelationInputSchema.array(),CustomRoleOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRoleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const CustomRoleGroupByArgsSchema: z.ZodType<Prisma.CustomRoleGroupByArgs> = z.object({
+  where: CustomRoleWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRoleOrderByWithAggregationInputSchema.array(),CustomRoleOrderByWithAggregationInputSchema ]).optional(),
+  by: CustomRoleScalarFieldEnumSchema.array(),
+  having: CustomRoleScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const CustomRoleFindUniqueArgsSchema: z.ZodType<Prisma.CustomRoleFindUniqueArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  where: CustomRoleWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRoleFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.CustomRoleFindUniqueOrThrowArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  where: CustomRoleWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRolePermissionFindFirstArgsSchema: z.ZodType<Prisma.CustomRolePermissionFindFirstArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  where: CustomRolePermissionWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRolePermissionOrderByWithRelationInputSchema.array(),CustomRolePermissionOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRolePermissionWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ CustomRolePermissionScalarFieldEnumSchema,CustomRolePermissionScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const CustomRolePermissionFindFirstOrThrowArgsSchema: z.ZodType<Prisma.CustomRolePermissionFindFirstOrThrowArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  where: CustomRolePermissionWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRolePermissionOrderByWithRelationInputSchema.array(),CustomRolePermissionOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRolePermissionWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ CustomRolePermissionScalarFieldEnumSchema,CustomRolePermissionScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const CustomRolePermissionFindManyArgsSchema: z.ZodType<Prisma.CustomRolePermissionFindManyArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  where: CustomRolePermissionWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRolePermissionOrderByWithRelationInputSchema.array(),CustomRolePermissionOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRolePermissionWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ CustomRolePermissionScalarFieldEnumSchema,CustomRolePermissionScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const CustomRolePermissionAggregateArgsSchema: z.ZodType<Prisma.CustomRolePermissionAggregateArgs> = z.object({
+  where: CustomRolePermissionWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRolePermissionOrderByWithRelationInputSchema.array(),CustomRolePermissionOrderByWithRelationInputSchema ]).optional(),
+  cursor: CustomRolePermissionWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const CustomRolePermissionGroupByArgsSchema: z.ZodType<Prisma.CustomRolePermissionGroupByArgs> = z.object({
+  where: CustomRolePermissionWhereInputSchema.optional(),
+  orderBy: z.union([ CustomRolePermissionOrderByWithAggregationInputSchema.array(),CustomRolePermissionOrderByWithAggregationInputSchema ]).optional(),
+  by: CustomRolePermissionScalarFieldEnumSchema.array(),
+  having: CustomRolePermissionScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const CustomRolePermissionFindUniqueArgsSchema: z.ZodType<Prisma.CustomRolePermissionFindUniqueArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  where: CustomRolePermissionWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRolePermissionFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.CustomRolePermissionFindUniqueOrThrowArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  where: CustomRolePermissionWhereUniqueInputSchema,
 }).strict() ;
 
 export const OrganizationFindFirstArgsSchema: z.ZodType<Prisma.OrganizationFindFirstArgs> = z.object({
@@ -23359,6 +24936,98 @@ export const RolePermissionUpdateManyArgsSchema: z.ZodType<Prisma.RolePermission
 
 export const RolePermissionDeleteManyArgsSchema: z.ZodType<Prisma.RolePermissionDeleteManyArgs> = z.object({
   where: RolePermissionWhereInputSchema.optional(),
+}).strict() ;
+
+export const CustomRoleCreateArgsSchema: z.ZodType<Prisma.CustomRoleCreateArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  data: z.union([ CustomRoleCreateInputSchema,CustomRoleUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const CustomRoleUpsertArgsSchema: z.ZodType<Prisma.CustomRoleUpsertArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  where: CustomRoleWhereUniqueInputSchema,
+  create: z.union([ CustomRoleCreateInputSchema,CustomRoleUncheckedCreateInputSchema ]),
+  update: z.union([ CustomRoleUpdateInputSchema,CustomRoleUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const CustomRoleCreateManyArgsSchema: z.ZodType<Prisma.CustomRoleCreateManyArgs> = z.object({
+  data: z.union([ CustomRoleCreateManyInputSchema,CustomRoleCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const CustomRoleCreateManyAndReturnArgsSchema: z.ZodType<Prisma.CustomRoleCreateManyAndReturnArgs> = z.object({
+  data: z.union([ CustomRoleCreateManyInputSchema,CustomRoleCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const CustomRoleDeleteArgsSchema: z.ZodType<Prisma.CustomRoleDeleteArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  where: CustomRoleWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRoleUpdateArgsSchema: z.ZodType<Prisma.CustomRoleUpdateArgs> = z.object({
+  select: CustomRoleSelectSchema.optional(),
+  include: CustomRoleIncludeSchema.optional(),
+  data: z.union([ CustomRoleUpdateInputSchema,CustomRoleUncheckedUpdateInputSchema ]),
+  where: CustomRoleWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRoleUpdateManyArgsSchema: z.ZodType<Prisma.CustomRoleUpdateManyArgs> = z.object({
+  data: z.union([ CustomRoleUpdateManyMutationInputSchema,CustomRoleUncheckedUpdateManyInputSchema ]),
+  where: CustomRoleWhereInputSchema.optional(),
+}).strict() ;
+
+export const CustomRoleDeleteManyArgsSchema: z.ZodType<Prisma.CustomRoleDeleteManyArgs> = z.object({
+  where: CustomRoleWhereInputSchema.optional(),
+}).strict() ;
+
+export const CustomRolePermissionCreateArgsSchema: z.ZodType<Prisma.CustomRolePermissionCreateArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  data: z.union([ CustomRolePermissionCreateInputSchema,CustomRolePermissionUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const CustomRolePermissionUpsertArgsSchema: z.ZodType<Prisma.CustomRolePermissionUpsertArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  where: CustomRolePermissionWhereUniqueInputSchema,
+  create: z.union([ CustomRolePermissionCreateInputSchema,CustomRolePermissionUncheckedCreateInputSchema ]),
+  update: z.union([ CustomRolePermissionUpdateInputSchema,CustomRolePermissionUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const CustomRolePermissionCreateManyArgsSchema: z.ZodType<Prisma.CustomRolePermissionCreateManyArgs> = z.object({
+  data: z.union([ CustomRolePermissionCreateManyInputSchema,CustomRolePermissionCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const CustomRolePermissionCreateManyAndReturnArgsSchema: z.ZodType<Prisma.CustomRolePermissionCreateManyAndReturnArgs> = z.object({
+  data: z.union([ CustomRolePermissionCreateManyInputSchema,CustomRolePermissionCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const CustomRolePermissionDeleteArgsSchema: z.ZodType<Prisma.CustomRolePermissionDeleteArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  where: CustomRolePermissionWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRolePermissionUpdateArgsSchema: z.ZodType<Prisma.CustomRolePermissionUpdateArgs> = z.object({
+  select: CustomRolePermissionSelectSchema.optional(),
+  include: CustomRolePermissionIncludeSchema.optional(),
+  data: z.union([ CustomRolePermissionUpdateInputSchema,CustomRolePermissionUncheckedUpdateInputSchema ]),
+  where: CustomRolePermissionWhereUniqueInputSchema,
+}).strict() ;
+
+export const CustomRolePermissionUpdateManyArgsSchema: z.ZodType<Prisma.CustomRolePermissionUpdateManyArgs> = z.object({
+  data: z.union([ CustomRolePermissionUpdateManyMutationInputSchema,CustomRolePermissionUncheckedUpdateManyInputSchema ]),
+  where: CustomRolePermissionWhereInputSchema.optional(),
+}).strict() ;
+
+export const CustomRolePermissionDeleteManyArgsSchema: z.ZodType<Prisma.CustomRolePermissionDeleteManyArgs> = z.object({
+  where: CustomRolePermissionWhereInputSchema.optional(),
 }).strict() ;
 
 export const OrganizationCreateArgsSchema: z.ZodType<Prisma.OrganizationCreateArgs> = z.object({

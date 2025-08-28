@@ -97,8 +97,8 @@ export function ClientPermissionGuard({
 
   // Check required permissions
   if (requiredPermissions.length > 0) {
-    const hasAllPermissions = requiredPermissions.every(permission =>
-      hasPermission(userRole, permission)
+    const hasAllPermissions = requiredPermissions.every(
+      permission => userRole && hasPermission(userRole, permission)
     );
 
     if (!hasAllPermissions) {
@@ -107,7 +107,7 @@ export function ClientPermissionGuard({
           organizationId={orgId}
           reason="insufficient-permissions"
           requiredPermissions={requiredPermissions}
-          userRole={userRole}
+          userRole={userRole ?? undefined}
           fallback={fallback}
         />
       );
@@ -116,18 +116,52 @@ export function ClientPermissionGuard({
 
   // Check required any permissions (user needs at least one)
   if (requiredAnyPermissions.length > 0) {
-    const hasAnyRequiredPermission = hasAnyPermission(
-      userRole,
-      requiredAnyPermissions
-    );
+    // For CRM permissions, check the computed permissions that handle both predefined and custom roles
+    const hasCRMAccess = requiredAnyPermissions.some(permission => {
+      switch (permission) {
+        case PERMISSIONS.CRM_READ:
+        case PERMISSIONS.CRM_WRITE:
+        case PERMISSIONS.CRM_ADMIN:
+          return userPermissions.permissions.canViewCRM;
+        case PERMISSIONS.HR_READ:
+        case PERMISSIONS.HR_WRITE:
+        case PERMISSIONS.HR_ADMIN:
+          return userPermissions.permissions.canViewHR;
+        case PERMISSIONS.FINANCE_READ:
+        case PERMISSIONS.FINANCE_WRITE:
+        case PERMISSIONS.FINANCE_ADMIN:
+          return userPermissions.permissions.canViewFinance;
+        case PERMISSIONS.PROJECTS_READ:
+        case PERMISSIONS.PROJECTS_WRITE:
+        case PERMISSIONS.PROJECTS_ADMIN:
+          return userPermissions.permissions.canViewProjects;
+        case PERMISSIONS.MARKETING_READ:
+        case PERMISSIONS.MARKETING_WRITE:
+        case PERMISSIONS.MARKETING_ADMIN:
+          return userPermissions.permissions.canViewMarketing;
+        case PERMISSIONS.SETTINGS_READ:
+        case PERMISSIONS.SETTINGS_WRITE:
+        case PERMISSIONS.SETTINGS_ADMIN:
+          return userPermissions.permissions.canViewSettings;
+        case PERMISSIONS.ORG_ADMIN:
+          return userPermissions.permissions.canManageOrganization;
+        case PERMISSIONS.ORG_MEMBERS:
+          return userPermissions.permissions.canManageMembers;
+        case PERMISSIONS.ORG_BILLING:
+          return userPermissions.permissions.canManageBilling;
+        default:
+          // Fallback to old method for predefined roles only
+          return userRole ? hasAnyPermission(userRole, [permission]) : false;
+      }
+    });
 
-    if (!hasAnyRequiredPermission) {
+    if (!hasCRMAccess) {
       return (
         <ClientPermissionDenied
           organizationId={orgId}
           reason="insufficient-permissions"
           requiredPermissions={requiredAnyPermissions}
-          userRole={userRole}
+          userRole={userRole ?? undefined}
           fallback={fallback}
         />
       );
@@ -136,7 +170,33 @@ export function ClientPermissionGuard({
 
   // Check module access
   if (requiredModule) {
-    const hasModuleAccess = canReadFromModule(userRole, requiredModule);
+    let hasModuleAccess = false;
+
+    switch (requiredModule) {
+      case "crm":
+        hasModuleAccess = userPermissions.permissions.canViewCRM;
+        break;
+      case "hr":
+        hasModuleAccess = userPermissions.permissions.canViewHR;
+        break;
+      case "finance":
+        hasModuleAccess = userPermissions.permissions.canViewFinance;
+        break;
+      case "projects":
+        hasModuleAccess = userPermissions.permissions.canViewProjects;
+        break;
+      case "marketing":
+        hasModuleAccess = userPermissions.permissions.canViewMarketing;
+        break;
+      case "settings":
+        hasModuleAccess = userPermissions.permissions.canViewSettings;
+        break;
+      default:
+        // Fallback to old method for predefined roles
+        hasModuleAccess = userRole
+          ? canReadFromModule(userRole, requiredModule)
+          : false;
+    }
 
     if (!hasModuleAccess) {
       return (
@@ -144,7 +204,7 @@ export function ClientPermissionGuard({
           organizationId={orgId}
           reason="module-access-denied"
           module={requiredModule}
-          userRole={userRole}
+          userRole={userRole ?? undefined}
           fallback={fallback}
         />
       );

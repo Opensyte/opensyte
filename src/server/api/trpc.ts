@@ -10,9 +10,13 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { db } from "~/server/db";
 import { auth } from "~/lib/auth";
-import { hasPermission, hasAnyPermission } from "~/lib/rbac";
+import { db } from "~/server/db";
+import {
+  hasAnyPermission as hasAnyCustomPermission,
+  hasPermission as hasCustomPermission,
+} from "~/lib/custom-rbac";
+import type { ExtendedUserOrganization } from "~/types/custom-roles";
 
 /**
  * 1. CONTEXT
@@ -143,6 +147,17 @@ export const createPermissionProcedure = (permission: string) => {
               userId: ctx.user.id,
               organizationId,
             },
+            include: {
+              customRole: {
+                include: {
+                  permissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
           });
 
           if (!userOrg) {
@@ -152,7 +167,13 @@ export const createPermissionProcedure = (permission: string) => {
             });
           }
 
-          if (!hasPermission(userOrg.role, permission)) {
+          // Use the custom RBAC function that handles both predefined and custom roles
+          if (
+            !hasCustomPermission(
+              userOrg as ExtendedUserOrganization,
+              permission
+            )
+          ) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message: `Access denied. Required permission: ${permission}`,
@@ -189,6 +210,17 @@ export const createAnyPermissionProcedure = (permissions: string[]) => {
               userId: ctx.user.id,
               organizationId,
             },
+            include: {
+              customRole: {
+                include: {
+                  permissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
           });
 
           if (!userOrg) {
@@ -198,7 +230,13 @@ export const createAnyPermissionProcedure = (permissions: string[]) => {
             });
           }
 
-          if (!hasAnyPermission(userOrg.role, permissions)) {
+          // Use the custom RBAC function that handles both predefined and custom roles
+          if (
+            !hasAnyCustomPermission(
+              userOrg as ExtendedUserOrganization,
+              permissions
+            )
+          ) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message: `Access denied. Required permissions: ${permissions.join(" OR ")}`,

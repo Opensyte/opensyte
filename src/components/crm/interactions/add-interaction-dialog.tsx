@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { CalendarClock, Loader2, AlertCircle } from "lucide-react";

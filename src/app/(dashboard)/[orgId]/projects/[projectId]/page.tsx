@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { ProjectTasksClient } from "~/components/projects/project-tasks-client";
 import { ProjectTasksSkeleton } from "~/components/projects/project-tasks-skeleton";
 import { api } from "~/trpc/server";
-import { getUserOrganizationRole } from "~/lib/server-auth-utils";
-import { withProjectPermissions } from "~/components/shared/permission-guard";
+import { ProjectPermissionWrapper } from "~/components/shared/wrappers/project-permission-wrapper";
 
 interface ProjectPageProps {
   params: Promise<{
@@ -15,7 +14,6 @@ interface ProjectPageProps {
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { orgId, projectId } = await params;
-  const userRole = await getUserOrganizationRole(orgId);
 
   try {
     // Just verify project exists and belongs to the organization
@@ -32,13 +30,13 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     redirect(`/${orgId}`);
   }
 
-  return withProjectPermissions(
-    <div className="flex h-full flex-col">
-      <Suspense fallback={<ProjectTasksSkeleton />}>
-        <ProjectTasksClient organizationId={orgId} projectId={projectId} />
-      </Suspense>
-    </div>,
-    userRole,
-    orgId
+  return (
+    <ProjectPermissionWrapper>
+      <div className="flex h-full flex-col">
+        <Suspense fallback={<ProjectTasksSkeleton />}>
+          <ProjectTasksClient organizationId={orgId} projectId={projectId} />
+        </Suspense>
+      </div>
+    </ProjectPermissionWrapper>
   );
 }

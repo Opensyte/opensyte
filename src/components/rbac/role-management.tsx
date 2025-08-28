@@ -20,14 +20,17 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { MoreHorizontal, Users, Shield, Info } from "lucide-react";
+import { Badge } from "~/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import type { CustomRoleWithPermissions } from "~/types/custom-roles";
 import { RoleBadge } from "./role-badge";
 import { ChangeRoleDialog } from "./change-role-dialog";
+import { CustomRoleManagement } from "./custom-role-management";
 import { ROLE_INFO, ROLE_PERMISSIONS } from "~/lib/rbac";
 import { api } from "~/trpc/react";
 import { authClient } from "~/lib/auth-client";
@@ -39,8 +42,10 @@ interface RoleManagementProps {
 type OrganizationMember = {
   id: string;
   userId: string;
-  role: UserRole;
-  roleInfo: (typeof ROLE_INFO)[UserRole];
+  role: UserRole | null;
+  customRoleId: string | null;
+  customRole?: CustomRoleWithPermissions | null;
+  roleInfo: (typeof ROLE_INFO)[UserRole] | null;
   joinedAt: Date;
   canEdit: boolean;
   user: {
@@ -79,9 +84,56 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
     { enabled: !!currentUserId }
   );
 
-  const handleChangeRole = (member: OrganizationMember) => {
-    setSelectedMember(member);
+  const handleChangeRole = (member: {
+    userId: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+      image: string | null;
+    };
+    role: UserRole | null;
+    customRoleId?: string | null;
+    customRole?: CustomRoleWithPermissions | null;
+  }) => {
+    // Convert to expected format for the dialog
+    const convertedMember = {
+      userId: member.userId,
+      user: member.user,
+      role: member.role,
+      customRoleId: member.customRoleId ?? null,
+      customRole: member.customRole ?? null,
+    };
+    setSelectedMember(convertedMember as OrganizationMember);
     setShowChangeRoleDialog(true);
+  };
+
+  const getRoleBadge = (member: {
+    role: UserRole | null;
+    customRoleId?: string | null;
+    customRole?: CustomRoleWithPermissions | null;
+  }) => {
+    if (member.customRoleId && member.customRole?.name) {
+      return (
+        <div className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: member.customRole.color ?? "#3b82f6" }}
+          />
+          <Badge variant="secondary" className="text-xs">
+            {member.customRole.name}
+          </Badge>
+        </div>
+      );
+    } else if (member.role) {
+      return <RoleBadge role={member.role} />;
+    } else {
+      return (
+        <Badge variant="outline" className="text-xs">
+          No Role
+        </Badge>
+      );
+    }
   };
 
   const getInitials = (name: string) => {
@@ -93,6 +145,23 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
   };
 
   const currentUserRole = userPermissions?.role;
+
+  // Find current user's organization membership from members data
+  const currentUserOrgMember = members?.find(
+    member => member.userId === currentUserId
+  );
+
+  // Create ExtendedUserOrganization object for CustomRoleManagement
+  const currentUserOrg = currentUserOrgMember
+    ? {
+        userId: currentUserOrgMember.userId,
+        organizationId: organizationId,
+        role: currentUserOrgMember.role,
+        customRoleId: currentUserOrgMember.customRoleId,
+        joinedAt: currentUserOrgMember.joinedAt,
+        customRole: currentUserOrgMember.customRole,
+      }
+    : null;
 
   if (isLoading) {
     return (
@@ -234,9 +303,7 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <RoleBadge role={member.role} />
-                    </TableCell>
+                    <TableCell>{getRoleBadge(member)}</TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
                         {new Date(member.joinedAt).toLocaleDateString()}
@@ -269,6 +336,15 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Enhanced Custom Roles Management */}
+      {currentUserOrg && (
+        <CustomRoleManagement
+          organizationId={organizationId}
+          userId={currentUserId}
+          userOrg={currentUserOrg}
+        />
+      )}
 
       {selectedMember && currentUserRole && (
         <ChangeRoleDialog

@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import { Globe, Clock, RotateCcw, Calendar } from "lucide-react";
 

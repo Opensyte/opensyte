@@ -1,7 +1,10 @@
-"use client";
 import { ContactsClient } from "~/components/crm/contacts/contacts-client";
-import { withClientCRMPermissions } from "~/components/shared/client-permission-guard";
+import { CRMPermissionWrapper } from "~/components/shared/wrappers/crm-permission-wrapper";
 
 export default function CRMContactsPage() {
-  return withClientCRMPermissions(<ContactsClient />);
+  return (
+    <CRMPermissionWrapper>
+      <ContactsClient />
+    </CRMPermissionWrapper>
+  );
 }

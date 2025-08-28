@@ -1,14 +1,16 @@
 import { PayrollClient } from "~/components/hr/payroll/payroll-client";
-import { getUserOrganizationRole } from "~/lib/server-auth-utils";
-import { withHRPermissions } from "~/components/shared/permission-guard";
+import { HRPermissionWrapper } from "~/components/shared/wrappers/hr-permission-wrapper";
 
 interface PayrollPageProps {
   params: Promise<{ orgId: string }>;
 }
 
 export default async function PayrollPage({ params }: PayrollPageProps) {
-  const { orgId } = await params;
-  const userRole = await getUserOrganizationRole(orgId);
+  await params; // Consume the params promise for SSR compatibility
 
-  return withHRPermissions(<PayrollClient />, userRole, orgId);
+  return (
+    <HRPermissionWrapper>
+      <PayrollClient />
+    </HRPermissionWrapper>
+  );
 }

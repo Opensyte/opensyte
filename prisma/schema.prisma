@@ -28,7 +28,8 @@ model Permission {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  rolePermissions RolePermission[]
+  rolePermissions       RolePermission[]
+  customRolePermissions CustomRolePermission[]
 
   @@index([module])
   @@index([action])
@@ -48,6 +49,42 @@ model RolePermission {
   @@index([permissionId])
 }
 
+model CustomRole {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  color          String   @default("bg-blue-100 text-blue-800")
+  isActive       Boolean  @default(true)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions     CustomRolePermission[]
+  userAssignments UserOrganization[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([createdById])
+}
+
+model CustomRolePermission {
+  id           String   @id @default(cuid())
+  customRoleId String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  customRole CustomRole @relation(fields: [customRoleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([customRoleId, permissionId])
+  @@index([customRoleId])
+  @@index([permissionId])
+}
+
 // ==============================
 // Core Organization Models
 // ==============================
@@ -63,29 +100,33 @@ model Organization {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  users     UserOrganization[]
-  customers Customer[]
-  projects  Project[]
-  tasks     Task[]
-  invoices  Invoice[]
-  expenses  Expense[]
-  employees Employee[]
-  campaigns MarketingCampaign[]
+  users       UserOrganization[]
+  customers   Customer[]
+  projects    Project[]
+  tasks       Task[]
+  invoices    Invoice[]
+  expenses    Expense[]
+  employees   Employee[]
+  campaigns   MarketingCampaign[]
   invitations Invitation[]
+  customRoles CustomRole[]
 }
 
 model UserOrganization {
   userId         String
   organizationId String
-  role           UserRole
+  role           UserRole?
+  customRoleId   String?
   joinedAt       DateTime @default(now())
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customRole   CustomRole? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
 
   @@id([userId, organizationId])
   @@index([userId])
   @@index([organizationId])
+  @@index([customRoleId])
 }
 
 enum UserRole {

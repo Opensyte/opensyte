@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import { Trash2, Eye } from "lucide-react";
 import type { CustomerInteraction } from "@prisma/client";

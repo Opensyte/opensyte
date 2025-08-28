@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
 import { PERMISSIONS } from "~/lib/rbac";
 
-export default function TeamSettingsPage() {
+export function TeamSettingsClient() {
   const params = useParams();
   const orgId = params?.orgId as string;
 

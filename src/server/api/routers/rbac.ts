@@ -7,9 +7,10 @@ import {
   ROLE_PERMISSIONS,
   ROLE_INFO,
   hasPermission,
-  canAssignRole,
-  getNavPermissions,
+  canAssignRole as canAssignRoleBasic,
 } from "~/lib/rbac";
+import { canAssignRole, hasAnyPermission } from "~/lib/custom-rbac";
+import type { ExtendedUserOrganization } from "~/types/custom-roles";
 
 export const rbacRouter = createTRPCRouter({
   // Get user permissions for navigation
@@ -21,12 +22,23 @@ export const rbacRouter = createTRPCRouter({
       })
     )
     .query(async ({ input, ctx }) => {
-      const userOrg = await ctx.db.userOrganization.findFirst({
+      const userOrg = (await ctx.db.userOrganization.findFirst({
         where: {
           userId: input.userId,
           organizationId: input.organizationId,
         },
-      });
+        include: {
+          customRole: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      })) as ExtendedUserOrganization | null;
 
       if (!userOrg) {
         throw new TRPCError({
@@ -35,9 +47,80 @@ export const rbacRouter = createTRPCRouter({
         });
       }
 
+      // Convert to navigation permissions format using hasAnyPermission
+      const navPermissions = {
+        canViewCRM: hasAnyPermission(userOrg, [
+          PERMISSIONS.CRM_READ,
+          PERMISSIONS.CRM_WRITE,
+          PERMISSIONS.CRM_ADMIN,
+        ]),
+        canViewProjects: hasAnyPermission(userOrg, [
+          PERMISSIONS.PROJECTS_READ,
+          PERMISSIONS.PROJECTS_WRITE,
+          PERMISSIONS.PROJECTS_ADMIN,
+        ]),
+        canViewFinance: hasAnyPermission(userOrg, [
+          PERMISSIONS.FINANCE_READ,
+          PERMISSIONS.FINANCE_WRITE,
+          PERMISSIONS.FINANCE_ADMIN,
+        ]),
+        canViewHR: hasAnyPermission(userOrg, [
+          PERMISSIONS.HR_READ,
+          PERMISSIONS.HR_WRITE,
+          PERMISSIONS.HR_ADMIN,
+        ]),
+        canViewMarketing: hasAnyPermission(userOrg, [
+          PERMISSIONS.MARKETING_READ,
+          PERMISSIONS.MARKETING_WRITE,
+          PERMISSIONS.MARKETING_ADMIN,
+        ]),
+        canViewCollaboration: hasAnyPermission(userOrg, [
+          PERMISSIONS.COLLABORATION_READ,
+          PERMISSIONS.COLLABORATION_WRITE,
+        ]),
+        canViewSettings: hasAnyPermission(userOrg, [
+          PERMISSIONS.SETTINGS_READ,
+          PERMISSIONS.SETTINGS_WRITE,
+          PERMISSIONS.SETTINGS_ADMIN,
+        ]),
+        canWriteCRM: hasAnyPermission(userOrg, [
+          PERMISSIONS.CRM_WRITE,
+          PERMISSIONS.CRM_ADMIN,
+        ]),
+        canWriteProjects: hasAnyPermission(userOrg, [
+          PERMISSIONS.PROJECTS_WRITE,
+          PERMISSIONS.PROJECTS_ADMIN,
+        ]),
+        canWriteFinance: hasAnyPermission(userOrg, [
+          PERMISSIONS.FINANCE_WRITE,
+          PERMISSIONS.FINANCE_ADMIN,
+        ]),
+        canWriteHR: hasAnyPermission(userOrg, [
+          PERMISSIONS.HR_WRITE,
+          PERMISSIONS.HR_ADMIN,
+        ]),
+        canWriteMarketing: hasAnyPermission(userOrg, [
+          PERMISSIONS.MARKETING_WRITE,
+          PERMISSIONS.MARKETING_ADMIN,
+        ]),
+        canWriteCollaboration: hasAnyPermission(userOrg, [
+          PERMISSIONS.COLLABORATION_WRITE,
+        ]),
+        canWriteSettings: hasAnyPermission(userOrg, [
+          PERMISSIONS.SETTINGS_WRITE,
+          PERMISSIONS.SETTINGS_ADMIN,
+        ]),
+        canManageOrganization: hasAnyPermission(userOrg, [
+          PERMISSIONS.ORG_ADMIN,
+        ]),
+        canManageMembers: hasAnyPermission(userOrg, [PERMISSIONS.ORG_MEMBERS]),
+        canManageBilling: hasAnyPermission(userOrg, [PERMISSIONS.ORG_BILLING]),
+      };
+
       return {
         role: userOrg.role,
-        permissions: getNavPermissions(userOrg.role),
+        customRole: userOrg.customRole,
+        permissions: navPermissions,
       };
     }),
 
@@ -88,14 +171,17 @@ export const rbacRouter = createTRPCRouter({
       }
 
       // Check if user can assign this role
-      if (!canAssignRole(requestingUserOrg.role, input.newRole)) {
+      if (
+        !requestingUserOrg.role ||
+        !canAssignRoleBasic(requestingUserOrg.role, input.newRole)
+      ) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Insufficient permissions to assign this role",
         });
       }
 
-      // Update the user's role
+      // Update the user's role (clear custom role when assigning predefined role)
       const updatedUserOrg = await ctx.db.userOrganization.update({
         where: {
           userId_organizationId: {
@@ -105,6 +191,7 @@ export const rbacRouter = createTRPCRouter({
         },
         data: {
           role: input.newRole,
+          customRoleId: null, // Clear custom role when assigning predefined role
         },
       });
 
@@ -140,8 +227,9 @@ export const rbacRouter = createTRPCRouter({
 
       // Check permissions
       if (
-        !hasPermission(userOrg.role, PERMISSIONS.ORG_MEMBERS) &&
-        !hasPermission(userOrg.role, PERMISSIONS.SETTINGS_READ)
+        !userOrg.role ||
+        (!hasPermission(userOrg.role, PERMISSIONS.ORG_MEMBERS) &&
+          !hasPermission(userOrg.role, PERMISSIONS.SETTINGS_READ))
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -161,6 +249,7 @@ export const rbacRouter = createTRPCRouter({
               name: true,
             },
           },
+          customRole: true,
         },
       });
 
@@ -183,15 +272,44 @@ export const rbacRouter = createTRPCRouter({
       // Combine member data with user details and role information
       return members.map(member => {
         const user = users.find(u => u.id === member.userId);
-        const roleInfo = ROLE_INFO[member.role];
+        const roleInfo = member.role ? ROLE_INFO[member.role] : null;
+
+        // Determine if current user can edit this member based on custom RBAC
+        const extendedUserOrg = userOrg as ExtendedUserOrganization;
+        const extendedMember = member as ExtendedUserOrganization;
+        let canEditMember = false;
+
+        if (extendedMember.customRoleId && extendedMember.customRole) {
+          // Target has custom role - check if current user can assign custom roles
+          const targetRoleAssignment = {
+            type: "custom" as const,
+            customRoleId: extendedMember.customRoleId, // TypeScript knows this is defined due to the condition
+          };
+          canEditMember = canAssignRole(extendedUserOrg, targetRoleAssignment);
+        } else if (member.role) {
+          // Target has predefined role - check assignment permissions
+          const targetRoleAssignment = {
+            type: "predefined" as const,
+            role: member.role,
+          };
+          canEditMember = canAssignRole(extendedUserOrg, targetRoleAssignment);
+        } else {
+          // Target has no role - any user with member management can assign
+          canEditMember = hasAnyPermission(extendedUserOrg, [
+            PERMISSIONS.ORG_ADMIN,
+            PERMISSIONS.ORG_MEMBERS,
+          ]);
+        }
 
         return {
           id: member.userId,
           userId: member.userId,
           role: member.role,
+          customRoleId: extendedMember.customRoleId,
+          customRole: extendedMember.customRole,
           roleInfo,
           joinedAt: member.joinedAt,
-          canEdit: canAssignRole(userOrg.role, member.role),
+          canEdit: canEditMember,
           user: user ?? {
             id: member.userId,
             name: "Unknown User",

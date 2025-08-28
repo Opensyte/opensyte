@@ -1,14 +1,16 @@
 import { EmployeesClient } from "~/components/hr/employee/employees-client";
-import { getUserOrganizationRole } from "~/lib/server-auth-utils";
-import { withHRPermissions } from "~/components/shared/permission-guard";
+import { HRPermissionWrapper } from "~/components/shared/wrappers/hr-permission-wrapper";
 
 interface EmployeesPageProps {
   params: Promise<{ orgId: string }>;
 }
 
 export default async function EmployeesPage({ params }: EmployeesPageProps) {
-  const { orgId } = await params;
-  const userRole = await getUserOrganizationRole(orgId);
+  await params; // Consume the params promise for SSR compatibility
 
-  return withHRPermissions(<EmployeesClient />, userRole, orgId);
+  return (
+    <HRPermissionWrapper>
+      <EmployeesClient />
+    </HRPermissionWrapper>
+  );
 }

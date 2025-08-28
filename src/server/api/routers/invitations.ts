@@ -92,7 +92,7 @@ export const invitationsRouter = createTRPCRouter({
         select: { role: true },
       });
       if (!inviterRel) throw new Error("Access denied");
-      if (!canAssignRole(inviterRel.role, input.role)) {
+      if (!inviterRel.role || !canAssignRole(inviterRel.role, input.role)) {
         throw new Error("Cannot invite user with higher or equal role");
       }
 
