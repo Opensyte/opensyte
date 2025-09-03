@@ -120,7 +120,7 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | Collaboration Features | ❌ Not implemented | Enable comments and file attachments within tasks |
 | **Finance and Accounting** | | |
 | Invoicing and Billing | ✅ Implemented | Create, send, and delete invoices |
-| Expense Tracking | ❌ Not implemented | Log and categorize expenses |
+| Expense Tracking | ✅ Implemented | Log and categorize expenses |
 | Financial Reporting | ❌ Not implemented | Generate financial statements |
 | Bank Integration | ❌ Not implemented | Sync with bank accounts |
 | **Collaboration Tools** | | |

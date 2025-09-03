@@ -100,16 +100,18 @@ model Organization {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  users       UserOrganization[]
-  customers   Customer[]
-  projects    Project[]
-  tasks       Task[]
-  invoices    Invoice[]
-  expenses    Expense[]
-  employees   Employee[]
-  campaigns   MarketingCampaign[]
-  invitations Invitation[]
-  customRoles CustomRole[]
+  users            UserOrganization[]
+  customers        Customer[]
+  projects         Project[]
+  tasks            Task[]
+  invoices         Invoice[]
+  expenses         Expense[]
+  expenseCategories ExpenseCategory[]
+  expenseTags      ExpenseTag[]
+  employees        Employee[]
+  campaigns        MarketingCampaign[]
+  invitations      Invitation[]
+  customRoles      CustomRole[]
 }
 
 model UserOrganization {
@@ -295,6 +297,7 @@ model Project {
   tasks        Task[]
   resources    ProjectResource[]
   timeEntries  TimeEntry[]
+  expenses     Expense[]
 
   @@index([organizationId])
   @@index([createdById])
@@ -535,29 +538,99 @@ enum PaymentStatus {
 }
 
 model Expense {
-  id             String    @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String
-  category       String
-  amount         Decimal   @db.Decimal(10, 2)
-  currency       String    @default("USD")
+  categoryId     String?
+  customCategory String?       // For ad-hoc categories
+  amount         Decimal       @db.Decimal(12, 2)
+  currency       String        @default("USD")
   date           DateTime
   description    String?
-  receipt        String? // URL to receipt image
+  receipt        String?       // URL to receipt image
   vendor         String?
-  reimbursable   Boolean   @default(false)
-  reimbursed     Boolean   @default(false)
+  paymentMethod  PaymentMethod @default(CREDIT_CARD)
+  projectId      String?       // Optional project association
+  status         ExpenseStatus @default(DRAFT)
+  reimbursable   Boolean       @default(false)
+  reimbursed     Boolean       @default(false)
+  reimbursedAt   DateTime?
+  submittedAt    DateTime?
   createdById    String?
   approvedById   String?
   approvedAt     DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @default(now())
+  rejectedAt     DateTime?
+  rejectionReason String?
+  notes          String?       // Internal notes
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   // Relations
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  project      Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  tags         ExpenseToTag[]
 
   @@index([organizationId])
   @@index([createdById])
-  @@index([category])
+  @@index([categoryId])
+  @@index([status])
+  @@index([date])
+  @@index([projectId])
+}
+
+enum ExpenseStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PAID
+  REIMBURSED
+}
+
+model ExpenseCategory {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  color          String    @default("bg-blue-100 text-blue-800")
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  expenses     Expense[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model ExpenseTag {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  color          String        @default("bg-gray-100 text-gray-800")
+  createdAt      DateTime      @default(now())
+
+  // Relations
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  expenses     ExpenseToTag[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model ExpenseToTag {
+  expenseId String
+  tagId     String
+
+  // Relations  
+  expense Expense    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  tag     ExpenseTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([expenseId, tagId])
+  @@index([expenseId])
+  @@index([tagId])
 }
 
 // ==============================
