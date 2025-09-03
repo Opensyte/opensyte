@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  DollarSign,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Receipt,
-  TrendingUp,
-} from "lucide-react";
+import { DollarSign, AlertCircle, Receipt, TrendingUp } from "lucide-react";
 import type { ExpenseSummary } from "~/types/expenses";
 
 interface ExpenseSummaryCardsProps {
@@ -57,18 +50,6 @@ export function ExpenseSummaryCards({
       value: formatCurrency(summary.totalAmount),
       icon: DollarSign,
       subtitle: `${summary.totalCount} expenses`,
-    },
-    {
-      label: "Pending",
-      value: summary.pendingApproval,
-      icon: Clock,
-      subtitle: "awaiting approval",
-    },
-    {
-      label: "Approved",
-      value: summary.pendingReimbursement,
-      icon: CheckCircle,
-      subtitle: "ready for payment",
     },
     {
       label: "This Month",

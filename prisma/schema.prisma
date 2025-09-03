@@ -112,6 +112,7 @@ model Organization {
   campaigns        MarketingCampaign[]
   invitations      Invitation[]
   customRoles      CustomRole[]
+  financialReports FinancialReport[]
 }
 
 model UserOrganization {
@@ -1070,4 +1071,138 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+// ==============================
+// Financial Reporting Models
+// ==============================
+
+model FinancialReport {
+  id             String                @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  type           FinancialReportType
+  template       Json                  // Store report template configuration
+  filters        Json?                 // Store filter configuration
+  dateRange      Json                  // Store date range configuration
+  status         FinancialReportStatus @default(DRAFT)
+  generatedAt    DateTime?
+  generatedBy    String?
+  isTemplate     Boolean               @default(false)
+  isScheduled    Boolean               @default(false)
+  scheduleConfig Json?                 // Store scheduling configuration
+  createdById    String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  // Relations
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reportData     FinancialReportData[]
+  exports        FinancialReportExport[]
+  schedules      FinancialReportSchedule[]
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([createdById])
+}
+
+enum FinancialReportType {
+  INCOME_STATEMENT
+  BALANCE_SHEET
+  CASH_FLOW
+  EXPENSE_REPORT
+  PROFIT_LOSS
+  CUSTOM
+}
+
+enum FinancialReportStatus {
+  DRAFT
+  GENERATING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+model FinancialReportData {
+  id        String   @id @default(cuid())
+  reportId  String
+  data      Json     // Store actual report data
+  metadata  Json?    // Store metadata about calculations
+  createdAt DateTime @default(now())
+
+  // Relations
+  report FinancialReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+model FinancialReportExport {
+  id         String                    @id @default(cuid())
+  reportId   String
+  format     FinancialReportExportFormat
+  fileName   String
+  fileUrl    String?
+  fileSize   Int?                      // Size in bytes
+  status     FinancialReportExportStatus @default(PENDING)
+  error      String?
+  createdById String
+  createdAt  DateTime                  @default(now())
+  updatedAt  DateTime                  @updatedAt
+
+  // Relations
+  report FinancialReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([createdById])
+  @@index([status])
+}
+
+enum FinancialReportExportFormat {
+  PDF
+  EXCEL
+  CSV
+  JSON
+}
+
+enum FinancialReportExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model FinancialReportSchedule {
+  id             String                        @id @default(cuid())
+  reportId       String
+  frequency      FinancialReportScheduleFrequency
+  dayOfWeek      Int?                          // 0-6 for weekly schedules
+  dayOfMonth     Int?                          // 1-31 for monthly schedules
+  time           String                        // HH:MM format
+  timezone       String                        @default("UTC")
+  isActive       Boolean                       @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime
+  recipients     Json                          // Array of email addresses
+  emailSubject   String?
+  emailBody      String?
+  createdById    String
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+
+  // Relations
+  report FinancialReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([nextRunAt])
+  @@index([isActive])
+}
+
+enum FinancialReportScheduleFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
 }

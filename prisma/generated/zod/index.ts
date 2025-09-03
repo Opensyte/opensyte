@@ -5,6 +5,50 @@ import { Prisma } from '@prisma/client';
 // HELPER FUNCTIONS
 /////////////////////////////////////////
 
+// JSON
+//------------------------------------------------------
+
+export type NullableJsonInput = Prisma.JsonValue | null | 'JsonNull' | 'DbNull' | Prisma.NullTypes.DbNull | Prisma.NullTypes.JsonNull;
+
+export const transformJsonNull = (v?: NullableJsonInput) => {
+  if (!v || v === 'DbNull') return Prisma.DbNull;
+  if (v === 'JsonNull') return Prisma.JsonNull;
+  return v;
+};
+
+export const JsonValueSchema: z.ZodType<Prisma.JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.literal(null),
+    z.record(z.lazy(() => JsonValueSchema.optional())),
+    z.array(z.lazy(() => JsonValueSchema)),
+  ])
+);
+
+export type JsonValueType = z.infer<typeof JsonValueSchema>;
+
+export const NullableJsonValue = z
+  .union([JsonValueSchema, z.literal('DbNull'), z.literal('JsonNull')])
+  .nullable()
+  .transform((v) => transformJsonNull(v));
+
+export type NullableJsonValueType = z.infer<typeof NullableJsonValue>;
+
+export const InputJsonValueSchema: z.ZodType<Prisma.InputJsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.object({ toJSON: z.function(z.tuple([]), z.any()) }),
+    z.record(z.lazy(() => z.union([InputJsonValueSchema, z.literal(null)]))),
+    z.array(z.lazy(() => z.union([InputJsonValueSchema, z.literal(null)]))),
+  ])
+);
+
+export type InputJsonValueType = z.infer<typeof InputJsonValueSchema>;
+
 // DECIMAL
 //------------------------------------------------------
 
@@ -107,11 +151,25 @@ export const AccountScalarFieldEnumSchema = z.enum(['id','accountId','providerId
 
 export const VerificationScalarFieldEnumSchema = z.enum(['id','identifier','value','expiresAt','createdAt','updatedAt']);
 
+export const FinancialReportScalarFieldEnumSchema = z.enum(['id','organizationId','name','description','type','template','filters','dateRange','status','generatedAt','generatedBy','isTemplate','isScheduled','scheduleConfig','createdById','createdAt','updatedAt']);
+
+export const FinancialReportDataScalarFieldEnumSchema = z.enum(['id','reportId','data','metadata','createdAt']);
+
+export const FinancialReportExportScalarFieldEnumSchema = z.enum(['id','reportId','format','fileName','fileUrl','fileSize','status','error','createdById','createdAt','updatedAt']);
+
+export const FinancialReportScheduleScalarFieldEnumSchema = z.enum(['id','reportId','frequency','dayOfWeek','dayOfMonth','time','timezone','isActive','lastRunAt','nextRunAt','recipients','emailSubject','emailBody','createdById','createdAt','updatedAt']);
+
 export const SortOrderSchema = z.enum(['asc','desc']);
+
+export const JsonNullValueInputSchema = z.enum(['JsonNull',]).transform((value) => (value === 'JsonNull' ? Prisma.JsonNull : value));
+
+export const NullableJsonNullValueInputSchema = z.enum(['DbNull','JsonNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value);
 
 export const QueryModeSchema = z.enum(['default','insensitive']);
 
 export const NullsOrderSchema = z.enum(['first','last']);
+
+export const JsonNullValueFilterSchema = z.enum(['DbNull','JsonNull','AnyNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.JsonNull : value === 'AnyNull' ? Prisma.AnyNull : value);
 
 export const UserRoleSchema = z.enum(['ORGANIZATION_OWNER','SUPER_ADMIN','DEPARTMENT_MANAGER','HR_MANAGER','SALES_MANAGER','FINANCE_MANAGER','PROJECT_MANAGER','EMPLOYEE','CONTRACTOR','VIEWER']);
 
@@ -208,6 +266,26 @@ export type CampaignStatusType = `${z.infer<typeof CampaignStatusSchema>}`
 export const SocialPlatformSchema = z.enum(['FACEBOOK','TWITTER','LINKEDIN','INSTAGRAM','YOUTUBE','TIKTOK','PINTEREST']);
 
 export type SocialPlatformType = `${z.infer<typeof SocialPlatformSchema>}`
+
+export const FinancialReportTypeSchema = z.enum(['INCOME_STATEMENT','BALANCE_SHEET','CASH_FLOW','EXPENSE_REPORT','PROFIT_LOSS','CUSTOM']);
+
+export type FinancialReportTypeType = `${z.infer<typeof FinancialReportTypeSchema>}`
+
+export const FinancialReportStatusSchema = z.enum(['DRAFT','GENERATING','COMPLETED','FAILED','ARCHIVED']);
+
+export type FinancialReportStatusType = `${z.infer<typeof FinancialReportStatusSchema>}`
+
+export const FinancialReportExportFormatSchema = z.enum(['PDF','EXCEL','CSV','JSON']);
+
+export type FinancialReportExportFormatType = `${z.infer<typeof FinancialReportExportFormatSchema>}`
+
+export const FinancialReportExportStatusSchema = z.enum(['PENDING','PROCESSING','COMPLETED','FAILED']);
+
+export type FinancialReportExportStatusType = `${z.infer<typeof FinancialReportExportStatusSchema>}`
+
+export const FinancialReportScheduleFrequencySchema = z.enum(['DAILY','WEEKLY','MONTHLY','QUARTERLY','YEARLY']);
+
+export type FinancialReportScheduleFrequencyType = `${z.infer<typeof FinancialReportScheduleFrequencySchema>}`
 
 /////////////////////////////////////////
 // MODELS
@@ -966,6 +1044,91 @@ export const VerificationSchema = z.object({
 export type Verification = z.infer<typeof VerificationSchema>
 
 /////////////////////////////////////////
+// FINANCIAL REPORT SCHEMA
+/////////////////////////////////////////
+
+export const FinancialReportSchema = z.object({
+  type: FinancialReportTypeSchema,
+  status: FinancialReportStatusSchema,
+  id: z.string().cuid(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  template: JsonValueSchema,
+  filters: JsonValueSchema.nullable(),
+  dateRange: JsonValueSchema,
+  generatedAt: z.coerce.date().nullable(),
+  generatedBy: z.string().nullable(),
+  isTemplate: z.boolean(),
+  isScheduled: z.boolean(),
+  scheduleConfig: JsonValueSchema.nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type FinancialReport = z.infer<typeof FinancialReportSchema>
+
+/////////////////////////////////////////
+// FINANCIAL REPORT DATA SCHEMA
+/////////////////////////////////////////
+
+export const FinancialReportDataSchema = z.object({
+  id: z.string().cuid(),
+  reportId: z.string(),
+  data: JsonValueSchema,
+  metadata: JsonValueSchema.nullable(),
+  createdAt: z.coerce.date(),
+})
+
+export type FinancialReportData = z.infer<typeof FinancialReportDataSchema>
+
+/////////////////////////////////////////
+// FINANCIAL REPORT EXPORT SCHEMA
+/////////////////////////////////////////
+
+export const FinancialReportExportSchema = z.object({
+  format: FinancialReportExportFormatSchema,
+  status: FinancialReportExportStatusSchema,
+  id: z.string().cuid(),
+  reportId: z.string(),
+  fileName: z.string(),
+  fileUrl: z.string().nullable(),
+  fileSize: z.number().int().nullable(),
+  error: z.string().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type FinancialReportExport = z.infer<typeof FinancialReportExportSchema>
+
+/////////////////////////////////////////
+// FINANCIAL REPORT SCHEDULE SCHEMA
+/////////////////////////////////////////
+
+export const FinancialReportScheduleSchema = z.object({
+  frequency: FinancialReportScheduleFrequencySchema,
+  id: z.string().cuid(),
+  reportId: z.string(),
+  dayOfWeek: z.number().int().nullable(),
+  dayOfMonth: z.number().int().nullable(),
+  time: z.string(),
+  timezone: z.string(),
+  isActive: z.boolean(),
+  lastRunAt: z.coerce.date().nullable(),
+  nextRunAt: z.coerce.date(),
+  recipients: JsonValueSchema,
+  emailSubject: z.string().nullable(),
+  emailBody: z.string().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type FinancialReportSchedule = z.infer<typeof FinancialReportScheduleSchema>
+
+/////////////////////////////////////////
 // SELECT & INCLUDE
 /////////////////////////////////////////
 
@@ -1103,6 +1266,7 @@ export const OrganizationIncludeSchema: z.ZodType<Prisma.OrganizationInclude> = 
   campaigns: z.union([z.boolean(),z.lazy(() => MarketingCampaignFindManyArgsSchema)]).optional(),
   invitations: z.union([z.boolean(),z.lazy(() => InvitationFindManyArgsSchema)]).optional(),
   customRoles: z.union([z.boolean(),z.lazy(() => CustomRoleFindManyArgsSchema)]).optional(),
+  financialReports: z.union([z.boolean(),z.lazy(() => FinancialReportFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => OrganizationCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -1128,6 +1292,7 @@ export const OrganizationCountOutputTypeSelectSchema: z.ZodType<Prisma.Organizat
   campaigns: z.boolean().optional(),
   invitations: z.boolean().optional(),
   customRoles: z.boolean().optional(),
+  financialReports: z.boolean().optional(),
 }).strict();
 
 export const OrganizationSelectSchema: z.ZodType<Prisma.OrganizationSelect> = z.object({
@@ -1151,6 +1316,7 @@ export const OrganizationSelectSchema: z.ZodType<Prisma.OrganizationSelect> = z.
   campaigns: z.union([z.boolean(),z.lazy(() => MarketingCampaignFindManyArgsSchema)]).optional(),
   invitations: z.union([z.boolean(),z.lazy(() => InvitationFindManyArgsSchema)]).optional(),
   customRoles: z.union([z.boolean(),z.lazy(() => CustomRoleFindManyArgsSchema)]).optional(),
+  financialReports: z.union([z.boolean(),z.lazy(() => FinancialReportFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => OrganizationCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -2230,6 +2396,137 @@ export const VerificationSelectSchema: z.ZodType<Prisma.VerificationSelect> = z.
   updatedAt: z.boolean().optional(),
 }).strict()
 
+// FINANCIAL REPORT
+//------------------------------------------------------
+
+export const FinancialReportIncludeSchema: z.ZodType<Prisma.FinancialReportInclude> = z.object({
+  organization: z.union([z.boolean(),z.lazy(() => OrganizationArgsSchema)]).optional(),
+  reportData: z.union([z.boolean(),z.lazy(() => FinancialReportDataFindManyArgsSchema)]).optional(),
+  exports: z.union([z.boolean(),z.lazy(() => FinancialReportExportFindManyArgsSchema)]).optional(),
+  schedules: z.union([z.boolean(),z.lazy(() => FinancialReportScheduleFindManyArgsSchema)]).optional(),
+  _count: z.union([z.boolean(),z.lazy(() => FinancialReportCountOutputTypeArgsSchema)]).optional(),
+}).strict()
+
+export const FinancialReportArgsSchema: z.ZodType<Prisma.FinancialReportDefaultArgs> = z.object({
+  select: z.lazy(() => FinancialReportSelectSchema).optional(),
+  include: z.lazy(() => FinancialReportIncludeSchema).optional(),
+}).strict();
+
+export const FinancialReportCountOutputTypeArgsSchema: z.ZodType<Prisma.FinancialReportCountOutputTypeDefaultArgs> = z.object({
+  select: z.lazy(() => FinancialReportCountOutputTypeSelectSchema).nullish(),
+}).strict();
+
+export const FinancialReportCountOutputTypeSelectSchema: z.ZodType<Prisma.FinancialReportCountOutputTypeSelect> = z.object({
+  reportData: z.boolean().optional(),
+  exports: z.boolean().optional(),
+  schedules: z.boolean().optional(),
+}).strict();
+
+export const FinancialReportSelectSchema: z.ZodType<Prisma.FinancialReportSelect> = z.object({
+  id: z.boolean().optional(),
+  organizationId: z.boolean().optional(),
+  name: z.boolean().optional(),
+  description: z.boolean().optional(),
+  type: z.boolean().optional(),
+  template: z.boolean().optional(),
+  filters: z.boolean().optional(),
+  dateRange: z.boolean().optional(),
+  status: z.boolean().optional(),
+  generatedAt: z.boolean().optional(),
+  generatedBy: z.boolean().optional(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.boolean().optional(),
+  createdById: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  updatedAt: z.boolean().optional(),
+  organization: z.union([z.boolean(),z.lazy(() => OrganizationArgsSchema)]).optional(),
+  reportData: z.union([z.boolean(),z.lazy(() => FinancialReportDataFindManyArgsSchema)]).optional(),
+  exports: z.union([z.boolean(),z.lazy(() => FinancialReportExportFindManyArgsSchema)]).optional(),
+  schedules: z.union([z.boolean(),z.lazy(() => FinancialReportScheduleFindManyArgsSchema)]).optional(),
+  _count: z.union([z.boolean(),z.lazy(() => FinancialReportCountOutputTypeArgsSchema)]).optional(),
+}).strict()
+
+// FINANCIAL REPORT DATA
+//------------------------------------------------------
+
+export const FinancialReportDataIncludeSchema: z.ZodType<Prisma.FinancialReportDataInclude> = z.object({
+  report: z.union([z.boolean(),z.lazy(() => FinancialReportArgsSchema)]).optional(),
+}).strict()
+
+export const FinancialReportDataArgsSchema: z.ZodType<Prisma.FinancialReportDataDefaultArgs> = z.object({
+  select: z.lazy(() => FinancialReportDataSelectSchema).optional(),
+  include: z.lazy(() => FinancialReportDataIncludeSchema).optional(),
+}).strict();
+
+export const FinancialReportDataSelectSchema: z.ZodType<Prisma.FinancialReportDataSelect> = z.object({
+  id: z.boolean().optional(),
+  reportId: z.boolean().optional(),
+  data: z.boolean().optional(),
+  metadata: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  report: z.union([z.boolean(),z.lazy(() => FinancialReportArgsSchema)]).optional(),
+}).strict()
+
+// FINANCIAL REPORT EXPORT
+//------------------------------------------------------
+
+export const FinancialReportExportIncludeSchema: z.ZodType<Prisma.FinancialReportExportInclude> = z.object({
+  report: z.union([z.boolean(),z.lazy(() => FinancialReportArgsSchema)]).optional(),
+}).strict()
+
+export const FinancialReportExportArgsSchema: z.ZodType<Prisma.FinancialReportExportDefaultArgs> = z.object({
+  select: z.lazy(() => FinancialReportExportSelectSchema).optional(),
+  include: z.lazy(() => FinancialReportExportIncludeSchema).optional(),
+}).strict();
+
+export const FinancialReportExportSelectSchema: z.ZodType<Prisma.FinancialReportExportSelect> = z.object({
+  id: z.boolean().optional(),
+  reportId: z.boolean().optional(),
+  format: z.boolean().optional(),
+  fileName: z.boolean().optional(),
+  fileUrl: z.boolean().optional(),
+  fileSize: z.boolean().optional(),
+  status: z.boolean().optional(),
+  error: z.boolean().optional(),
+  createdById: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  updatedAt: z.boolean().optional(),
+  report: z.union([z.boolean(),z.lazy(() => FinancialReportArgsSchema)]).optional(),
+}).strict()
+
+// FINANCIAL REPORT SCHEDULE
+//------------------------------------------------------
+
+export const FinancialReportScheduleIncludeSchema: z.ZodType<Prisma.FinancialReportScheduleInclude> = z.object({
+  report: z.union([z.boolean(),z.lazy(() => FinancialReportArgsSchema)]).optional(),
+}).strict()
+
+export const FinancialReportScheduleArgsSchema: z.ZodType<Prisma.FinancialReportScheduleDefaultArgs> = z.object({
+  select: z.lazy(() => FinancialReportScheduleSelectSchema).optional(),
+  include: z.lazy(() => FinancialReportScheduleIncludeSchema).optional(),
+}).strict();
+
+export const FinancialReportScheduleSelectSchema: z.ZodType<Prisma.FinancialReportScheduleSelect> = z.object({
+  id: z.boolean().optional(),
+  reportId: z.boolean().optional(),
+  frequency: z.boolean().optional(),
+  dayOfWeek: z.boolean().optional(),
+  dayOfMonth: z.boolean().optional(),
+  time: z.boolean().optional(),
+  timezone: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  lastRunAt: z.boolean().optional(),
+  nextRunAt: z.boolean().optional(),
+  recipients: z.boolean().optional(),
+  emailSubject: z.boolean().optional(),
+  emailBody: z.boolean().optional(),
+  createdById: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  updatedAt: z.boolean().optional(),
+  report: z.union([z.boolean(),z.lazy(() => FinancialReportArgsSchema)]).optional(),
+}).strict()
+
 
 /////////////////////////////////////////
 // INPUT TYPES
@@ -2561,7 +2858,8 @@ export const OrganizationWhereInputSchema: z.ZodType<Prisma.OrganizationWhereInp
   employees: z.lazy(() => EmployeeListRelationFilterSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignListRelationFilterSchema).optional(),
   invitations: z.lazy(() => InvitationListRelationFilterSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleListRelationFilterSchema).optional()
+  customRoles: z.lazy(() => CustomRoleListRelationFilterSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportListRelationFilterSchema).optional()
 }).strict();
 
 export const OrganizationOrderByWithRelationInputSchema: z.ZodType<Prisma.OrganizationOrderByWithRelationInput> = z.object({
@@ -2584,7 +2882,8 @@ export const OrganizationOrderByWithRelationInputSchema: z.ZodType<Prisma.Organi
   employees: z.lazy(() => EmployeeOrderByRelationAggregateInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignOrderByRelationAggregateInputSchema).optional(),
   invitations: z.lazy(() => InvitationOrderByRelationAggregateInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleOrderByRelationAggregateInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleOrderByRelationAggregateInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportOrderByRelationAggregateInputSchema).optional()
 }).strict();
 
 export const OrganizationWhereUniqueInputSchema: z.ZodType<Prisma.OrganizationWhereUniqueInput> = z.object({
@@ -2613,7 +2912,8 @@ export const OrganizationWhereUniqueInputSchema: z.ZodType<Prisma.OrganizationWh
   employees: z.lazy(() => EmployeeListRelationFilterSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignListRelationFilterSchema).optional(),
   invitations: z.lazy(() => InvitationListRelationFilterSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleListRelationFilterSchema).optional()
+  customRoles: z.lazy(() => CustomRoleListRelationFilterSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportListRelationFilterSchema).optional()
 }).strict());
 
 export const OrganizationOrderByWithAggregationInputSchema: z.ZodType<Prisma.OrganizationOrderByWithAggregationInput> = z.object({
@@ -5835,6 +6135,396 @@ export const VerificationScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.
   updatedAt: z.union([ z.lazy(() => DateTimeNullableWithAggregatesFilterSchema),z.coerce.date() ]).optional().nullable(),
 }).strict();
 
+export const FinancialReportWhereInputSchema: z.ZodType<Prisma.FinancialReportWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportWhereInputSchema),z.lazy(() => FinancialReportWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportWhereInputSchema),z.lazy(() => FinancialReportWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  type: z.union([ z.lazy(() => EnumFinancialReportTypeFilterSchema),z.lazy(() => FinancialReportTypeSchema) ]).optional(),
+  template: z.lazy(() => JsonFilterSchema).optional(),
+  filters: z.lazy(() => JsonNullableFilterSchema).optional(),
+  dateRange: z.lazy(() => JsonFilterSchema).optional(),
+  status: z.union([ z.lazy(() => EnumFinancialReportStatusFilterSchema),z.lazy(() => FinancialReportStatusSchema) ]).optional(),
+  generatedAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
+  generatedBy: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  isTemplate: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  isScheduled: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  scheduleConfig: z.lazy(() => JsonNullableFilterSchema).optional(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  organization: z.union([ z.lazy(() => OrganizationRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional(),
+  reportData: z.lazy(() => FinancialReportDataListRelationFilterSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportListRelationFilterSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleListRelationFilterSchema).optional()
+}).strict();
+
+export const FinancialReportOrderByWithRelationInputSchema: z.ZodType<Prisma.FinancialReportOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  type: z.lazy(() => SortOrderSchema).optional(),
+  template: z.lazy(() => SortOrderSchema).optional(),
+  filters: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  dateRange: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  generatedAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  generatedBy: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  isTemplate: z.lazy(() => SortOrderSchema).optional(),
+  isScheduled: z.lazy(() => SortOrderSchema).optional(),
+  scheduleConfig: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  organization: z.lazy(() => OrganizationOrderByWithRelationInputSchema).optional(),
+  reportData: z.lazy(() => FinancialReportDataOrderByRelationAggregateInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportOrderByRelationAggregateInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleOrderByRelationAggregateInputSchema).optional()
+}).strict();
+
+export const FinancialReportWhereUniqueInputSchema: z.ZodType<Prisma.FinancialReportWhereUniqueInput> = z.object({
+  id: z.string().cuid()
+})
+.and(z.object({
+  id: z.string().cuid().optional(),
+  AND: z.union([ z.lazy(() => FinancialReportWhereInputSchema),z.lazy(() => FinancialReportWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportWhereInputSchema),z.lazy(() => FinancialReportWhereInputSchema).array() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  type: z.union([ z.lazy(() => EnumFinancialReportTypeFilterSchema),z.lazy(() => FinancialReportTypeSchema) ]).optional(),
+  template: z.lazy(() => JsonFilterSchema).optional(),
+  filters: z.lazy(() => JsonNullableFilterSchema).optional(),
+  dateRange: z.lazy(() => JsonFilterSchema).optional(),
+  status: z.union([ z.lazy(() => EnumFinancialReportStatusFilterSchema),z.lazy(() => FinancialReportStatusSchema) ]).optional(),
+  generatedAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
+  generatedBy: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  isTemplate: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  isScheduled: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  scheduleConfig: z.lazy(() => JsonNullableFilterSchema).optional(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  organization: z.union([ z.lazy(() => OrganizationRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional(),
+  reportData: z.lazy(() => FinancialReportDataListRelationFilterSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportListRelationFilterSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleListRelationFilterSchema).optional()
+}).strict());
+
+export const FinancialReportOrderByWithAggregationInputSchema: z.ZodType<Prisma.FinancialReportOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  type: z.lazy(() => SortOrderSchema).optional(),
+  template: z.lazy(() => SortOrderSchema).optional(),
+  filters: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  dateRange: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  generatedAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  generatedBy: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  isTemplate: z.lazy(() => SortOrderSchema).optional(),
+  isScheduled: z.lazy(() => SortOrderSchema).optional(),
+  scheduleConfig: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => FinancialReportCountOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => FinancialReportMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => FinancialReportMinOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const FinancialReportScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.FinancialReportScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  type: z.union([ z.lazy(() => EnumFinancialReportTypeWithAggregatesFilterSchema),z.lazy(() => FinancialReportTypeSchema) ]).optional(),
+  template: z.lazy(() => JsonWithAggregatesFilterSchema).optional(),
+  filters: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
+  dateRange: z.lazy(() => JsonWithAggregatesFilterSchema).optional(),
+  status: z.union([ z.lazy(() => EnumFinancialReportStatusWithAggregatesFilterSchema),z.lazy(() => FinancialReportStatusSchema) ]).optional(),
+  generatedAt: z.union([ z.lazy(() => DateTimeNullableWithAggregatesFilterSchema),z.coerce.date() ]).optional().nullable(),
+  generatedBy: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  isTemplate: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
+  isScheduled: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
+  scheduleConfig: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
+  createdById: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinancialReportDataWhereInputSchema: z.ZodType<Prisma.FinancialReportDataWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportDataWhereInputSchema),z.lazy(() => FinancialReportDataWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportDataWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportDataWhereInputSchema),z.lazy(() => FinancialReportDataWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  data: z.lazy(() => JsonFilterSchema).optional(),
+  metadata: z.lazy(() => JsonNullableFilterSchema).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  report: z.union([ z.lazy(() => FinancialReportRelationFilterSchema),z.lazy(() => FinancialReportWhereInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataOrderByWithRelationInputSchema: z.ZodType<Prisma.FinancialReportDataOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  data: z.lazy(() => SortOrderSchema).optional(),
+  metadata: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  report: z.lazy(() => FinancialReportOrderByWithRelationInputSchema).optional()
+}).strict();
+
+export const FinancialReportDataWhereUniqueInputSchema: z.ZodType<Prisma.FinancialReportDataWhereUniqueInput> = z.object({
+  id: z.string().cuid()
+})
+.and(z.object({
+  id: z.string().cuid().optional(),
+  AND: z.union([ z.lazy(() => FinancialReportDataWhereInputSchema),z.lazy(() => FinancialReportDataWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportDataWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportDataWhereInputSchema),z.lazy(() => FinancialReportDataWhereInputSchema).array() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  data: z.lazy(() => JsonFilterSchema).optional(),
+  metadata: z.lazy(() => JsonNullableFilterSchema).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  report: z.union([ z.lazy(() => FinancialReportRelationFilterSchema),z.lazy(() => FinancialReportWhereInputSchema) ]).optional(),
+}).strict());
+
+export const FinancialReportDataOrderByWithAggregationInputSchema: z.ZodType<Prisma.FinancialReportDataOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  data: z.lazy(() => SortOrderSchema).optional(),
+  metadata: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => FinancialReportDataCountOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => FinancialReportDataMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => FinancialReportDataMinOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const FinancialReportDataScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.FinancialReportDataScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportDataScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportDataScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportDataScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportDataScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportDataScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  data: z.lazy(() => JsonWithAggregatesFilterSchema).optional(),
+  metadata: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinancialReportExportWhereInputSchema: z.ZodType<Prisma.FinancialReportExportWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportExportWhereInputSchema),z.lazy(() => FinancialReportExportWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportExportWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportExportWhereInputSchema),z.lazy(() => FinancialReportExportWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  format: z.union([ z.lazy(() => EnumFinancialReportExportFormatFilterSchema),z.lazy(() => FinancialReportExportFormatSchema) ]).optional(),
+  fileName: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  fileUrl: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  fileSize: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  status: z.union([ z.lazy(() => EnumFinancialReportExportStatusFilterSchema),z.lazy(() => FinancialReportExportStatusSchema) ]).optional(),
+  error: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  report: z.union([ z.lazy(() => FinancialReportRelationFilterSchema),z.lazy(() => FinancialReportWhereInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportOrderByWithRelationInputSchema: z.ZodType<Prisma.FinancialReportExportOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  format: z.lazy(() => SortOrderSchema).optional(),
+  fileName: z.lazy(() => SortOrderSchema).optional(),
+  fileUrl: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  fileSize: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  error: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  report: z.lazy(() => FinancialReportOrderByWithRelationInputSchema).optional()
+}).strict();
+
+export const FinancialReportExportWhereUniqueInputSchema: z.ZodType<Prisma.FinancialReportExportWhereUniqueInput> = z.object({
+  id: z.string().cuid()
+})
+.and(z.object({
+  id: z.string().cuid().optional(),
+  AND: z.union([ z.lazy(() => FinancialReportExportWhereInputSchema),z.lazy(() => FinancialReportExportWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportExportWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportExportWhereInputSchema),z.lazy(() => FinancialReportExportWhereInputSchema).array() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  format: z.union([ z.lazy(() => EnumFinancialReportExportFormatFilterSchema),z.lazy(() => FinancialReportExportFormatSchema) ]).optional(),
+  fileName: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  fileUrl: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  fileSize: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  status: z.union([ z.lazy(() => EnumFinancialReportExportStatusFilterSchema),z.lazy(() => FinancialReportExportStatusSchema) ]).optional(),
+  error: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  report: z.union([ z.lazy(() => FinancialReportRelationFilterSchema),z.lazy(() => FinancialReportWhereInputSchema) ]).optional(),
+}).strict());
+
+export const FinancialReportExportOrderByWithAggregationInputSchema: z.ZodType<Prisma.FinancialReportExportOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  format: z.lazy(() => SortOrderSchema).optional(),
+  fileName: z.lazy(() => SortOrderSchema).optional(),
+  fileUrl: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  fileSize: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  error: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => FinancialReportExportCountOrderByAggregateInputSchema).optional(),
+  _avg: z.lazy(() => FinancialReportExportAvgOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => FinancialReportExportMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => FinancialReportExportMinOrderByAggregateInputSchema).optional(),
+  _sum: z.lazy(() => FinancialReportExportSumOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const FinancialReportExportScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.FinancialReportExportScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportExportScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportExportScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportExportScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportExportScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportExportScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  format: z.union([ z.lazy(() => EnumFinancialReportExportFormatWithAggregatesFilterSchema),z.lazy(() => FinancialReportExportFormatSchema) ]).optional(),
+  fileName: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  fileUrl: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  fileSize: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  status: z.union([ z.lazy(() => EnumFinancialReportExportStatusWithAggregatesFilterSchema),z.lazy(() => FinancialReportExportStatusSchema) ]).optional(),
+  error: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleWhereInputSchema: z.ZodType<Prisma.FinancialReportScheduleWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportScheduleWhereInputSchema),z.lazy(() => FinancialReportScheduleWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportScheduleWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportScheduleWhereInputSchema),z.lazy(() => FinancialReportScheduleWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  frequency: z.union([ z.lazy(() => EnumFinancialReportScheduleFrequencyFilterSchema),z.lazy(() => FinancialReportScheduleFrequencySchema) ]).optional(),
+  dayOfWeek: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  dayOfMonth: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  time: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  timezone: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  lastRunAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
+  nextRunAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  recipients: z.lazy(() => JsonFilterSchema).optional(),
+  emailSubject: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  emailBody: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  report: z.union([ z.lazy(() => FinancialReportRelationFilterSchema),z.lazy(() => FinancialReportWhereInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleOrderByWithRelationInputSchema: z.ZodType<Prisma.FinancialReportScheduleOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  frequency: z.lazy(() => SortOrderSchema).optional(),
+  dayOfWeek: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  dayOfMonth: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  time: z.lazy(() => SortOrderSchema).optional(),
+  timezone: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  lastRunAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  nextRunAt: z.lazy(() => SortOrderSchema).optional(),
+  recipients: z.lazy(() => SortOrderSchema).optional(),
+  emailSubject: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  emailBody: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  report: z.lazy(() => FinancialReportOrderByWithRelationInputSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleWhereUniqueInputSchema: z.ZodType<Prisma.FinancialReportScheduleWhereUniqueInput> = z.object({
+  id: z.string().cuid()
+})
+.and(z.object({
+  id: z.string().cuid().optional(),
+  AND: z.union([ z.lazy(() => FinancialReportScheduleWhereInputSchema),z.lazy(() => FinancialReportScheduleWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportScheduleWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportScheduleWhereInputSchema),z.lazy(() => FinancialReportScheduleWhereInputSchema).array() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  frequency: z.union([ z.lazy(() => EnumFinancialReportScheduleFrequencyFilterSchema),z.lazy(() => FinancialReportScheduleFrequencySchema) ]).optional(),
+  dayOfWeek: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  dayOfMonth: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  time: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  timezone: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  lastRunAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
+  nextRunAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  recipients: z.lazy(() => JsonFilterSchema).optional(),
+  emailSubject: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  emailBody: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  report: z.union([ z.lazy(() => FinancialReportRelationFilterSchema),z.lazy(() => FinancialReportWhereInputSchema) ]).optional(),
+}).strict());
+
+export const FinancialReportScheduleOrderByWithAggregationInputSchema: z.ZodType<Prisma.FinancialReportScheduleOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  frequency: z.lazy(() => SortOrderSchema).optional(),
+  dayOfWeek: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  dayOfMonth: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  time: z.lazy(() => SortOrderSchema).optional(),
+  timezone: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  lastRunAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  nextRunAt: z.lazy(() => SortOrderSchema).optional(),
+  recipients: z.lazy(() => SortOrderSchema).optional(),
+  emailSubject: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  emailBody: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => FinancialReportScheduleCountOrderByAggregateInputSchema).optional(),
+  _avg: z.lazy(() => FinancialReportScheduleAvgOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => FinancialReportScheduleMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => FinancialReportScheduleMinOrderByAggregateInputSchema).optional(),
+  _sum: z.lazy(() => FinancialReportScheduleSumOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.FinancialReportScheduleScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportScheduleScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportScheduleScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportScheduleScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportScheduleScalarWhereWithAggregatesInputSchema),z.lazy(() => FinancialReportScheduleScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  frequency: z.union([ z.lazy(() => EnumFinancialReportScheduleFrequencyWithAggregatesFilterSchema),z.lazy(() => FinancialReportScheduleFrequencySchema) ]).optional(),
+  dayOfWeek: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  dayOfMonth: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  time: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  timezone: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
+  lastRunAt: z.union([ z.lazy(() => DateTimeNullableWithAggregatesFilterSchema),z.coerce.date() ]).optional().nullable(),
+  nextRunAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+  recipients: z.lazy(() => JsonWithAggregatesFilterSchema).optional(),
+  emailSubject: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  emailBody: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const PermissionCreateInputSchema: z.ZodType<Prisma.PermissionCreateInput> = z.object({
   id: z.string().cuid().optional(),
   name: z.string(),
@@ -6119,7 +6809,8 @@ export const OrganizationCreateInputSchema: z.ZodType<Prisma.OrganizationCreateI
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateInput> = z.object({
@@ -6142,7 +6833,8 @@ export const OrganizationUncheckedCreateInputSchema: z.ZodType<Prisma.Organizati
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUpdateInputSchema: z.ZodType<Prisma.OrganizationUpdateInput> = z.object({
@@ -6165,7 +6857,8 @@ export const OrganizationUpdateInputSchema: z.ZodType<Prisma.OrganizationUpdateI
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateInput> = z.object({
@@ -6188,7 +6881,8 @@ export const OrganizationUncheckedUpdateInputSchema: z.ZodType<Prisma.Organizati
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateManyInputSchema: z.ZodType<Prisma.OrganizationCreateManyInput> = z.object({
@@ -9668,6 +10362,441 @@ export const VerificationUncheckedUpdateManyInputSchema: z.ZodType<Prisma.Verifi
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
 }).strict();
 
+export const FinancialReportCreateInputSchema: z.ZodType<Prisma.FinancialReportCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutFinancialReportsInputSchema),
+  reportData: z.lazy(() => FinancialReportDataCreateNestedManyWithoutReportInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedCreateInputSchema: z.ZodType<Prisma.FinancialReportUncheckedCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedCreateNestedManyWithoutReportInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportUpdateInputSchema: z.ZodType<Prisma.FinancialReportUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutFinancialReportsNestedInputSchema).optional(),
+  reportData: z.lazy(() => FinancialReportDataUpdateManyWithoutReportNestedInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedUpdateInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedUpdateManyWithoutReportNestedInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportCreateManyInputSchema: z.ZodType<Prisma.FinancialReportCreateManyInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportUpdateManyMutationInputSchema: z.ZodType<Prisma.FinancialReportUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportUncheckedUpdateManyInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataCreateInputSchema: z.ZodType<Prisma.FinancialReportDataCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  report: z.lazy(() => FinancialReportCreateNestedOneWithoutReportDataInputSchema)
+}).strict();
+
+export const FinancialReportDataUncheckedCreateInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  reportId: z.string(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportDataUpdateInputSchema: z.ZodType<Prisma.FinancialReportDataUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  report: z.lazy(() => FinancialReportUpdateOneRequiredWithoutReportDataNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportDataUncheckedUpdateInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  reportId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataCreateManyInputSchema: z.ZodType<Prisma.FinancialReportDataCreateManyInput> = z.object({
+  id: z.string().cuid().optional(),
+  reportId: z.string(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportDataUpdateManyMutationInputSchema: z.ZodType<Prisma.FinancialReportDataUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataUncheckedUpdateManyInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  reportId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportCreateInputSchema: z.ZodType<Prisma.FinancialReportExportCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  format: z.lazy(() => FinancialReportExportFormatSchema),
+  fileName: z.string(),
+  fileUrl: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
+  status: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  error: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  report: z.lazy(() => FinancialReportCreateNestedOneWithoutExportsInputSchema)
+}).strict();
+
+export const FinancialReportExportUncheckedCreateInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  reportId: z.string(),
+  format: z.lazy(() => FinancialReportExportFormatSchema),
+  fileName: z.string(),
+  fileUrl: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
+  status: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  error: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportExportUpdateInputSchema: z.ZodType<Prisma.FinancialReportExportUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  format: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema) ]).optional(),
+  fileName: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  error: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  report: z.lazy(() => FinancialReportUpdateOneRequiredWithoutExportsNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportExportUncheckedUpdateInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  reportId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  format: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema) ]).optional(),
+  fileName: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  error: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportCreateManyInputSchema: z.ZodType<Prisma.FinancialReportExportCreateManyInput> = z.object({
+  id: z.string().cuid().optional(),
+  reportId: z.string(),
+  format: z.lazy(() => FinancialReportExportFormatSchema),
+  fileName: z.string(),
+  fileUrl: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
+  status: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  error: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportExportUpdateManyMutationInputSchema: z.ZodType<Prisma.FinancialReportExportUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  format: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema) ]).optional(),
+  fileName: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  error: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportUncheckedUpdateManyInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  reportId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  format: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema) ]).optional(),
+  fileName: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  error: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleCreateInputSchema: z.ZodType<Prisma.FinancialReportScheduleCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  frequency: z.lazy(() => FinancialReportScheduleFrequencySchema),
+  dayOfWeek: z.number().int().optional().nullable(),
+  dayOfMonth: z.number().int().optional().nullable(),
+  time: z.string(),
+  timezone: z.string().optional(),
+  isActive: z.boolean().optional(),
+  lastRunAt: z.coerce.date().optional().nullable(),
+  nextRunAt: z.coerce.date(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  emailSubject: z.string().optional().nullable(),
+  emailBody: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  report: z.lazy(() => FinancialReportCreateNestedOneWithoutSchedulesInputSchema)
+}).strict();
+
+export const FinancialReportScheduleUncheckedCreateInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedCreateInput> = z.object({
+  id: z.string().cuid().optional(),
+  reportId: z.string(),
+  frequency: z.lazy(() => FinancialReportScheduleFrequencySchema),
+  dayOfWeek: z.number().int().optional().nullable(),
+  dayOfMonth: z.number().int().optional().nullable(),
+  time: z.string(),
+  timezone: z.string().optional(),
+  isActive: z.boolean().optional(),
+  lastRunAt: z.coerce.date().optional().nullable(),
+  nextRunAt: z.coerce.date(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  emailSubject: z.string().optional().nullable(),
+  emailBody: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportScheduleUpdateInputSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  frequency: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema) ]).optional(),
+  dayOfWeek: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  dayOfMonth: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  time: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastRunAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  nextRunAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  emailSubject: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  emailBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  report: z.lazy(() => FinancialReportUpdateOneRequiredWithoutSchedulesNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleUncheckedUpdateInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  reportId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  frequency: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema) ]).optional(),
+  dayOfWeek: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  dayOfMonth: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  time: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastRunAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  nextRunAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  emailSubject: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  emailBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleCreateManyInputSchema: z.ZodType<Prisma.FinancialReportScheduleCreateManyInput> = z.object({
+  id: z.string().cuid().optional(),
+  reportId: z.string(),
+  frequency: z.lazy(() => FinancialReportScheduleFrequencySchema),
+  dayOfWeek: z.number().int().optional().nullable(),
+  dayOfMonth: z.number().int().optional().nullable(),
+  time: z.string(),
+  timezone: z.string().optional(),
+  isActive: z.boolean().optional(),
+  lastRunAt: z.coerce.date().optional().nullable(),
+  nextRunAt: z.coerce.date(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  emailSubject: z.string().optional().nullable(),
+  emailBody: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportScheduleUpdateManyMutationInputSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  frequency: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema) ]).optional(),
+  dayOfWeek: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  dayOfMonth: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  time: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastRunAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  nextRunAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  emailSubject: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  emailBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUncheckedUpdateManyInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  reportId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  frequency: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema) ]).optional(),
+  dayOfWeek: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  dayOfMonth: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  time: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastRunAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  nextRunAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  emailSubject: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  emailBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
 export const StringFilterSchema: z.ZodType<Prisma.StringFilter> = z.object({
   equals: z.string().optional(),
   in: z.string().array().optional(),
@@ -10028,6 +11157,12 @@ export const CustomRoleListRelationFilterSchema: z.ZodType<Prisma.CustomRoleList
   none: z.lazy(() => CustomRoleWhereInputSchema).optional()
 }).strict();
 
+export const FinancialReportListRelationFilterSchema: z.ZodType<Prisma.FinancialReportListRelationFilter> = z.object({
+  every: z.lazy(() => FinancialReportWhereInputSchema).optional(),
+  some: z.lazy(() => FinancialReportWhereInputSchema).optional(),
+  none: z.lazy(() => FinancialReportWhereInputSchema).optional()
+}).strict();
+
 export const CustomerOrderByRelationAggregateInputSchema: z.ZodType<Prisma.CustomerOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -10069,6 +11204,10 @@ export const InvitationOrderByRelationAggregateInputSchema: z.ZodType<Prisma.Inv
 }).strict();
 
 export const CustomRoleOrderByRelationAggregateInputSchema: z.ZodType<Prisma.CustomRoleOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportOrderByRelationAggregateInputSchema: z.ZodType<Prisma.FinancialReportOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -12631,6 +13770,383 @@ export const VerificationMinOrderByAggregateInputSchema: z.ZodType<Prisma.Verifi
   updatedAt: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
+export const EnumFinancialReportTypeFilterSchema: z.ZodType<Prisma.EnumFinancialReportTypeFilter> = z.object({
+  equals: z.lazy(() => FinancialReportTypeSchema).optional(),
+  in: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => NestedEnumFinancialReportTypeFilterSchema) ]).optional(),
+}).strict();
+
+export const JsonFilterSchema: z.ZodType<Prisma.JsonFilter> = z.object({
+  equals: InputJsonValueSchema.optional(),
+  path: z.string().array().optional(),
+  string_contains: z.string().optional(),
+  string_starts_with: z.string().optional(),
+  string_ends_with: z.string().optional(),
+  array_contains: InputJsonValueSchema.optional().nullable(),
+  array_starts_with: InputJsonValueSchema.optional().nullable(),
+  array_ends_with: InputJsonValueSchema.optional().nullable(),
+  lt: InputJsonValueSchema.optional(),
+  lte: InputJsonValueSchema.optional(),
+  gt: InputJsonValueSchema.optional(),
+  gte: InputJsonValueSchema.optional(),
+  not: InputJsonValueSchema.optional()
+}).strict();
+
+export const JsonNullableFilterSchema: z.ZodType<Prisma.JsonNullableFilter> = z.object({
+  equals: InputJsonValueSchema.optional(),
+  path: z.string().array().optional(),
+  string_contains: z.string().optional(),
+  string_starts_with: z.string().optional(),
+  string_ends_with: z.string().optional(),
+  array_contains: InputJsonValueSchema.optional().nullable(),
+  array_starts_with: InputJsonValueSchema.optional().nullable(),
+  array_ends_with: InputJsonValueSchema.optional().nullable(),
+  lt: InputJsonValueSchema.optional(),
+  lte: InputJsonValueSchema.optional(),
+  gt: InputJsonValueSchema.optional(),
+  gte: InputJsonValueSchema.optional(),
+  not: InputJsonValueSchema.optional()
+}).strict();
+
+export const EnumFinancialReportStatusFilterSchema: z.ZodType<Prisma.EnumFinancialReportStatusFilter> = z.object({
+  equals: z.lazy(() => FinancialReportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => NestedEnumFinancialReportStatusFilterSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataListRelationFilterSchema: z.ZodType<Prisma.FinancialReportDataListRelationFilter> = z.object({
+  every: z.lazy(() => FinancialReportDataWhereInputSchema).optional(),
+  some: z.lazy(() => FinancialReportDataWhereInputSchema).optional(),
+  none: z.lazy(() => FinancialReportDataWhereInputSchema).optional()
+}).strict();
+
+export const FinancialReportExportListRelationFilterSchema: z.ZodType<Prisma.FinancialReportExportListRelationFilter> = z.object({
+  every: z.lazy(() => FinancialReportExportWhereInputSchema).optional(),
+  some: z.lazy(() => FinancialReportExportWhereInputSchema).optional(),
+  none: z.lazy(() => FinancialReportExportWhereInputSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleListRelationFilterSchema: z.ZodType<Prisma.FinancialReportScheduleListRelationFilter> = z.object({
+  every: z.lazy(() => FinancialReportScheduleWhereInputSchema).optional(),
+  some: z.lazy(() => FinancialReportScheduleWhereInputSchema).optional(),
+  none: z.lazy(() => FinancialReportScheduleWhereInputSchema).optional()
+}).strict();
+
+export const FinancialReportDataOrderByRelationAggregateInputSchema: z.ZodType<Prisma.FinancialReportDataOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportExportOrderByRelationAggregateInputSchema: z.ZodType<Prisma.FinancialReportExportOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleOrderByRelationAggregateInputSchema: z.ZodType<Prisma.FinancialReportScheduleOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportCountOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.lazy(() => SortOrderSchema).optional(),
+  type: z.lazy(() => SortOrderSchema).optional(),
+  template: z.lazy(() => SortOrderSchema).optional(),
+  filters: z.lazy(() => SortOrderSchema).optional(),
+  dateRange: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  generatedAt: z.lazy(() => SortOrderSchema).optional(),
+  generatedBy: z.lazy(() => SortOrderSchema).optional(),
+  isTemplate: z.lazy(() => SortOrderSchema).optional(),
+  isScheduled: z.lazy(() => SortOrderSchema).optional(),
+  scheduleConfig: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportMaxOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.lazy(() => SortOrderSchema).optional(),
+  type: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  generatedAt: z.lazy(() => SortOrderSchema).optional(),
+  generatedBy: z.lazy(() => SortOrderSchema).optional(),
+  isTemplate: z.lazy(() => SortOrderSchema).optional(),
+  isScheduled: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportMinOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  organizationId: z.lazy(() => SortOrderSchema).optional(),
+  name: z.lazy(() => SortOrderSchema).optional(),
+  description: z.lazy(() => SortOrderSchema).optional(),
+  type: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  generatedAt: z.lazy(() => SortOrderSchema).optional(),
+  generatedBy: z.lazy(() => SortOrderSchema).optional(),
+  isTemplate: z.lazy(() => SortOrderSchema).optional(),
+  isScheduled: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const EnumFinancialReportTypeWithAggregatesFilterSchema: z.ZodType<Prisma.EnumFinancialReportTypeWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportTypeSchema).optional(),
+  in: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => NestedEnumFinancialReportTypeWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportTypeFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportTypeFilterSchema).optional()
+}).strict();
+
+export const JsonWithAggregatesFilterSchema: z.ZodType<Prisma.JsonWithAggregatesFilter> = z.object({
+  equals: InputJsonValueSchema.optional(),
+  path: z.string().array().optional(),
+  string_contains: z.string().optional(),
+  string_starts_with: z.string().optional(),
+  string_ends_with: z.string().optional(),
+  array_contains: InputJsonValueSchema.optional().nullable(),
+  array_starts_with: InputJsonValueSchema.optional().nullable(),
+  array_ends_with: InputJsonValueSchema.optional().nullable(),
+  lt: InputJsonValueSchema.optional(),
+  lte: InputJsonValueSchema.optional(),
+  gt: InputJsonValueSchema.optional(),
+  gte: InputJsonValueSchema.optional(),
+  not: InputJsonValueSchema.optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedJsonFilterSchema).optional(),
+  _max: z.lazy(() => NestedJsonFilterSchema).optional()
+}).strict();
+
+export const JsonNullableWithAggregatesFilterSchema: z.ZodType<Prisma.JsonNullableWithAggregatesFilter> = z.object({
+  equals: InputJsonValueSchema.optional(),
+  path: z.string().array().optional(),
+  string_contains: z.string().optional(),
+  string_starts_with: z.string().optional(),
+  string_ends_with: z.string().optional(),
+  array_contains: InputJsonValueSchema.optional().nullable(),
+  array_starts_with: InputJsonValueSchema.optional().nullable(),
+  array_ends_with: InputJsonValueSchema.optional().nullable(),
+  lt: InputJsonValueSchema.optional(),
+  lte: InputJsonValueSchema.optional(),
+  gt: InputJsonValueSchema.optional(),
+  gte: InputJsonValueSchema.optional(),
+  not: InputJsonValueSchema.optional(),
+  _count: z.lazy(() => NestedIntNullableFilterSchema).optional(),
+  _min: z.lazy(() => NestedJsonNullableFilterSchema).optional(),
+  _max: z.lazy(() => NestedJsonNullableFilterSchema).optional()
+}).strict();
+
+export const EnumFinancialReportStatusWithAggregatesFilterSchema: z.ZodType<Prisma.EnumFinancialReportStatusWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => NestedEnumFinancialReportStatusWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportStatusFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportStatusFilterSchema).optional()
+}).strict();
+
+export const FinancialReportRelationFilterSchema: z.ZodType<Prisma.FinancialReportRelationFilter> = z.object({
+  is: z.lazy(() => FinancialReportWhereInputSchema).optional(),
+  isNot: z.lazy(() => FinancialReportWhereInputSchema).optional()
+}).strict();
+
+export const FinancialReportDataCountOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportDataCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  data: z.lazy(() => SortOrderSchema).optional(),
+  metadata: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportDataMaxOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportDataMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportDataMinOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportDataMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const EnumFinancialReportExportFormatFilterSchema: z.ZodType<Prisma.EnumFinancialReportExportFormatFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportFormatSchema).optional(),
+  in: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => NestedEnumFinancialReportExportFormatFilterSchema) ]).optional(),
+}).strict();
+
+export const EnumFinancialReportExportStatusFilterSchema: z.ZodType<Prisma.EnumFinancialReportExportStatusFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => NestedEnumFinancialReportExportStatusFilterSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportCountOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportExportCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  format: z.lazy(() => SortOrderSchema).optional(),
+  fileName: z.lazy(() => SortOrderSchema).optional(),
+  fileUrl: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  error: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportExportAvgOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportExportAvgOrderByAggregateInput> = z.object({
+  fileSize: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportExportMaxOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportExportMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  format: z.lazy(() => SortOrderSchema).optional(),
+  fileName: z.lazy(() => SortOrderSchema).optional(),
+  fileUrl: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  error: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportExportMinOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportExportMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  format: z.lazy(() => SortOrderSchema).optional(),
+  fileName: z.lazy(() => SortOrderSchema).optional(),
+  fileUrl: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  error: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportExportSumOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportExportSumOrderByAggregateInput> = z.object({
+  fileSize: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const EnumFinancialReportExportFormatWithAggregatesFilterSchema: z.ZodType<Prisma.EnumFinancialReportExportFormatWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportFormatSchema).optional(),
+  in: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => NestedEnumFinancialReportExportFormatWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportExportFormatFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportExportFormatFilterSchema).optional()
+}).strict();
+
+export const EnumFinancialReportExportStatusWithAggregatesFilterSchema: z.ZodType<Prisma.EnumFinancialReportExportStatusWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => NestedEnumFinancialReportExportStatusWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportExportStatusFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportExportStatusFilterSchema).optional()
+}).strict();
+
+export const EnumFinancialReportScheduleFrequencyFilterSchema: z.ZodType<Prisma.EnumFinancialReportScheduleFrequencyFilter> = z.object({
+  equals: z.lazy(() => FinancialReportScheduleFrequencySchema).optional(),
+  in: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => NestedEnumFinancialReportScheduleFrequencyFilterSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleCountOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportScheduleCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  frequency: z.lazy(() => SortOrderSchema).optional(),
+  dayOfWeek: z.lazy(() => SortOrderSchema).optional(),
+  dayOfMonth: z.lazy(() => SortOrderSchema).optional(),
+  time: z.lazy(() => SortOrderSchema).optional(),
+  timezone: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  lastRunAt: z.lazy(() => SortOrderSchema).optional(),
+  nextRunAt: z.lazy(() => SortOrderSchema).optional(),
+  recipients: z.lazy(() => SortOrderSchema).optional(),
+  emailSubject: z.lazy(() => SortOrderSchema).optional(),
+  emailBody: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleAvgOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportScheduleAvgOrderByAggregateInput> = z.object({
+  dayOfWeek: z.lazy(() => SortOrderSchema).optional(),
+  dayOfMonth: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleMaxOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportScheduleMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  frequency: z.lazy(() => SortOrderSchema).optional(),
+  dayOfWeek: z.lazy(() => SortOrderSchema).optional(),
+  dayOfMonth: z.lazy(() => SortOrderSchema).optional(),
+  time: z.lazy(() => SortOrderSchema).optional(),
+  timezone: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  lastRunAt: z.lazy(() => SortOrderSchema).optional(),
+  nextRunAt: z.lazy(() => SortOrderSchema).optional(),
+  emailSubject: z.lazy(() => SortOrderSchema).optional(),
+  emailBody: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleMinOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportScheduleMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  reportId: z.lazy(() => SortOrderSchema).optional(),
+  frequency: z.lazy(() => SortOrderSchema).optional(),
+  dayOfWeek: z.lazy(() => SortOrderSchema).optional(),
+  dayOfMonth: z.lazy(() => SortOrderSchema).optional(),
+  time: z.lazy(() => SortOrderSchema).optional(),
+  timezone: z.lazy(() => SortOrderSchema).optional(),
+  isActive: z.lazy(() => SortOrderSchema).optional(),
+  lastRunAt: z.lazy(() => SortOrderSchema).optional(),
+  nextRunAt: z.lazy(() => SortOrderSchema).optional(),
+  emailSubject: z.lazy(() => SortOrderSchema).optional(),
+  emailBody: z.lazy(() => SortOrderSchema).optional(),
+  createdById: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinancialReportScheduleSumOrderByAggregateInputSchema: z.ZodType<Prisma.FinancialReportScheduleSumOrderByAggregateInput> = z.object({
+  dayOfWeek: z.lazy(() => SortOrderSchema).optional(),
+  dayOfMonth: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const EnumFinancialReportScheduleFrequencyWithAggregatesFilterSchema: z.ZodType<Prisma.EnumFinancialReportScheduleFrequencyWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportScheduleFrequencySchema).optional(),
+  in: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => NestedEnumFinancialReportScheduleFrequencyWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportScheduleFrequencyFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportScheduleFrequencyFilterSchema).optional()
+}).strict();
+
 export const RolePermissionCreateNestedManyWithoutPermissionInputSchema: z.ZodType<Prisma.RolePermissionCreateNestedManyWithoutPermissionInput> = z.object({
   create: z.union([ z.lazy(() => RolePermissionCreateWithoutPermissionInputSchema),z.lazy(() => RolePermissionCreateWithoutPermissionInputSchema).array(),z.lazy(() => RolePermissionUncheckedCreateWithoutPermissionInputSchema),z.lazy(() => RolePermissionUncheckedCreateWithoutPermissionInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => RolePermissionCreateOrConnectWithoutPermissionInputSchema),z.lazy(() => RolePermissionCreateOrConnectWithoutPermissionInputSchema).array() ]).optional(),
@@ -12959,6 +14475,13 @@ export const CustomRoleCreateNestedManyWithoutOrganizationInputSchema: z.ZodType
   connect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
+export const FinancialReportCreateNestedManyWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportCreateNestedManyWithoutOrganizationInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema).array(),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportCreateManyOrganizationInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
 export const UserOrganizationUncheckedCreateNestedManyWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedCreateNestedManyWithoutOrganizationInput> = z.object({
   create: z.union([ z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
@@ -13041,6 +14564,13 @@ export const CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema: 
   connectOrCreate: z.union([ z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => CustomRoleCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
   createMany: z.lazy(() => CustomRoleCreateManyOrganizationInputEnvelopeSchema).optional(),
   connect: z.union([ z.lazy(() => CustomRoleWhereUniqueInputSchema),z.lazy(() => CustomRoleWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUncheckedCreateNestedManyWithoutOrganizationInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema).array(),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportCreateManyOrganizationInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
 export const UserOrganizationUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.UserOrganizationUpdateManyWithoutOrganizationNestedInput> = z.object({
@@ -13211,6 +14741,20 @@ export const CustomRoleUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType
   deleteMany: z.union([ z.lazy(() => CustomRoleScalarWhereInputSchema),z.lazy(() => CustomRoleScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
+export const FinancialReportUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.FinancialReportUpdateManyWithoutOrganizationNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema).array(),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportUpsertWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUpsertWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportCreateManyOrganizationInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportUpdateWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUpdateWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportUpdateManyWithWhereWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUpdateManyWithWhereWithoutOrganizationInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportScalarWhereInputSchema),z.lazy(() => FinancialReportScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
 export const UserOrganizationUncheckedUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.UserOrganizationUncheckedUpdateManyWithoutOrganizationNestedInput> = z.object({
   create: z.union([ z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateWithoutOrganizationInputSchema).array(),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
@@ -13377,6 +14921,20 @@ export const CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema: 
   update: z.union([ z.lazy(() => CustomRoleUpdateWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpdateWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
   updateMany: z.union([ z.lazy(() => CustomRoleUpdateManyWithWhereWithoutOrganizationInputSchema),z.lazy(() => CustomRoleUpdateManyWithWhereWithoutOrganizationInputSchema).array() ]).optional(),
   deleteMany: z.union([ z.lazy(() => CustomRoleScalarWhereInputSchema),z.lazy(() => CustomRoleScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema).array(),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema),z.lazy(() => FinancialReportCreateOrConnectWithoutOrganizationInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportUpsertWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUpsertWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportCreateManyOrganizationInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportWhereUniqueInputSchema),z.lazy(() => FinancialReportWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportUpdateWithWhereUniqueWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUpdateWithWhereUniqueWithoutOrganizationInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportUpdateManyWithWhereWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUpdateManyWithWhereWithoutOrganizationInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportScalarWhereInputSchema),z.lazy(() => FinancialReportScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
 export const OrganizationCreateNestedOneWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationCreateNestedOneWithoutUsersInput> = z.object({
@@ -15115,6 +16673,208 @@ export const UserUpdateOneRequiredWithoutAccountsNestedInputSchema: z.ZodType<Pr
   update: z.union([ z.lazy(() => UserUpdateToOneWithWhereWithoutAccountsInputSchema),z.lazy(() => UserUpdateWithoutAccountsInputSchema),z.lazy(() => UserUncheckedUpdateWithoutAccountsInputSchema) ]).optional(),
 }).strict();
 
+export const OrganizationCreateNestedOneWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationCreateNestedOneWithoutFinancialReportsInput> = z.object({
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutFinancialReportsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => OrganizationCreateOrConnectWithoutFinancialReportsInputSchema).optional(),
+  connect: z.lazy(() => OrganizationWhereUniqueInputSchema).optional()
+}).strict();
+
+export const FinancialReportDataCreateNestedManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataCreateNestedManyWithoutReportInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportDataCreateManyReportInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportExportCreateNestedManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportCreateNestedManyWithoutReportInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportExportCreateManyReportInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleCreateNestedManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleCreateNestedManyWithoutReportInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportScheduleCreateManyReportInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportDataUncheckedCreateNestedManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedCreateNestedManyWithoutReportInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportDataCreateManyReportInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportExportUncheckedCreateNestedManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedCreateNestedManyWithoutReportInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportExportCreateManyReportInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUncheckedCreateNestedManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedCreateNestedManyWithoutReportInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportScheduleCreateManyReportInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const EnumFinancialReportTypeFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumFinancialReportTypeFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => FinancialReportTypeSchema).optional()
+}).strict();
+
+export const EnumFinancialReportStatusFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumFinancialReportStatusFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => FinancialReportStatusSchema).optional()
+}).strict();
+
+export const OrganizationUpdateOneRequiredWithoutFinancialReportsNestedInputSchema: z.ZodType<Prisma.OrganizationUpdateOneRequiredWithoutFinancialReportsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutFinancialReportsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => OrganizationCreateOrConnectWithoutFinancialReportsInputSchema).optional(),
+  upsert: z.lazy(() => OrganizationUpsertWithoutFinancialReportsInputSchema).optional(),
+  connect: z.lazy(() => OrganizationWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => OrganizationUpdateToOneWithWhereWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUpdateWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutFinancialReportsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataUpdateManyWithoutReportNestedInputSchema: z.ZodType<Prisma.FinancialReportDataUpdateManyWithoutReportNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportDataUpsertWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportDataUpsertWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportDataCreateManyReportInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportDataUpdateWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportDataUpdateWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportDataUpdateManyWithWhereWithoutReportInputSchema),z.lazy(() => FinancialReportDataUpdateManyWithWhereWithoutReportInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportDataScalarWhereInputSchema),z.lazy(() => FinancialReportDataScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportExportUpdateManyWithoutReportNestedInputSchema: z.ZodType<Prisma.FinancialReportExportUpdateManyWithoutReportNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportExportUpsertWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportExportUpsertWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportExportCreateManyReportInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportExportUpdateWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportExportUpdateWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportExportUpdateManyWithWhereWithoutReportInputSchema),z.lazy(() => FinancialReportExportUpdateManyWithWhereWithoutReportInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportExportScalarWhereInputSchema),z.lazy(() => FinancialReportExportScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUpdateManyWithoutReportNestedInputSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateManyWithoutReportNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportScheduleUpsertWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUpsertWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportScheduleCreateManyReportInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportScheduleUpdateWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUpdateWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportScheduleUpdateManyWithWhereWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUpdateManyWithWhereWithoutReportInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportScheduleScalarWhereInputSchema),z.lazy(() => FinancialReportScheduleScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportDataUncheckedUpdateManyWithoutReportNestedInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedUpdateManyWithoutReportNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportDataCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportDataUpsertWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportDataUpsertWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportDataCreateManyReportInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportDataWhereUniqueInputSchema),z.lazy(() => FinancialReportDataWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportDataUpdateWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportDataUpdateWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportDataUpdateManyWithWhereWithoutReportInputSchema),z.lazy(() => FinancialReportDataUpdateManyWithWhereWithoutReportInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportDataScalarWhereInputSchema),z.lazy(() => FinancialReportDataScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportExportUncheckedUpdateManyWithoutReportNestedInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedUpdateManyWithoutReportNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportExportCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportExportUpsertWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportExportUpsertWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportExportCreateManyReportInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportExportWhereUniqueInputSchema),z.lazy(() => FinancialReportExportWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportExportUpdateWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportExportUpdateWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportExportUpdateManyWithWhereWithoutReportInputSchema),z.lazy(() => FinancialReportExportUpdateManyWithWhereWithoutReportInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportExportScalarWhereInputSchema),z.lazy(() => FinancialReportExportScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUncheckedUpdateManyWithoutReportNestedInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedUpdateManyWithoutReportNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema).array(),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleCreateOrConnectWithoutReportInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinancialReportScheduleUpsertWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUpsertWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinancialReportScheduleCreateManyReportInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinancialReportScheduleUpdateWithWhereUniqueWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUpdateWithWhereUniqueWithoutReportInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinancialReportScheduleUpdateManyWithWhereWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUpdateManyWithWhereWithoutReportInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinancialReportScheduleScalarWhereInputSchema),z.lazy(() => FinancialReportScheduleScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinancialReportCreateNestedOneWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportCreateNestedOneWithoutReportDataInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutReportDataInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutReportDataInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinancialReportCreateOrConnectWithoutReportDataInputSchema).optional(),
+  connect: z.lazy(() => FinancialReportWhereUniqueInputSchema).optional()
+}).strict();
+
+export const FinancialReportUpdateOneRequiredWithoutReportDataNestedInputSchema: z.ZodType<Prisma.FinancialReportUpdateOneRequiredWithoutReportDataNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutReportDataInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutReportDataInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinancialReportCreateOrConnectWithoutReportDataInputSchema).optional(),
+  upsert: z.lazy(() => FinancialReportUpsertWithoutReportDataInputSchema).optional(),
+  connect: z.lazy(() => FinancialReportWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => FinancialReportUpdateToOneWithWhereWithoutReportDataInputSchema),z.lazy(() => FinancialReportUpdateWithoutReportDataInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutReportDataInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportCreateNestedOneWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportCreateNestedOneWithoutExportsInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutExportsInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutExportsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinancialReportCreateOrConnectWithoutExportsInputSchema).optional(),
+  connect: z.lazy(() => FinancialReportWhereUniqueInputSchema).optional()
+}).strict();
+
+export const EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumFinancialReportExportFormatFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => FinancialReportExportFormatSchema).optional()
+}).strict();
+
+export const EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumFinancialReportExportStatusFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => FinancialReportExportStatusSchema).optional()
+}).strict();
+
+export const FinancialReportUpdateOneRequiredWithoutExportsNestedInputSchema: z.ZodType<Prisma.FinancialReportUpdateOneRequiredWithoutExportsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutExportsInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutExportsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinancialReportCreateOrConnectWithoutExportsInputSchema).optional(),
+  upsert: z.lazy(() => FinancialReportUpsertWithoutExportsInputSchema).optional(),
+  connect: z.lazy(() => FinancialReportWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => FinancialReportUpdateToOneWithWhereWithoutExportsInputSchema),z.lazy(() => FinancialReportUpdateWithoutExportsInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutExportsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportCreateNestedOneWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportCreateNestedOneWithoutSchedulesInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutSchedulesInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinancialReportCreateOrConnectWithoutSchedulesInputSchema).optional(),
+  connect: z.lazy(() => FinancialReportWhereUniqueInputSchema).optional()
+}).strict();
+
+export const EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => FinancialReportScheduleFrequencySchema).optional()
+}).strict();
+
+export const FinancialReportUpdateOneRequiredWithoutSchedulesNestedInputSchema: z.ZodType<Prisma.FinancialReportUpdateOneRequiredWithoutSchedulesNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutSchedulesInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinancialReportCreateOrConnectWithoutSchedulesInputSchema).optional(),
+  upsert: z.lazy(() => FinancialReportUpsertWithoutSchedulesInputSchema).optional(),
+  connect: z.lazy(() => FinancialReportWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => FinancialReportUpdateToOneWithWhereWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUpdateWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutSchedulesInputSchema) ]).optional(),
+}).strict();
+
 export const NestedStringFilterSchema: z.ZodType<Prisma.NestedStringFilter> = z.object({
   equals: z.string().optional(),
   in: z.string().array().optional(),
@@ -15844,6 +17604,123 @@ export const NestedEnumSocialPlatformWithAggregatesFilterSchema: z.ZodType<Prism
   _max: z.lazy(() => NestedEnumSocialPlatformFilterSchema).optional()
 }).strict();
 
+export const NestedEnumFinancialReportTypeFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportTypeFilter> = z.object({
+  equals: z.lazy(() => FinancialReportTypeSchema).optional(),
+  in: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => NestedEnumFinancialReportTypeFilterSchema) ]).optional(),
+}).strict();
+
+export const NestedEnumFinancialReportStatusFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportStatusFilter> = z.object({
+  equals: z.lazy(() => FinancialReportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => NestedEnumFinancialReportStatusFilterSchema) ]).optional(),
+}).strict();
+
+export const NestedEnumFinancialReportTypeWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportTypeWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportTypeSchema).optional(),
+  in: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportTypeSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => NestedEnumFinancialReportTypeWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportTypeFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportTypeFilterSchema).optional()
+}).strict();
+
+export const NestedJsonFilterSchema: z.ZodType<Prisma.NestedJsonFilter> = z.object({
+  equals: InputJsonValueSchema.optional(),
+  path: z.string().array().optional(),
+  string_contains: z.string().optional(),
+  string_starts_with: z.string().optional(),
+  string_ends_with: z.string().optional(),
+  array_contains: InputJsonValueSchema.optional().nullable(),
+  array_starts_with: InputJsonValueSchema.optional().nullable(),
+  array_ends_with: InputJsonValueSchema.optional().nullable(),
+  lt: InputJsonValueSchema.optional(),
+  lte: InputJsonValueSchema.optional(),
+  gt: InputJsonValueSchema.optional(),
+  gte: InputJsonValueSchema.optional(),
+  not: InputJsonValueSchema.optional()
+}).strict();
+
+export const NestedJsonNullableFilterSchema: z.ZodType<Prisma.NestedJsonNullableFilter> = z.object({
+  equals: InputJsonValueSchema.optional(),
+  path: z.string().array().optional(),
+  string_contains: z.string().optional(),
+  string_starts_with: z.string().optional(),
+  string_ends_with: z.string().optional(),
+  array_contains: InputJsonValueSchema.optional().nullable(),
+  array_starts_with: InputJsonValueSchema.optional().nullable(),
+  array_ends_with: InputJsonValueSchema.optional().nullable(),
+  lt: InputJsonValueSchema.optional(),
+  lte: InputJsonValueSchema.optional(),
+  gt: InputJsonValueSchema.optional(),
+  gte: InputJsonValueSchema.optional(),
+  not: InputJsonValueSchema.optional()
+}).strict();
+
+export const NestedEnumFinancialReportStatusWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportStatusWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => NestedEnumFinancialReportStatusWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportStatusFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportStatusFilterSchema).optional()
+}).strict();
+
+export const NestedEnumFinancialReportExportFormatFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportExportFormatFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportFormatSchema).optional(),
+  in: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => NestedEnumFinancialReportExportFormatFilterSchema) ]).optional(),
+}).strict();
+
+export const NestedEnumFinancialReportExportStatusFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportExportStatusFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => NestedEnumFinancialReportExportStatusFilterSchema) ]).optional(),
+}).strict();
+
+export const NestedEnumFinancialReportExportFormatWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportExportFormatWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportFormatSchema).optional(),
+  in: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportFormatSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => NestedEnumFinancialReportExportFormatWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportExportFormatFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportExportFormatFilterSchema).optional()
+}).strict();
+
+export const NestedEnumFinancialReportExportStatusWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportExportStatusWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  in: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportExportStatusSchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => NestedEnumFinancialReportExportStatusWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportExportStatusFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportExportStatusFilterSchema).optional()
+}).strict();
+
+export const NestedEnumFinancialReportScheduleFrequencyFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportScheduleFrequencyFilter> = z.object({
+  equals: z.lazy(() => FinancialReportScheduleFrequencySchema).optional(),
+  in: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => NestedEnumFinancialReportScheduleFrequencyFilterSchema) ]).optional(),
+}).strict();
+
+export const NestedEnumFinancialReportScheduleFrequencyWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumFinancialReportScheduleFrequencyWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => FinancialReportScheduleFrequencySchema).optional(),
+  in: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  notIn: z.lazy(() => FinancialReportScheduleFrequencySchema).array().optional(),
+  not: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => NestedEnumFinancialReportScheduleFrequencyWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumFinancialReportScheduleFrequencyFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumFinancialReportScheduleFrequencyFilterSchema).optional()
+}).strict();
+
 export const RolePermissionCreateWithoutPermissionInputSchema: z.ZodType<Prisma.RolePermissionCreateWithoutPermissionInput> = z.object({
   id: z.string().cuid().optional(),
   role: z.lazy(() => UserRoleSchema),
@@ -16019,7 +17896,8 @@ export const OrganizationCreateWithoutCustomRolesInputSchema: z.ZodType<Prisma.O
   expenseTags: z.lazy(() => ExpenseTagCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutCustomRolesInput> = z.object({
@@ -16041,7 +17919,8 @@ export const OrganizationUncheckedCreateWithoutCustomRolesInputSchema: z.ZodType
   expenseTags: z.lazy(() => ExpenseTagUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutCustomRolesInput> = z.object({
@@ -16125,7 +18004,8 @@ export const OrganizationUpdateWithoutCustomRolesInputSchema: z.ZodType<Prisma.O
   expenseTags: z.lazy(() => ExpenseTagUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutCustomRolesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutCustomRolesInput> = z.object({
@@ -16147,7 +18027,8 @@ export const OrganizationUncheckedUpdateWithoutCustomRolesInputSchema: z.ZodType
   expenseTags: z.lazy(() => ExpenseTagUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInputSchema: z.ZodType<Prisma.CustomRolePermissionUpsertWithWhereUniqueWithoutCustomRoleInput> = z.object({
@@ -16897,6 +18778,60 @@ export const CustomRoleCreateManyOrganizationInputEnvelopeSchema: z.ZodType<Pris
   skipDuplicates: z.boolean().optional()
 }).strict();
 
+export const FinancialReportCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportCreateWithoutOrganizationInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  reportData: z.lazy(() => FinancialReportDataCreateNestedManyWithoutReportInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUncheckedCreateWithoutOrganizationInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedCreateNestedManyWithoutReportInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportCreateOrConnectWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportCreateOrConnectWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const FinancialReportCreateManyOrganizationInputEnvelopeSchema: z.ZodType<Prisma.FinancialReportCreateManyOrganizationInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => FinancialReportCreateManyOrganizationInputSchema),z.lazy(() => FinancialReportCreateManyOrganizationInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
 export const UserOrganizationUpsertWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.UserOrganizationUpsertWithWhereUniqueWithoutOrganizationInput> = z.object({
   where: z.lazy(() => UserOrganizationWhereUniqueInputSchema),
   update: z.union([ z.lazy(() => UserOrganizationUpdateWithoutOrganizationInputSchema),z.lazy(() => UserOrganizationUncheckedUpdateWithoutOrganizationInputSchema) ]),
@@ -17331,6 +19266,45 @@ export const CustomRoleScalarWhereInputSchema: z.ZodType<Prisma.CustomRoleScalar
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
+export const FinancialReportUpsertWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUpsertWithWhereUniqueWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FinancialReportUpdateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutOrganizationInputSchema) ]),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpdateWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUpdateWithWhereUniqueWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportUpdateWithoutOrganizationInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpdateManyWithWhereWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUpdateManyWithWhereWithoutOrganizationInput> = z.object({
+  where: z.lazy(() => FinancialReportScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportUpdateManyMutationInputSchema),z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationInputSchema) ]),
+}).strict();
+
+export const FinancialReportScalarWhereInputSchema: z.ZodType<Prisma.FinancialReportScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportScalarWhereInputSchema),z.lazy(() => FinancialReportScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportScalarWhereInputSchema),z.lazy(() => FinancialReportScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  organizationId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  type: z.union([ z.lazy(() => EnumFinancialReportTypeFilterSchema),z.lazy(() => FinancialReportTypeSchema) ]).optional(),
+  template: z.lazy(() => JsonFilterSchema).optional(),
+  filters: z.lazy(() => JsonNullableFilterSchema).optional(),
+  dateRange: z.lazy(() => JsonFilterSchema).optional(),
+  status: z.union([ z.lazy(() => EnumFinancialReportStatusFilterSchema),z.lazy(() => FinancialReportStatusSchema) ]).optional(),
+  generatedAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
+  generatedBy: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  isTemplate: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  isScheduled: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  scheduleConfig: z.lazy(() => JsonNullableFilterSchema).optional(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const OrganizationCreateWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutUsersInput> = z.object({
   id: z.string().cuid().optional(),
   name: z.string(),
@@ -17350,7 +19324,8 @@ export const OrganizationCreateWithoutUsersInputSchema: z.ZodType<Prisma.Organiz
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutUsersInput> = z.object({
@@ -17372,7 +19347,8 @@ export const OrganizationUncheckedCreateWithoutUsersInputSchema: z.ZodType<Prism
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutUsersInput> = z.object({
@@ -17441,7 +19417,8 @@ export const OrganizationUpdateWithoutUsersInputSchema: z.ZodType<Prisma.Organiz
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutUsersInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutUsersInput> = z.object({
@@ -17463,7 +19440,8 @@ export const OrganizationUncheckedUpdateWithoutUsersInputSchema: z.ZodType<Prism
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const CustomRoleUpsertWithoutUserAssignmentsInputSchema: z.ZodType<Prisma.CustomRoleUpsertWithoutUserAssignmentsInput> = z.object({
@@ -17522,7 +19500,8 @@ export const OrganizationCreateWithoutCustomersInputSchema: z.ZodType<Prisma.Org
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutCustomersInput> = z.object({
@@ -17544,7 +19523,8 @@ export const OrganizationUncheckedCreateWithoutCustomersInputSchema: z.ZodType<P
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutCustomersInput> = z.object({
@@ -17742,7 +19722,8 @@ export const OrganizationUpdateWithoutCustomersInputSchema: z.ZodType<Prisma.Org
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutCustomersInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutCustomersInput> = z.object({
@@ -17764,7 +19745,8 @@ export const OrganizationUncheckedUpdateWithoutCustomersInputSchema: z.ZodType<P
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const CustomerInteractionUpsertWithWhereUniqueWithoutCustomerInputSchema: z.ZodType<Prisma.CustomerInteractionUpsertWithWhereUniqueWithoutCustomerInput> = z.object({
@@ -18171,7 +20153,8 @@ export const OrganizationCreateWithoutProjectsInputSchema: z.ZodType<Prisma.Orga
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutProjectsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutProjectsInput> = z.object({
@@ -18193,7 +20176,8 @@ export const OrganizationUncheckedCreateWithoutProjectsInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutProjectsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutProjectsInput> = z.object({
@@ -18431,7 +20415,8 @@ export const OrganizationUpdateWithoutProjectsInputSchema: z.ZodType<Prisma.Orga
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutProjectsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutProjectsInput> = z.object({
@@ -18453,7 +20438,8 @@ export const OrganizationUncheckedUpdateWithoutProjectsInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const TaskUpsertWithWhereUniqueWithoutProjectInputSchema: z.ZodType<Prisma.TaskUpsertWithWhereUniqueWithoutProjectInput> = z.object({
@@ -18574,7 +20560,8 @@ export const OrganizationCreateWithoutTasksInputSchema: z.ZodType<Prisma.Organiz
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutTasksInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutTasksInput> = z.object({
@@ -18596,7 +20583,8 @@ export const OrganizationUncheckedCreateWithoutTasksInputSchema: z.ZodType<Prism
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutTasksInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutTasksInput> = z.object({
@@ -18921,7 +20909,8 @@ export const OrganizationUpdateWithoutTasksInputSchema: z.ZodType<Prisma.Organiz
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutTasksInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutTasksInput> = z.object({
@@ -18943,7 +20932,8 @@ export const OrganizationUncheckedUpdateWithoutTasksInputSchema: z.ZodType<Prism
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const ProjectUpsertWithoutTasksInputSchema: z.ZodType<Prisma.ProjectUpsertWithoutTasksInput> = z.object({
@@ -19495,7 +21485,8 @@ export const OrganizationCreateWithoutInvoicesInputSchema: z.ZodType<Prisma.Orga
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutInvoicesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutInvoicesInput> = z.object({
@@ -19517,7 +21508,8 @@ export const OrganizationUncheckedCreateWithoutInvoicesInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutInvoicesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutInvoicesInput> = z.object({
@@ -19690,7 +21682,8 @@ export const OrganizationUpdateWithoutInvoicesInputSchema: z.ZodType<Prisma.Orga
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutInvoicesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutInvoicesInput> = z.object({
@@ -19712,7 +21705,8 @@ export const OrganizationUncheckedUpdateWithoutInvoicesInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUpsertWithoutInvoicesInputSchema: z.ZodType<Prisma.CustomerUpsertWithoutInvoicesInput> = z.object({
@@ -20176,7 +22170,8 @@ export const OrganizationCreateWithoutExpensesInputSchema: z.ZodType<Prisma.Orga
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutExpensesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutExpensesInput> = z.object({
@@ -20198,7 +22193,8 @@ export const OrganizationUncheckedCreateWithoutExpensesInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutExpensesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutExpensesInput> = z.object({
@@ -20322,7 +22318,8 @@ export const OrganizationUpdateWithoutExpensesInputSchema: z.ZodType<Prisma.Orga
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutExpensesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutExpensesInput> = z.object({
@@ -20344,7 +22341,8 @@ export const OrganizationUncheckedUpdateWithoutExpensesInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const ExpenseCategoryUpsertWithoutExpensesInputSchema: z.ZodType<Prisma.ExpenseCategoryUpsertWithoutExpensesInput> = z.object({
@@ -20470,7 +22468,8 @@ export const OrganizationCreateWithoutExpenseCategoriesInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutExpenseCategoriesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutExpenseCategoriesInput> = z.object({
@@ -20492,7 +22491,8 @@ export const OrganizationUncheckedCreateWithoutExpenseCategoriesInputSchema: z.Z
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutExpenseCategoriesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutExpenseCategoriesInput> = z.object({
@@ -20596,7 +22596,8 @@ export const OrganizationUpdateWithoutExpenseCategoriesInputSchema: z.ZodType<Pr
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutExpenseCategoriesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutExpenseCategoriesInput> = z.object({
@@ -20618,7 +22619,8 @@ export const OrganizationUncheckedUpdateWithoutExpenseCategoriesInputSchema: z.Z
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const ExpenseUpsertWithWhereUniqueWithoutCategoryInputSchema: z.ZodType<Prisma.ExpenseUpsertWithWhereUniqueWithoutCategoryInput> = z.object({
@@ -20656,7 +22658,8 @@ export const OrganizationCreateWithoutExpenseTagsInputSchema: z.ZodType<Prisma.O
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutExpenseTagsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutExpenseTagsInput> = z.object({
@@ -20678,7 +22681,8 @@ export const OrganizationUncheckedCreateWithoutExpenseTagsInputSchema: z.ZodType
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutExpenseTagsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutExpenseTagsInput> = z.object({
@@ -20734,7 +22738,8 @@ export const OrganizationUpdateWithoutExpenseTagsInputSchema: z.ZodType<Prisma.O
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutExpenseTagsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutExpenseTagsInput> = z.object({
@@ -20756,7 +22761,8 @@ export const OrganizationUncheckedUpdateWithoutExpenseTagsInputSchema: z.ZodType
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const ExpenseToTagUpsertWithWhereUniqueWithoutTagInputSchema: z.ZodType<Prisma.ExpenseToTagUpsertWithWhereUniqueWithoutTagInput> = z.object({
@@ -21321,7 +23327,8 @@ export const OrganizationCreateWithoutInvitationsInputSchema: z.ZodType<Prisma.O
   expenseTags: z.lazy(() => ExpenseTagCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutInvitationsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutInvitationsInput> = z.object({
@@ -21343,7 +23350,8 @@ export const OrganizationUncheckedCreateWithoutInvitationsInputSchema: z.ZodType
   expenseTags: z.lazy(() => ExpenseTagUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutInvitationsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutInvitationsInput> = z.object({
@@ -21381,7 +23389,8 @@ export const OrganizationUpdateWithoutInvitationsInputSchema: z.ZodType<Prisma.O
   expenseTags: z.lazy(() => ExpenseTagUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutInvitationsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutInvitationsInput> = z.object({
@@ -21403,7 +23412,8 @@ export const OrganizationUncheckedUpdateWithoutInvitationsInputSchema: z.ZodType
   expenseTags: z.lazy(() => ExpenseTagUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutEmployeesInput> = z.object({
@@ -21425,7 +23435,8 @@ export const OrganizationCreateWithoutEmployeesInputSchema: z.ZodType<Prisma.Org
   expenseTags: z.lazy(() => ExpenseTagCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutEmployeesInput> = z.object({
@@ -21447,7 +23458,8 @@ export const OrganizationUncheckedCreateWithoutEmployeesInputSchema: z.ZodType<P
   expenseTags: z.lazy(() => ExpenseTagUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutEmployeesInput> = z.object({
@@ -21611,7 +23623,8 @@ export const OrganizationUpdateWithoutEmployeesInputSchema: z.ZodType<Prisma.Org
   expenseTags: z.lazy(() => ExpenseTagUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutEmployeesInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutEmployeesInput> = z.object({
@@ -21633,7 +23646,8 @@ export const OrganizationUncheckedUpdateWithoutEmployeesInputSchema: z.ZodType<P
   expenseTags: z.lazy(() => ExpenseTagUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const PayrollUpsertWithWhereUniqueWithoutEmployeeInputSchema: z.ZodType<Prisma.PayrollUpsertWithWhereUniqueWithoutEmployeeInput> = z.object({
@@ -22147,7 +24161,8 @@ export const OrganizationCreateWithoutCampaignsInputSchema: z.ZodType<Prisma.Org
   expenseTags: z.lazy(() => ExpenseTagCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedCreateWithoutCampaignsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutCampaignsInput> = z.object({
@@ -22169,7 +24184,8 @@ export const OrganizationUncheckedCreateWithoutCampaignsInputSchema: z.ZodType<P
   expenseTags: z.lazy(() => ExpenseTagUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateOrConnectWithoutCampaignsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutCampaignsInput> = z.object({
@@ -22283,7 +24299,8 @@ export const OrganizationUpdateWithoutCampaignsInputSchema: z.ZodType<Prisma.Org
   expenseTags: z.lazy(() => ExpenseTagUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationUncheckedUpdateWithoutCampaignsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutCampaignsInput> = z.object({
@@ -22305,7 +24322,8 @@ export const OrganizationUncheckedUpdateWithoutCampaignsInputSchema: z.ZodType<P
   expenseTags: z.lazy(() => ExpenseTagUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
   invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
-  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  financialReports: z.lazy(() => FinancialReportUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
 export const EmailCampaignUpsertWithWhereUniqueWithoutCampaignInputSchema: z.ZodType<Prisma.EmailCampaignUpsertWithWhereUniqueWithoutCampaignInput> = z.object({
@@ -22807,6 +24825,630 @@ export const UserUncheckedUpdateWithoutAccountsInputSchema: z.ZodType<Prisma.Use
   sessions: z.lazy(() => SessionUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
+export const OrganizationCreateWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutFinancialReportsInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  logo: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  industry: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  users: z.lazy(() => UserOrganizationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customers: z.lazy(() => CustomerCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  projects: z.lazy(() => ProjectCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  tasks: z.lazy(() => TaskCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenseCategories: z.lazy(() => ExpenseCategoryCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenseTags: z.lazy(() => ExpenseTagCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  employees: z.lazy(() => EmployeeCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invitations: z.lazy(() => InvitationCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleCreateNestedManyWithoutOrganizationInputSchema).optional()
+}).strict();
+
+export const OrganizationUncheckedCreateWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationUncheckedCreateWithoutFinancialReportsInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  logo: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  industry: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  users: z.lazy(() => UserOrganizationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customers: z.lazy(() => CustomerUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  projects: z.lazy(() => ProjectUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  tasks: z.lazy(() => TaskUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenseCategories: z.lazy(() => ExpenseCategoryUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  expenseTags: z.lazy(() => ExpenseTagUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  employees: z.lazy(() => EmployeeUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  invitations: z.lazy(() => InvitationUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedCreateNestedManyWithoutOrganizationInputSchema).optional()
+}).strict();
+
+export const OrganizationCreateOrConnectWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationCreateOrConnectWithoutFinancialReportsInput> = z.object({
+  where: z.lazy(() => OrganizationWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutFinancialReportsInputSchema) ]),
+}).strict();
+
+export const FinancialReportDataCreateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataCreateWithoutReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportDataUncheckedCreateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedCreateWithoutReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportDataCreateOrConnectWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataCreateOrConnectWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportDataWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportDataCreateManyReportInputEnvelopeSchema: z.ZodType<Prisma.FinancialReportDataCreateManyReportInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => FinancialReportDataCreateManyReportInputSchema),z.lazy(() => FinancialReportDataCreateManyReportInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const FinancialReportExportCreateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportCreateWithoutReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  format: z.lazy(() => FinancialReportExportFormatSchema),
+  fileName: z.string(),
+  fileUrl: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
+  status: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  error: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportExportUncheckedCreateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedCreateWithoutReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  format: z.lazy(() => FinancialReportExportFormatSchema),
+  fileName: z.string(),
+  fileUrl: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
+  status: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  error: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportExportCreateOrConnectWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportCreateOrConnectWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportExportWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportExportCreateManyReportInputEnvelopeSchema: z.ZodType<Prisma.FinancialReportExportCreateManyReportInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => FinancialReportExportCreateManyReportInputSchema),z.lazy(() => FinancialReportExportCreateManyReportInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const FinancialReportScheduleCreateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleCreateWithoutReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  frequency: z.lazy(() => FinancialReportScheduleFrequencySchema),
+  dayOfWeek: z.number().int().optional().nullable(),
+  dayOfMonth: z.number().int().optional().nullable(),
+  time: z.string(),
+  timezone: z.string().optional(),
+  isActive: z.boolean().optional(),
+  lastRunAt: z.coerce.date().optional().nullable(),
+  nextRunAt: z.coerce.date(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  emailSubject: z.string().optional().nullable(),
+  emailBody: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportScheduleUncheckedCreateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedCreateWithoutReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  frequency: z.lazy(() => FinancialReportScheduleFrequencySchema),
+  dayOfWeek: z.number().int().optional().nullable(),
+  dayOfMonth: z.number().int().optional().nullable(),
+  time: z.string(),
+  timezone: z.string().optional(),
+  isActive: z.boolean().optional(),
+  lastRunAt: z.coerce.date().optional().nullable(),
+  nextRunAt: z.coerce.date(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  emailSubject: z.string().optional().nullable(),
+  emailBody: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportScheduleCreateOrConnectWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleCreateOrConnectWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportScheduleCreateManyReportInputEnvelopeSchema: z.ZodType<Prisma.FinancialReportScheduleCreateManyReportInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => FinancialReportScheduleCreateManyReportInputSchema),z.lazy(() => FinancialReportScheduleCreateManyReportInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const OrganizationUpsertWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationUpsertWithoutFinancialReportsInput> = z.object({
+  update: z.union([ z.lazy(() => OrganizationUpdateWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutFinancialReportsInputSchema) ]),
+  create: z.union([ z.lazy(() => OrganizationCreateWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUncheckedCreateWithoutFinancialReportsInputSchema) ]),
+  where: z.lazy(() => OrganizationWhereInputSchema).optional()
+}).strict();
+
+export const OrganizationUpdateToOneWithWhereWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationUpdateToOneWithWhereWithoutFinancialReportsInput> = z.object({
+  where: z.lazy(() => OrganizationWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => OrganizationUpdateWithoutFinancialReportsInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutFinancialReportsInputSchema) ]),
+}).strict();
+
+export const OrganizationUpdateWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationUpdateWithoutFinancialReportsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  logo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  website: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  industry: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  users: z.lazy(() => UserOrganizationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customers: z.lazy(() => CustomerUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  projects: z.lazy(() => ProjectUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  tasks: z.lazy(() => TaskUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenseCategories: z.lazy(() => ExpenseCategoryUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenseTags: z.lazy(() => ExpenseTagUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  employees: z.lazy(() => EmployeeUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invitations: z.lazy(() => InvitationUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUpdateManyWithoutOrganizationNestedInputSchema).optional()
+}).strict();
+
+export const OrganizationUncheckedUpdateWithoutFinancialReportsInputSchema: z.ZodType<Prisma.OrganizationUncheckedUpdateWithoutFinancialReportsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  logo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  website: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  industry: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  users: z.lazy(() => UserOrganizationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customers: z.lazy(() => CustomerUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  projects: z.lazy(() => ProjectUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  tasks: z.lazy(() => TaskUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invoices: z.lazy(() => InvoiceUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenses: z.lazy(() => ExpenseUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenseCategories: z.lazy(() => ExpenseCategoryUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  expenseTags: z.lazy(() => ExpenseTagUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  employees: z.lazy(() => EmployeeUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  campaigns: z.lazy(() => MarketingCampaignUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  invitations: z.lazy(() => InvitationUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional(),
+  customRoles: z.lazy(() => CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportDataUpsertWithWhereUniqueWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUpsertWithWhereUniqueWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportDataWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FinancialReportDataUpdateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedUpdateWithoutReportInputSchema) ]),
+  create: z.union([ z.lazy(() => FinancialReportDataCreateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedCreateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportDataUpdateWithWhereUniqueWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUpdateWithWhereUniqueWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportDataWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportDataUpdateWithoutReportInputSchema),z.lazy(() => FinancialReportDataUncheckedUpdateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportDataUpdateManyWithWhereWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUpdateManyWithWhereWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportDataScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportDataUpdateManyMutationInputSchema),z.lazy(() => FinancialReportDataUncheckedUpdateManyWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportDataScalarWhereInputSchema: z.ZodType<Prisma.FinancialReportDataScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportDataScalarWhereInputSchema),z.lazy(() => FinancialReportDataScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportDataScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportDataScalarWhereInputSchema),z.lazy(() => FinancialReportDataScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  data: z.lazy(() => JsonFilterSchema).optional(),
+  metadata: z.lazy(() => JsonNullableFilterSchema).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinancialReportExportUpsertWithWhereUniqueWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUpsertWithWhereUniqueWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportExportWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FinancialReportExportUpdateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedUpdateWithoutReportInputSchema) ]),
+  create: z.union([ z.lazy(() => FinancialReportExportCreateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedCreateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportExportUpdateWithWhereUniqueWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUpdateWithWhereUniqueWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportExportWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportExportUpdateWithoutReportInputSchema),z.lazy(() => FinancialReportExportUncheckedUpdateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportExportUpdateManyWithWhereWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUpdateManyWithWhereWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportExportScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportExportUpdateManyMutationInputSchema),z.lazy(() => FinancialReportExportUncheckedUpdateManyWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportExportScalarWhereInputSchema: z.ZodType<Prisma.FinancialReportExportScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportExportScalarWhereInputSchema),z.lazy(() => FinancialReportExportScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportExportScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportExportScalarWhereInputSchema),z.lazy(() => FinancialReportExportScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  format: z.union([ z.lazy(() => EnumFinancialReportExportFormatFilterSchema),z.lazy(() => FinancialReportExportFormatSchema) ]).optional(),
+  fileName: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  fileUrl: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  fileSize: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  status: z.union([ z.lazy(() => EnumFinancialReportExportStatusFilterSchema),z.lazy(() => FinancialReportExportStatusSchema) ]).optional(),
+  error: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUpsertWithWhereUniqueWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUpsertWithWhereUniqueWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FinancialReportScheduleUpdateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedUpdateWithoutReportInputSchema) ]),
+  create: z.union([ z.lazy(() => FinancialReportScheduleCreateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedCreateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportScheduleUpdateWithWhereUniqueWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateWithWhereUniqueWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportScheduleWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportScheduleUpdateWithoutReportInputSchema),z.lazy(() => FinancialReportScheduleUncheckedUpdateWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportScheduleUpdateManyWithWhereWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateManyWithWhereWithoutReportInput> = z.object({
+  where: z.lazy(() => FinancialReportScheduleScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FinancialReportScheduleUpdateManyMutationInputSchema),z.lazy(() => FinancialReportScheduleUncheckedUpdateManyWithoutReportInputSchema) ]),
+}).strict();
+
+export const FinancialReportScheduleScalarWhereInputSchema: z.ZodType<Prisma.FinancialReportScheduleScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinancialReportScheduleScalarWhereInputSchema),z.lazy(() => FinancialReportScheduleScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinancialReportScheduleScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinancialReportScheduleScalarWhereInputSchema),z.lazy(() => FinancialReportScheduleScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  reportId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  frequency: z.union([ z.lazy(() => EnumFinancialReportScheduleFrequencyFilterSchema),z.lazy(() => FinancialReportScheduleFrequencySchema) ]).optional(),
+  dayOfWeek: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  dayOfMonth: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  time: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  timezone: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
+  lastRunAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
+  nextRunAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  recipients: z.lazy(() => JsonFilterSchema).optional(),
+  emailSubject: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  emailBody: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdById: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinancialReportCreateWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportCreateWithoutReportDataInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutFinancialReportsInputSchema),
+  exports: z.lazy(() => FinancialReportExportCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedCreateWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportUncheckedCreateWithoutReportDataInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportCreateOrConnectWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportCreateOrConnectWithoutReportDataInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutReportDataInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutReportDataInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpsertWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportUpsertWithoutReportDataInput> = z.object({
+  update: z.union([ z.lazy(() => FinancialReportUpdateWithoutReportDataInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutReportDataInputSchema) ]),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutReportDataInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutReportDataInputSchema) ]),
+  where: z.lazy(() => FinancialReportWhereInputSchema).optional()
+}).strict();
+
+export const FinancialReportUpdateToOneWithWhereWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportUpdateToOneWithWhereWithoutReportDataInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => FinancialReportUpdateWithoutReportDataInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutReportDataInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpdateWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportUpdateWithoutReportDataInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutFinancialReportsNestedInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedUpdateWithoutReportDataInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateWithoutReportDataInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportCreateWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportCreateWithoutExportsInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutFinancialReportsInputSchema),
+  reportData: z.lazy(() => FinancialReportDataCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedCreateWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportUncheckedCreateWithoutExportsInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedCreateNestedManyWithoutReportInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportCreateOrConnectWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportCreateOrConnectWithoutExportsInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutExportsInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutExportsInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpsertWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportUpsertWithoutExportsInput> = z.object({
+  update: z.union([ z.lazy(() => FinancialReportUpdateWithoutExportsInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutExportsInputSchema) ]),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutExportsInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutExportsInputSchema) ]),
+  where: z.lazy(() => FinancialReportWhereInputSchema).optional()
+}).strict();
+
+export const FinancialReportUpdateToOneWithWhereWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportUpdateToOneWithWhereWithoutExportsInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => FinancialReportUpdateWithoutExportsInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutExportsInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpdateWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportUpdateWithoutExportsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutFinancialReportsNestedInputSchema).optional(),
+  reportData: z.lazy(() => FinancialReportDataUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedUpdateWithoutExportsInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateWithoutExportsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportCreateWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportCreateWithoutSchedulesInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  organization: z.lazy(() => OrganizationCreateNestedOneWithoutFinancialReportsInputSchema),
+  reportData: z.lazy(() => FinancialReportDataCreateNestedManyWithoutReportInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedCreateWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportUncheckedCreateWithoutSchedulesInput> = z.object({
+  id: z.string().cuid().optional(),
+  organizationId: z.string(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedCreateNestedManyWithoutReportInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedCreateNestedManyWithoutReportInputSchema).optional()
+}).strict();
+
+export const FinancialReportCreateOrConnectWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportCreateOrConnectWithoutSchedulesInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutSchedulesInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpsertWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportUpsertWithoutSchedulesInput> = z.object({
+  update: z.union([ z.lazy(() => FinancialReportUpdateWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutSchedulesInputSchema) ]),
+  create: z.union([ z.lazy(() => FinancialReportCreateWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUncheckedCreateWithoutSchedulesInputSchema) ]),
+  where: z.lazy(() => FinancialReportWhereInputSchema).optional()
+}).strict();
+
+export const FinancialReportUpdateToOneWithWhereWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportUpdateToOneWithWhereWithoutSchedulesInput> = z.object({
+  where: z.lazy(() => FinancialReportWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => FinancialReportUpdateWithoutSchedulesInputSchema),z.lazy(() => FinancialReportUncheckedUpdateWithoutSchedulesInputSchema) ]),
+}).strict();
+
+export const FinancialReportUpdateWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportUpdateWithoutSchedulesInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  organization: z.lazy(() => OrganizationUpdateOneRequiredWithoutFinancialReportsNestedInputSchema).optional(),
+  reportData: z.lazy(() => FinancialReportDataUpdateManyWithoutReportNestedInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedUpdateWithoutSchedulesInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateWithoutSchedulesInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  organizationId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedUpdateManyWithoutReportNestedInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
 export const RolePermissionCreateManyPermissionInputSchema: z.ZodType<Prisma.RolePermissionCreateManyPermissionInput> = z.object({
   id: z.string().cuid().optional(),
   role: z.lazy(() => UserRoleSchema),
@@ -23107,6 +25749,25 @@ export const CustomRoleCreateManyOrganizationInputSchema: z.ZodType<Prisma.Custo
   description: z.string().optional().nullable(),
   color: z.string().optional(),
   isActive: z.boolean().optional(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportCreateManyOrganizationInputSchema: z.ZodType<Prisma.FinancialReportCreateManyOrganizationInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => FinancialReportTypeSchema),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  status: z.lazy(() => FinancialReportStatusSchema).optional(),
+  generatedAt: z.coerce.date().optional().nullable(),
+  generatedBy: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
+  isScheduled: z.boolean().optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional()
@@ -23768,6 +26429,69 @@ export const CustomRoleUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodT
   description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   color: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUpdateWithoutOrganizationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  reportData: z.lazy(() => FinancialReportDataUpdateManyWithoutReportNestedInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateWithoutOrganizationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  reportData: z.lazy(() => FinancialReportDataUncheckedUpdateManyWithoutReportNestedInputSchema).optional(),
+  exports: z.lazy(() => FinancialReportExportUncheckedUpdateManyWithoutReportNestedInputSchema).optional(),
+  schedules: z.lazy(() => FinancialReportScheduleUncheckedUpdateManyWithoutReportNestedInputSchema).optional()
+}).strict();
+
+export const FinancialReportUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodType<Prisma.FinancialReportUncheckedUpdateManyWithoutOrganizationInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => FinancialReportTypeSchema),z.lazy(() => EnumFinancialReportTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  template: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  filters: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  dateRange: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  status: z.union([ z.lazy(() => FinancialReportStatusSchema),z.lazy(() => EnumFinancialReportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  generatedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  generatedBy: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isTemplate: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  isScheduled: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  scheduleConfig: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -25351,6 +28075,158 @@ export const AccountUncheckedUpdateManyWithoutUserInputSchema: z.ZodType<Prisma.
   refreshTokenExpiresAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   scope: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   password: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataCreateManyReportInputSchema: z.ZodType<Prisma.FinancialReportDataCreateManyReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportExportCreateManyReportInputSchema: z.ZodType<Prisma.FinancialReportExportCreateManyReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  format: z.lazy(() => FinancialReportExportFormatSchema),
+  fileName: z.string(),
+  fileUrl: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
+  status: z.lazy(() => FinancialReportExportStatusSchema).optional(),
+  error: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportScheduleCreateManyReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleCreateManyReportInput> = z.object({
+  id: z.string().cuid().optional(),
+  frequency: z.lazy(() => FinancialReportScheduleFrequencySchema),
+  dayOfWeek: z.number().int().optional().nullable(),
+  dayOfMonth: z.number().int().optional().nullable(),
+  time: z.string(),
+  timezone: z.string().optional(),
+  isActive: z.boolean().optional(),
+  lastRunAt: z.coerce.date().optional().nullable(),
+  nextRunAt: z.coerce.date(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  emailSubject: z.string().optional().nullable(),
+  emailBody: z.string().optional().nullable(),
+  createdById: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinancialReportDataUpdateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUpdateWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataUncheckedUpdateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedUpdateWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportDataUncheckedUpdateManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportDataUncheckedUpdateManyWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  data: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  metadata: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportUpdateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUpdateWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  format: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema) ]).optional(),
+  fileName: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  error: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportUncheckedUpdateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedUpdateWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  format: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema) ]).optional(),
+  fileName: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  error: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportExportUncheckedUpdateManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportExportUncheckedUpdateManyWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  format: z.union([ z.lazy(() => FinancialReportExportFormatSchema),z.lazy(() => EnumFinancialReportExportFormatFieldUpdateOperationsInputSchema) ]).optional(),
+  fileName: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => FinancialReportExportStatusSchema),z.lazy(() => EnumFinancialReportExportStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  error: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUpdateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  frequency: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema) ]).optional(),
+  dayOfWeek: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  dayOfMonth: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  time: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastRunAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  nextRunAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  emailSubject: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  emailBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUncheckedUpdateWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedUpdateWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  frequency: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema) ]).optional(),
+  dayOfWeek: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  dayOfMonth: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  time: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastRunAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  nextRunAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  emailSubject: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  emailBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinancialReportScheduleUncheckedUpdateManyWithoutReportInputSchema: z.ZodType<Prisma.FinancialReportScheduleUncheckedUpdateManyWithoutReportInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  frequency: z.union([ z.lazy(() => FinancialReportScheduleFrequencySchema),z.lazy(() => EnumFinancialReportScheduleFrequencyFieldUpdateOperationsInputSchema) ]).optional(),
+  dayOfWeek: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  dayOfMonth: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  time: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastRunAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  nextRunAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  recipients: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  emailSubject: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  emailBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdById: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -27643,6 +30519,254 @@ export const VerificationFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.Verificat
   where: VerificationWhereUniqueInputSchema,
 }).strict() ;
 
+export const FinancialReportFindFirstArgsSchema: z.ZodType<Prisma.FinancialReportFindFirstArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  where: FinancialReportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportOrderByWithRelationInputSchema.array(),FinancialReportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportScalarFieldEnumSchema,FinancialReportScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportFindFirstOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportFindFirstOrThrowArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  where: FinancialReportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportOrderByWithRelationInputSchema.array(),FinancialReportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportScalarFieldEnumSchema,FinancialReportScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportFindManyArgsSchema: z.ZodType<Prisma.FinancialReportFindManyArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  where: FinancialReportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportOrderByWithRelationInputSchema.array(),FinancialReportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportScalarFieldEnumSchema,FinancialReportScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportAggregateArgsSchema: z.ZodType<Prisma.FinancialReportAggregateArgs> = z.object({
+  where: FinancialReportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportOrderByWithRelationInputSchema.array(),FinancialReportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportGroupByArgsSchema: z.ZodType<Prisma.FinancialReportGroupByArgs> = z.object({
+  where: FinancialReportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportOrderByWithAggregationInputSchema.array(),FinancialReportOrderByWithAggregationInputSchema ]).optional(),
+  by: FinancialReportScalarFieldEnumSchema.array(),
+  having: FinancialReportScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportFindUniqueArgsSchema: z.ZodType<Prisma.FinancialReportFindUniqueArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  where: FinancialReportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportFindUniqueOrThrowArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  where: FinancialReportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportDataFindFirstArgsSchema: z.ZodType<Prisma.FinancialReportDataFindFirstArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  where: FinancialReportDataWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportDataOrderByWithRelationInputSchema.array(),FinancialReportDataOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportDataWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportDataScalarFieldEnumSchema,FinancialReportDataScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportDataFindFirstOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportDataFindFirstOrThrowArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  where: FinancialReportDataWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportDataOrderByWithRelationInputSchema.array(),FinancialReportDataOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportDataWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportDataScalarFieldEnumSchema,FinancialReportDataScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportDataFindManyArgsSchema: z.ZodType<Prisma.FinancialReportDataFindManyArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  where: FinancialReportDataWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportDataOrderByWithRelationInputSchema.array(),FinancialReportDataOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportDataWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportDataScalarFieldEnumSchema,FinancialReportDataScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportDataAggregateArgsSchema: z.ZodType<Prisma.FinancialReportDataAggregateArgs> = z.object({
+  where: FinancialReportDataWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportDataOrderByWithRelationInputSchema.array(),FinancialReportDataOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportDataWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportDataGroupByArgsSchema: z.ZodType<Prisma.FinancialReportDataGroupByArgs> = z.object({
+  where: FinancialReportDataWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportDataOrderByWithAggregationInputSchema.array(),FinancialReportDataOrderByWithAggregationInputSchema ]).optional(),
+  by: FinancialReportDataScalarFieldEnumSchema.array(),
+  having: FinancialReportDataScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportDataFindUniqueArgsSchema: z.ZodType<Prisma.FinancialReportDataFindUniqueArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  where: FinancialReportDataWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportDataFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportDataFindUniqueOrThrowArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  where: FinancialReportDataWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportExportFindFirstArgsSchema: z.ZodType<Prisma.FinancialReportExportFindFirstArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  where: FinancialReportExportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportExportOrderByWithRelationInputSchema.array(),FinancialReportExportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportExportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportExportScalarFieldEnumSchema,FinancialReportExportScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportExportFindFirstOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportExportFindFirstOrThrowArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  where: FinancialReportExportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportExportOrderByWithRelationInputSchema.array(),FinancialReportExportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportExportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportExportScalarFieldEnumSchema,FinancialReportExportScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportExportFindManyArgsSchema: z.ZodType<Prisma.FinancialReportExportFindManyArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  where: FinancialReportExportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportExportOrderByWithRelationInputSchema.array(),FinancialReportExportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportExportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportExportScalarFieldEnumSchema,FinancialReportExportScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportExportAggregateArgsSchema: z.ZodType<Prisma.FinancialReportExportAggregateArgs> = z.object({
+  where: FinancialReportExportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportExportOrderByWithRelationInputSchema.array(),FinancialReportExportOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportExportWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportExportGroupByArgsSchema: z.ZodType<Prisma.FinancialReportExportGroupByArgs> = z.object({
+  where: FinancialReportExportWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportExportOrderByWithAggregationInputSchema.array(),FinancialReportExportOrderByWithAggregationInputSchema ]).optional(),
+  by: FinancialReportExportScalarFieldEnumSchema.array(),
+  having: FinancialReportExportScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportExportFindUniqueArgsSchema: z.ZodType<Prisma.FinancialReportExportFindUniqueArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  where: FinancialReportExportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportExportFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportExportFindUniqueOrThrowArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  where: FinancialReportExportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportScheduleFindFirstArgsSchema: z.ZodType<Prisma.FinancialReportScheduleFindFirstArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  where: FinancialReportScheduleWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportScheduleOrderByWithRelationInputSchema.array(),FinancialReportScheduleOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportScheduleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportScheduleScalarFieldEnumSchema,FinancialReportScheduleScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportScheduleFindFirstOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportScheduleFindFirstOrThrowArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  where: FinancialReportScheduleWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportScheduleOrderByWithRelationInputSchema.array(),FinancialReportScheduleOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportScheduleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportScheduleScalarFieldEnumSchema,FinancialReportScheduleScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportScheduleFindManyArgsSchema: z.ZodType<Prisma.FinancialReportScheduleFindManyArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  where: FinancialReportScheduleWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportScheduleOrderByWithRelationInputSchema.array(),FinancialReportScheduleOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportScheduleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinancialReportScheduleScalarFieldEnumSchema,FinancialReportScheduleScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinancialReportScheduleAggregateArgsSchema: z.ZodType<Prisma.FinancialReportScheduleAggregateArgs> = z.object({
+  where: FinancialReportScheduleWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportScheduleOrderByWithRelationInputSchema.array(),FinancialReportScheduleOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinancialReportScheduleWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportScheduleGroupByArgsSchema: z.ZodType<Prisma.FinancialReportScheduleGroupByArgs> = z.object({
+  where: FinancialReportScheduleWhereInputSchema.optional(),
+  orderBy: z.union([ FinancialReportScheduleOrderByWithAggregationInputSchema.array(),FinancialReportScheduleOrderByWithAggregationInputSchema ]).optional(),
+  by: FinancialReportScheduleScalarFieldEnumSchema.array(),
+  having: FinancialReportScheduleScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinancialReportScheduleFindUniqueArgsSchema: z.ZodType<Prisma.FinancialReportScheduleFindUniqueArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  where: FinancialReportScheduleWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportScheduleFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.FinancialReportScheduleFindUniqueOrThrowArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  where: FinancialReportScheduleWhereUniqueInputSchema,
+}).strict() ;
+
 export const PermissionCreateArgsSchema: z.ZodType<Prisma.PermissionCreateArgs> = z.object({
   select: PermissionSelectSchema.optional(),
   include: PermissionIncludeSchema.optional(),
@@ -29335,4 +32459,188 @@ export const VerificationUpdateManyArgsSchema: z.ZodType<Prisma.VerificationUpda
 
 export const VerificationDeleteManyArgsSchema: z.ZodType<Prisma.VerificationDeleteManyArgs> = z.object({
   where: VerificationWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportCreateArgsSchema: z.ZodType<Prisma.FinancialReportCreateArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  data: z.union([ FinancialReportCreateInputSchema,FinancialReportUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportUpsertArgsSchema: z.ZodType<Prisma.FinancialReportUpsertArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  where: FinancialReportWhereUniqueInputSchema,
+  create: z.union([ FinancialReportCreateInputSchema,FinancialReportUncheckedCreateInputSchema ]),
+  update: z.union([ FinancialReportUpdateInputSchema,FinancialReportUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportCreateManyArgsSchema: z.ZodType<Prisma.FinancialReportCreateManyArgs> = z.object({
+  data: z.union([ FinancialReportCreateManyInputSchema,FinancialReportCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportCreateManyAndReturnArgsSchema: z.ZodType<Prisma.FinancialReportCreateManyAndReturnArgs> = z.object({
+  data: z.union([ FinancialReportCreateManyInputSchema,FinancialReportCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportDeleteArgsSchema: z.ZodType<Prisma.FinancialReportDeleteArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  where: FinancialReportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportUpdateArgsSchema: z.ZodType<Prisma.FinancialReportUpdateArgs> = z.object({
+  select: FinancialReportSelectSchema.optional(),
+  include: FinancialReportIncludeSchema.optional(),
+  data: z.union([ FinancialReportUpdateInputSchema,FinancialReportUncheckedUpdateInputSchema ]),
+  where: FinancialReportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportUpdateManyArgsSchema: z.ZodType<Prisma.FinancialReportUpdateManyArgs> = z.object({
+  data: z.union([ FinancialReportUpdateManyMutationInputSchema,FinancialReportUncheckedUpdateManyInputSchema ]),
+  where: FinancialReportWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportDeleteManyArgsSchema: z.ZodType<Prisma.FinancialReportDeleteManyArgs> = z.object({
+  where: FinancialReportWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportDataCreateArgsSchema: z.ZodType<Prisma.FinancialReportDataCreateArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  data: z.union([ FinancialReportDataCreateInputSchema,FinancialReportDataUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportDataUpsertArgsSchema: z.ZodType<Prisma.FinancialReportDataUpsertArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  where: FinancialReportDataWhereUniqueInputSchema,
+  create: z.union([ FinancialReportDataCreateInputSchema,FinancialReportDataUncheckedCreateInputSchema ]),
+  update: z.union([ FinancialReportDataUpdateInputSchema,FinancialReportDataUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportDataCreateManyArgsSchema: z.ZodType<Prisma.FinancialReportDataCreateManyArgs> = z.object({
+  data: z.union([ FinancialReportDataCreateManyInputSchema,FinancialReportDataCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportDataCreateManyAndReturnArgsSchema: z.ZodType<Prisma.FinancialReportDataCreateManyAndReturnArgs> = z.object({
+  data: z.union([ FinancialReportDataCreateManyInputSchema,FinancialReportDataCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportDataDeleteArgsSchema: z.ZodType<Prisma.FinancialReportDataDeleteArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  where: FinancialReportDataWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportDataUpdateArgsSchema: z.ZodType<Prisma.FinancialReportDataUpdateArgs> = z.object({
+  select: FinancialReportDataSelectSchema.optional(),
+  include: FinancialReportDataIncludeSchema.optional(),
+  data: z.union([ FinancialReportDataUpdateInputSchema,FinancialReportDataUncheckedUpdateInputSchema ]),
+  where: FinancialReportDataWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportDataUpdateManyArgsSchema: z.ZodType<Prisma.FinancialReportDataUpdateManyArgs> = z.object({
+  data: z.union([ FinancialReportDataUpdateManyMutationInputSchema,FinancialReportDataUncheckedUpdateManyInputSchema ]),
+  where: FinancialReportDataWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportDataDeleteManyArgsSchema: z.ZodType<Prisma.FinancialReportDataDeleteManyArgs> = z.object({
+  where: FinancialReportDataWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportExportCreateArgsSchema: z.ZodType<Prisma.FinancialReportExportCreateArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  data: z.union([ FinancialReportExportCreateInputSchema,FinancialReportExportUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportExportUpsertArgsSchema: z.ZodType<Prisma.FinancialReportExportUpsertArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  where: FinancialReportExportWhereUniqueInputSchema,
+  create: z.union([ FinancialReportExportCreateInputSchema,FinancialReportExportUncheckedCreateInputSchema ]),
+  update: z.union([ FinancialReportExportUpdateInputSchema,FinancialReportExportUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportExportCreateManyArgsSchema: z.ZodType<Prisma.FinancialReportExportCreateManyArgs> = z.object({
+  data: z.union([ FinancialReportExportCreateManyInputSchema,FinancialReportExportCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportExportCreateManyAndReturnArgsSchema: z.ZodType<Prisma.FinancialReportExportCreateManyAndReturnArgs> = z.object({
+  data: z.union([ FinancialReportExportCreateManyInputSchema,FinancialReportExportCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportExportDeleteArgsSchema: z.ZodType<Prisma.FinancialReportExportDeleteArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  where: FinancialReportExportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportExportUpdateArgsSchema: z.ZodType<Prisma.FinancialReportExportUpdateArgs> = z.object({
+  select: FinancialReportExportSelectSchema.optional(),
+  include: FinancialReportExportIncludeSchema.optional(),
+  data: z.union([ FinancialReportExportUpdateInputSchema,FinancialReportExportUncheckedUpdateInputSchema ]),
+  where: FinancialReportExportWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportExportUpdateManyArgsSchema: z.ZodType<Prisma.FinancialReportExportUpdateManyArgs> = z.object({
+  data: z.union([ FinancialReportExportUpdateManyMutationInputSchema,FinancialReportExportUncheckedUpdateManyInputSchema ]),
+  where: FinancialReportExportWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportExportDeleteManyArgsSchema: z.ZodType<Prisma.FinancialReportExportDeleteManyArgs> = z.object({
+  where: FinancialReportExportWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportScheduleCreateArgsSchema: z.ZodType<Prisma.FinancialReportScheduleCreateArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  data: z.union([ FinancialReportScheduleCreateInputSchema,FinancialReportScheduleUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportScheduleUpsertArgsSchema: z.ZodType<Prisma.FinancialReportScheduleUpsertArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  where: FinancialReportScheduleWhereUniqueInputSchema,
+  create: z.union([ FinancialReportScheduleCreateInputSchema,FinancialReportScheduleUncheckedCreateInputSchema ]),
+  update: z.union([ FinancialReportScheduleUpdateInputSchema,FinancialReportScheduleUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const FinancialReportScheduleCreateManyArgsSchema: z.ZodType<Prisma.FinancialReportScheduleCreateManyArgs> = z.object({
+  data: z.union([ FinancialReportScheduleCreateManyInputSchema,FinancialReportScheduleCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportScheduleCreateManyAndReturnArgsSchema: z.ZodType<Prisma.FinancialReportScheduleCreateManyAndReturnArgs> = z.object({
+  data: z.union([ FinancialReportScheduleCreateManyInputSchema,FinancialReportScheduleCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinancialReportScheduleDeleteArgsSchema: z.ZodType<Prisma.FinancialReportScheduleDeleteArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  where: FinancialReportScheduleWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportScheduleUpdateArgsSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateArgs> = z.object({
+  select: FinancialReportScheduleSelectSchema.optional(),
+  include: FinancialReportScheduleIncludeSchema.optional(),
+  data: z.union([ FinancialReportScheduleUpdateInputSchema,FinancialReportScheduleUncheckedUpdateInputSchema ]),
+  where: FinancialReportScheduleWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinancialReportScheduleUpdateManyArgsSchema: z.ZodType<Prisma.FinancialReportScheduleUpdateManyArgs> = z.object({
+  data: z.union([ FinancialReportScheduleUpdateManyMutationInputSchema,FinancialReportScheduleUncheckedUpdateManyInputSchema ]),
+  where: FinancialReportScheduleWhereInputSchema.optional(),
+}).strict() ;
+
+export const FinancialReportScheduleDeleteManyArgsSchema: z.ZodType<Prisma.FinancialReportScheduleDeleteManyArgs> = z.object({
+  where: FinancialReportScheduleWhereInputSchema.optional(),
 }).strict() ;

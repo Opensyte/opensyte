@@ -52,7 +52,13 @@ import {
 import { format } from "date-fns";
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
-import { PaymentMethodSchema, type PaymentMethodType } from "~/types/expenses";
+import {
+  PaymentMethodSchema,
+  type PaymentMethodType,
+  ExpenseStatusSchema,
+  type ExpenseStatusType,
+  expenseStatusLabels,
+} from "~/types/expenses";
 import { paymentMethodLabels } from "~/types/expenses";
 import { currencies, type CurrencyCode } from "~/types/currencies";
 
@@ -80,6 +86,7 @@ const expenseFormSchema = z.object({
   customCategory: z.string().optional(),
   vendor: z.string().optional(),
   paymentMethod: PaymentMethodSchema.default("CREDIT_CARD"),
+  status: ExpenseStatusSchema.default("DRAFT"),
   projectId: z.string().optional(),
   reimbursable: z.boolean().default(false),
   receipt: z.string().optional(),
@@ -116,6 +123,7 @@ export function ExpenseEditDialog({
       customCategory: "",
       vendor: "",
       paymentMethod: "CREDIT_CARD",
+      status: "DRAFT",
       projectId: "",
       reimbursable: false,
       receipt: "",
@@ -165,6 +173,7 @@ export function ExpenseEditDialog({
         customCategory: expense.customCategory ?? "",
         vendor: expense.vendor ?? "",
         paymentMethod: expense.paymentMethod,
+        status: expense.status,
         projectId: expense.projectId ?? "",
         reimbursable: expense.reimbursable,
         receipt: expense.receipt ?? "",
@@ -189,6 +198,7 @@ export function ExpenseEditDialog({
         customCategory: data.customCategory ?? undefined,
         vendor: data.vendor ?? undefined,
         paymentMethod: data.paymentMethod,
+        status: data.status,
         projectId: data.projectId ?? undefined,
         reimbursable: data.reimbursable,
         receipt: data.receipt ?? undefined,
@@ -538,6 +548,42 @@ export function ExpenseEditDialog({
                             ).map(method => (
                               <SelectItem key={method} value={method}>
                                 {paymentMethodLabels[method]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">
+                          Status
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(
+                              Object.keys(
+                                expenseStatusLabels
+                              ) as ExpenseStatusType[]
+                            ).map(status => (
+                              <SelectItem key={status} value={status}>
+                                {expenseStatusLabels[status]}
                               </SelectItem>
                             ))}
                           </SelectContent>

@@ -35,6 +35,7 @@ const expenseFormSchema = z.object({
   customCategory: z.string().optional(),
   vendor: z.string().optional(),
   paymentMethod: PaymentMethodSchema.default("CREDIT_CARD"),
+  status: ExpenseStatusSchema.default("DRAFT"),
   projectId: z.string().optional(),
   reimbursable: z.boolean().default(false),
   receipt: z.string().optional(),
@@ -233,12 +234,12 @@ export const expenseRouter = createTRPCRouter({
           customCategory: data.customCategory,
           vendor: data.vendor,
           paymentMethod: data.paymentMethod,
+          status: data.status,
           // Only set projectId if it's provided and not empty
           ...(data.projectId && { projectId: data.projectId }),
           reimbursable: data.reimbursable,
           receipt: data.receipt,
           notes: data.notes,
-          status: "DRAFT",
           createdById: userId,
         },
         include: {
@@ -302,6 +303,7 @@ export const expenseRouter = createTRPCRouter({
       if (data.vendor !== undefined) updateData.vendor = data.vendor;
       if (data.paymentMethod !== undefined)
         updateData.paymentMethod = data.paymentMethod;
+      if (data.status !== undefined) updateData.status = data.status;
       if (data.projectId !== undefined) {
         updateData.project = data.projectId
           ? { connect: { id: data.projectId } }

@@ -9,6 +9,7 @@ import { hrRouter } from "./routers/hr/hr";
 import { invoiceRouter } from "./routers/finance/invoice";
 import { expenseRouter } from "./routers/finance/expense";
 import { expenseCategoriesRouter } from "./routers/finance/expense-categories";
+import { financialReportsRouter } from "./routers/finance/financial-reports";
 import { invitationsRouter } from "./routers/invitations";
 import { rbacRouter } from "./routers/rbac";
 import { customRolesRouter } from "./routers/custom-roles";
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   invoice: invoiceRouter,
   expense: expenseRouter,
   expenseCategories: expenseCategoriesRouter,
+  financialReports: financialReportsRouter,
   invitations: invitationsRouter,
   rbac: rbacRouter,
   customRoles: customRolesRouter,

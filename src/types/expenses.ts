@@ -149,6 +149,7 @@ export interface ExpenseFormData {
   customCategory?: string;
   vendor?: string;
   paymentMethod: PaymentMethodType;
+  status: ExpenseStatusType;
   projectId?: string;
   reimbursable: boolean;
   receipt?: string;
