@@ -121,7 +121,7 @@ OpenSyte aims to be an all-in-one business management solution with the followin
 | **Finance and Accounting** | | |
 | Invoicing and Billing | ✅ Implemented | Create, send, and delete invoices |
 | Expense Tracking | ✅ Implemented | Log and categorize expenses |
-| Financial Reporting | ❌ Not implemented | Generate financial statements |
+| Financial Reporting | ✅ Implemented | Generate financial statements |
 | Bank Integration | ❌ Not implemented | Sync with bank accounts |
 | **Collaboration Tools** | | |
 | Real-Time Chat | ❌ Not implemented | Communicate with your team |
