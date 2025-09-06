@@ -11,6 +11,7 @@ import {
   Building2,
   Plus,
   Folder,
+  Brain,
 } from "lucide-react";
 
 import { NavMain } from "~/components/nav-main";
@@ -214,6 +215,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             title: "Analytics",
             url: "/[orgId]/marketing/analytics",
+          },
+        ],
+      });
+    }
+
+    // AI & Analytics Module
+    if (permissions.canViewAI) {
+      navItems.push({
+        title: "AI & Analytics",
+        url: "/[orgId]/ai",
+        icon: Brain,
+        items: [
+          {
+            title: "Audit Engine",
+            url: "/[orgId]/ai/audit",
+          },
+          {
+            title: "Anomaly Detection",
+            url: "/[orgId]/ai/anomalies",
+          },
+          {
+            title: "Smart Insights",
+            url: "/[orgId]/ai/insights",
+          },
+          {
+            title: "Personalized Views",
+            url: "/[orgId]/ai/views",
           },
         ],
       });

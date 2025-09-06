@@ -83,6 +83,11 @@ export const rbacRouter = createTRPCRouter({
           PERMISSIONS.SETTINGS_WRITE,
           PERMISSIONS.SETTINGS_ADMIN,
         ]),
+        canViewAI: hasAnyPermission(userOrg, [
+          PERMISSIONS.AI_READ,
+          PERMISSIONS.AI_WRITE,
+          PERMISSIONS.AI_ADMIN,
+        ]),
         canWriteCRM: hasAnyPermission(userOrg, [
           PERMISSIONS.CRM_WRITE,
           PERMISSIONS.CRM_ADMIN,
@@ -109,6 +114,10 @@ export const rbacRouter = createTRPCRouter({
         canWriteSettings: hasAnyPermission(userOrg, [
           PERMISSIONS.SETTINGS_WRITE,
           PERMISSIONS.SETTINGS_ADMIN,
+        ]),
+        canWriteAI: hasAnyPermission(userOrg, [
+          PERMISSIONS.AI_WRITE,
+          PERMISSIONS.AI_ADMIN,
         ]),
         canManageOrganization: hasAnyPermission(userOrg, [
           PERMISSIONS.ORG_ADMIN,

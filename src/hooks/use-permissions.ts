@@ -66,6 +66,12 @@ export function usePermissions({
         canWriteSettings: false,
         canAdminSettings: false,
 
+        // AI permissions
+        canViewAI: false,
+        canReadAI: false,
+        canWriteAI: false,
+        canAdminAI: false,
+
         // Organization permissions
         canManageOrganization: false,
         canManageMembers: false,
@@ -127,6 +133,12 @@ export function usePermissions({
       canWriteSettings: computedPermissions.canWriteSettings,
       canAdminSettings: computedPermissions.canWriteSettings,
 
+      // AI permissions
+      canViewAI: computedPermissions.canViewAI,
+      canReadAI: computedPermissions.canViewAI,
+      canWriteAI: computedPermissions.canWriteAI,
+      canAdminAI: computedPermissions.canWriteAI,
+
       // Organization permissions
       canManageOrganization: computedPermissions.canManageOrganization,
       canManageMembers: computedPermissions.canManageMembers,
@@ -175,6 +187,12 @@ export function usePermissions({
             return (
               computedPermissions.canViewSettings ||
               computedPermissions.canWriteSettings
+            );
+          case PERMISSIONS.AI_READ:
+          case PERMISSIONS.AI_WRITE:
+          case PERMISSIONS.AI_ADMIN:
+            return (
+              computedPermissions.canViewAI || computedPermissions.canWriteAI
             );
           case PERMISSIONS.ORG_ADMIN:
             return computedPermissions.canManageOrganization;
@@ -230,6 +248,12 @@ export function usePermissions({
                 computedPermissions.canViewSettings ||
                 computedPermissions.canWriteSettings
               );
+            case PERMISSIONS.AI_READ:
+            case PERMISSIONS.AI_WRITE:
+            case PERMISSIONS.AI_ADMIN:
+              return (
+                computedPermissions.canViewAI || computedPermissions.canWriteAI
+              );
             case PERMISSIONS.ORG_ADMIN:
               return computedPermissions.canManageOrganization;
             case PERMISSIONS.ORG_MEMBERS:
@@ -242,7 +266,14 @@ export function usePermissions({
         });
       },
       canWriteToModule: (
-        module: "crm" | "hr" | "finance" | "projects" | "marketing" | "settings"
+        module:
+          | "crm"
+          | "hr"
+          | "finance"
+          | "projects"
+          | "marketing"
+          | "settings"
+          | "ai"
       ) => {
         switch (module) {
           case "crm":
@@ -257,12 +288,21 @@ export function usePermissions({
             return computedPermissions.canWriteMarketing;
           case "settings":
             return computedPermissions.canWriteSettings;
+          case "ai":
+            return computedPermissions.canWriteAI;
           default:
             return false;
         }
       },
       canReadFromModule: (
-        module: "crm" | "hr" | "finance" | "projects" | "marketing" | "settings"
+        module:
+          | "crm"
+          | "hr"
+          | "finance"
+          | "projects"
+          | "marketing"
+          | "settings"
+          | "ai"
       ) => {
         switch (module) {
           case "crm":
@@ -277,6 +317,8 @@ export function usePermissions({
             return computedPermissions.canViewMarketing;
           case "settings":
             return computedPermissions.canViewSettings;
+          case "ai":
+            return computedPermissions.canViewAI;
           default:
             return false;
         }
@@ -299,7 +341,14 @@ export function usePermissions({
 export function useModulePermissions(
   userId: string,
   organizationId: string,
-  module: "crm" | "hr" | "finance" | "projects" | "marketing" | "settings"
+  module:
+    | "crm"
+    | "hr"
+    | "finance"
+    | "projects"
+    | "marketing"
+    | "settings"
+    | "ai"
 ) {
   const permissions = usePermissions({ userId, organizationId });
 
@@ -308,7 +357,7 @@ export function useModulePermissions(
     canWrite: permissions.canWriteToModule(module),
     canView:
       permissions[
-        `canView${(module.charAt(0).toUpperCase() + module.slice(1)) as "CRM" | "HR" | "Finance" | "Projects" | "Marketing" | "Settings"}`
+        `canView${(module.charAt(0).toUpperCase() + module.slice(1)) as "CRM" | "HR" | "Finance" | "Projects" | "Marketing" | "Settings" | "AI"}`
       ],
     isLoading: permissions.isLoading,
     isError: permissions.isError,

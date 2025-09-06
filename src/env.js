@@ -12,6 +12,11 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
     RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
+
+    // AI Configuration - Optional (OpenAI only)
+    OPENAI_API_KEY: z.string().optional(),
+    AI_MODEL: z.string().default("gpt-4o-mini"),
+    AI_FEATURES_ENABLED: z.boolean().default(false),
   },
 
   /**
@@ -31,6 +36,11 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+
+    // AI Configuration (OpenAI only)
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    AI_MODEL: process.env.AI_MODEL,
+    AI_FEATURES_ENABLED: process.env.AI_FEATURES_ENABLED === "true",
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

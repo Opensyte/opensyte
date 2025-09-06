@@ -36,6 +36,11 @@ export const PERMISSIONS = {
   SETTINGS_WRITE: "settings:write",
   SETTINGS_ADMIN: "settings:admin",
 
+  // AI permissions
+  AI_READ: "ai:read",
+  AI_WRITE: "ai:write",
+  AI_ADMIN: "ai:admin",
+
   // Organization permissions
   ORG_ADMIN: "organization:admin",
   ORG_BILLING: "organization:billing",
@@ -53,6 +58,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_ADMIN,
     PERMISSIONS.SETTINGS_ADMIN,
+    PERMISSIONS.AI_ADMIN,
     PERMISSIONS.ORG_ADMIN,
     PERMISSIONS.ORG_BILLING,
     PERMISSIONS.ORG_MEMBERS,
@@ -66,6 +72,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_ADMIN,
     PERMISSIONS.SETTINGS_ADMIN,
+    PERMISSIONS.AI_ADMIN,
     PERMISSIONS.ORG_MEMBERS,
   ],
 
@@ -86,6 +93,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.FINANCE_READ, // Read access to payroll
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
+    PERMISSIONS.AI_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -95,6 +103,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_READ,
     PERMISSIONS.FINANCE_READ,
+    PERMISSIONS.AI_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -104,6 +113,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.CRM_READ,
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
+    PERMISSIONS.AI_WRITE, // Finance gets AI write access for audit features
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -112,6 +122,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.CRM_READ, // Limited CRM access
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.HR_READ,
+    PERMISSIONS.AI_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -121,6 +132,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.HR_READ, // Own HR data only
+    PERMISSIONS.AI_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -137,6 +149,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.FINANCE_READ,
     PERMISSIONS.HR_READ,
     PERMISSIONS.MARKETING_READ,
+    PERMISSIONS.AI_READ,
   ],
 };
 
@@ -282,6 +295,7 @@ export function getNavPermissions(userRole: UserRole) {
     canViewMarketing: canAccessModule(userRole, "marketing"),
     canViewCollaboration: canAccessModule(userRole, "collaboration"),
     canViewSettings: canAccessModule(userRole, "settings"),
+    canViewAI: canAccessModule(userRole, "ai"),
 
     canWriteCRM:
       hasPermission(userRole, PERMISSIONS.CRM_WRITE) ||
@@ -305,6 +319,9 @@ export function getNavPermissions(userRole: UserRole) {
     canWriteSettings:
       hasPermission(userRole, PERMISSIONS.SETTINGS_WRITE) ||
       hasPermission(userRole, PERMISSIONS.SETTINGS_ADMIN),
+    canWriteAI:
+      hasPermission(userRole, PERMISSIONS.AI_WRITE) ||
+      hasPermission(userRole, PERMISSIONS.AI_ADMIN),
 
     canManageOrganization: hasPermission(userRole, PERMISSIONS.ORG_ADMIN),
     canManageMembers: hasPermission(userRole, PERMISSIONS.ORG_MEMBERS),

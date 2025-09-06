@@ -29,7 +29,8 @@ interface ClientPermissionGuardProps {
     | "finance"
     | "projects"
     | "marketing"
-    | "settings";
+    | "settings"
+    | "ai";
   fallback?: React.ReactNode;
   children: React.ReactNode;
   loadingComponent?: React.ReactNode;
@@ -143,6 +144,10 @@ export function ClientPermissionGuard({
         case PERMISSIONS.SETTINGS_WRITE:
         case PERMISSIONS.SETTINGS_ADMIN:
           return userPermissions.permissions.canViewSettings;
+        case PERMISSIONS.AI_READ:
+        case PERMISSIONS.AI_WRITE:
+        case PERMISSIONS.AI_ADMIN:
+          return userPermissions.permissions.canViewAI;
         case PERMISSIONS.ORG_ADMIN:
           return userPermissions.permissions.canManageOrganization;
         case PERMISSIONS.ORG_MEMBERS:
@@ -190,6 +195,9 @@ export function ClientPermissionGuard({
         break;
       case "settings":
         hasModuleAccess = userPermissions.permissions.canViewSettings;
+        break;
+      case "ai":
+        hasModuleAccess = userPermissions.permissions.canViewAI;
         break;
       default:
         // Fallback to old method for predefined roles
@@ -436,6 +444,24 @@ export function withClientSettingsPermissions(
         PERMISSIONS.SETTINGS_READ,
         PERMISSIONS.SETTINGS_WRITE,
         PERMISSIONS.SETTINGS_ADMIN,
+      ]}
+      {...props}
+    >
+      {children}
+    </ClientPermissionGuard>
+  );
+}
+
+export function withClientAIPermissions(
+  children: React.ReactNode,
+  props?: Partial<ClientPermissionGuardProps>
+) {
+  return (
+    <ClientPermissionGuard
+      requiredAnyPermissions={[
+        PERMISSIONS.AI_READ,
+        PERMISSIONS.AI_WRITE,
+        PERMISSIONS.AI_ADMIN,
       ]}
       {...props}
     >

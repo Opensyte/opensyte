@@ -105,6 +105,7 @@ const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
 
   const result = await next({
     ctx: {
+      ...ctx,
       user: ctx.user,
     },
   });

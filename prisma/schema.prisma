@@ -113,6 +113,10 @@ model Organization {
   invitations      Invitation[]
   customRoles      CustomRole[]
   financialReports FinancialReport[]
+  auditPackages    AuditPackage[]
+  personalizedViews PersonalizedView[]
+  aiInsights       AIInsight[]
+  userBehaviors    UserBehavior[]
 }
 
 model UserOrganization {
@@ -1205,4 +1209,274 @@ enum FinancialReportScheduleFrequency {
   MONTHLY
   QUARTERLY
   YEARLY
+}
+
+// ==============================
+// AI Features Models
+// ==============================
+
+model AuditPackage {
+  id             String               @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  dateRange      Json                 // Store start/end dates and filters
+  status         AuditPackageStatus   @default(DRAFT)
+  totalTransactions Int              @default(0)
+  totalDocuments Int                 @default(0)
+  riskScore      Float?               // AI-generated risk score 0-100
+  generatedAt    DateTime?
+  exportedAt     DateTime?
+  createdById    String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  // Relations
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents      AuditDocument[]
+  trails         AuditTrail[]
+  approvals      AuditApproval[]
+  exports        AuditExport[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdById])
+}
+
+enum AuditPackageStatus {
+  DRAFT
+  PROCESSING
+  REVIEW
+  COMPLETED
+  EXPORTED
+  ARCHIVED
+}
+
+model AuditDocument {
+  id             String               @id @default(cuid())
+  auditPackageId String
+  fileName       String
+  fileUrl        String
+  fileType       String
+  fileSize       Int                  // Size in bytes
+  classification AuditDocumentType    
+  aiClassification Json?              // AI classification results
+  confidence     Float?               // AI confidence score 0-1
+  linkedTransactions Json?            // Array of transaction IDs
+  extractedData  Json?                // AI-extracted key data
+  status         AuditDocumentStatus  @default(PENDING)
+  processedAt    DateTime?
+  createdAt      DateTime             @default(now())
+
+  // Relations
+  auditPackage   AuditPackage         @relation(fields: [auditPackageId], references: [id], onDelete: Cascade)
+
+  @@index([auditPackageId])
+  @@index([classification])
+  @@index([status])
+}
+
+enum AuditDocumentType {
+  RECEIPT
+  INVOICE
+  BANK_STATEMENT
+  CONTRACT
+  PURCHASE_ORDER
+  PAYMENT_CONFIRMATION
+  TAX_DOCUMENT
+  EXPENSE_REPORT
+  UNKNOWN
+}
+
+enum AuditDocumentStatus {
+  PENDING
+  PROCESSING
+  CLASSIFIED
+  VERIFIED
+  REJECTED
+}
+
+model AuditTrail {
+  id             String      @id @default(cuid())
+  auditPackageId String
+  entityType     String      // e.g., "invoice", "expense", "payment"
+  entityId       String      // ID of the entity
+  action         String      // e.g., "created", "updated", "deleted", "approved"
+  changes        Json?       // What changed
+  performedById  String
+  performedAt    DateTime
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?       // Additional context
+
+  // Relations
+  auditPackage   AuditPackage @relation(fields: [auditPackageId], references: [id], onDelete: Cascade)
+
+  @@index([auditPackageId])
+  @@index([entityType, entityId])
+  @@index([performedById])
+  @@index([performedAt])
+}
+
+model AuditApproval {
+  id             String           @id @default(cuid())
+  auditPackageId String
+  approverType   String           // e.g., "finance_manager", "cfo"
+  approverId     String
+  status         ApprovalStatus
+  comments       String?
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  rejectionReason String?
+  digitalSignature String?        // Cryptographic signature
+  createdAt      DateTime         @default(now())
+
+  // Relations
+  auditPackage   AuditPackage     @relation(fields: [auditPackageId], references: [id], onDelete: Cascade)
+
+  @@index([auditPackageId])
+  @@index([approverId])
+  @@index([status])
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model AuditExport {
+  id             String           @id @default(cuid())
+  auditPackageId String
+  format         AuditExportFormat @default(CSV)
+  fileName       String
+  fileUrl        String?
+  fileSize       Int?             // Size in bytes
+  status         AuditExportStatus @default(PENDING)
+  error          String?
+  exportType     String           // e.g., "full", "summary", "transactions_only"
+  exportedById   String
+  createdAt      DateTime         @default(now())
+  completedAt    DateTime?
+
+  // Relations
+  auditPackage   AuditPackage     @relation(fields: [auditPackageId], references: [id], onDelete: Cascade)
+
+  @@index([auditPackageId])
+  @@index([status])
+  @@index([exportedById])
+}
+
+enum AuditExportFormat {
+  CSV
+  JSON
+  ZIP
+}
+
+enum AuditExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model PersonalizedView {
+  id             String               @id @default(cuid())
+  userId         String
+  organizationId String
+  viewType       PersonalizedViewType
+  configuration  Json                 // AI-generated view configuration
+  metrics        Json?                // Calculated metrics
+  insights       Json?                // AI-generated insights
+  lastUpdated    DateTime             @default(now())
+  isActive       Boolean              @default(true)
+  preferences    Json?                // User customization preferences
+
+  // Relations
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId, viewType])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([viewType])
+}
+
+enum PersonalizedViewType {
+  FOUNDER_DASHBOARD
+  CFO_DASHBOARD
+  ACCOUNTANT_DASHBOARD
+  MANAGER_DASHBOARD
+  SALES_DASHBOARD
+  HR_DASHBOARD
+}
+
+model AIInsight {
+  id             String         @id @default(cuid())
+  organizationId String
+  userId         String?        // Specific user or null for organization-wide
+  type           AIInsightType
+  category       String         // e.g., "financial", "operational", "risk"
+  title          String
+  description    String
+  confidence     Float          // AI confidence score 0-1
+  priority       AIInsightPriority
+  data           Json           // Supporting data and metrics
+  recommendations Json?         // AI-generated recommendations
+  status         AIInsightStatus @default(ACTIVE)
+  dismissedAt    DateTime?
+  dismissedById  String?
+  createdAt      DateTime       @default(now())
+  expiresAt      DateTime?      // When the insight becomes irrelevant
+
+  // Relations
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+}
+
+enum AIInsightType {
+  ANOMALY_DETECTION
+  TREND_ANALYSIS
+  PREDICTION
+  RECOMMENDATION
+  ALERT
+  OPPORTUNITY
+}
+
+enum AIInsightPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AIInsightStatus {
+  ACTIVE
+  DISMISSED
+  RESOLVED
+  EXPIRED
+}
+
+model UserBehavior {
+  id             String    @id @default(cuid())
+  userId         String
+  organizationId String
+  action         String    // e.g., "view_dashboard", "create_invoice", "export_data"
+  module         String    // e.g., "crm", "finance", "hr"
+  metadata       Json?     // Additional context about the action
+  timestamp      DateTime  @default(now())
+  sessionId      String?   // To group actions by session
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, organizationId])
+  @@index([module])
+  @@index([timestamp])
+  @@index([sessionId])
 }
