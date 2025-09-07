@@ -12,7 +12,6 @@ import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { authClient } from "~/lib/auth-client";
 import type { OrganizationFormValues } from "~/components/organizations/add-organization-dialog";
-import type { EditOrganizationFormValues } from "~/components/organizations/edit-organization-dialog";
 
 function OrganizationsSkeleton() {
   return (
@@ -65,26 +64,6 @@ export function DashboardClient() {
     },
   });
 
-  const updateOrganizationMutation = api.organization.update.useMutation({
-    onSuccess: () => {
-      void utils.organization.getAll.invalidate();
-      toast.success("Organization updated successfully!");
-    },
-    onError: error => {
-      toast.error(error.message || "Failed to update organization");
-    },
-  });
-
-  const deleteOrganizationMutation = api.organization.delete.useMutation({
-    onSuccess: () => {
-      void utils.organization.getAll.invalidate();
-      toast.success("Organization deleted successfully!");
-    },
-    onError: error => {
-      toast.error(error.message || "Failed to delete organization");
-    },
-  });
-
   const handleAddOrganization = async (data: OrganizationFormValues) => {
     if (!session?.user?.id) {
       toast.error("You must be logged in to create an organization");
@@ -93,34 +72,6 @@ export function DashboardClient() {
 
     await createOrganizationMutation.mutateAsync({
       ...data,
-      userId: session.user.id,
-    });
-  };
-
-  const handleEditOrganization = async (
-    id: string,
-    data: EditOrganizationFormValues
-  ) => {
-    if (!session?.user?.id) {
-      toast.error("You must be logged in to edit an organization");
-      return;
-    }
-
-    await updateOrganizationMutation.mutateAsync({
-      id,
-      ...data,
-      userId: session.user.id,
-    });
-  };
-
-  const handleDeleteOrganization = async (id: string) => {
-    if (!session?.user?.id) {
-      toast.error("You must be logged in to delete an organization");
-      return;
-    }
-
-    await deleteOrganizationMutation.mutateAsync({
-      id,
       userId: session.user.id,
     });
   };
@@ -209,10 +160,6 @@ export function DashboardClient() {
                 membersCount={org.membersCount}
                 userRole={org.userRole}
                 createdAt={org.createdAt}
-                onEdit={handleEditOrganization}
-                onDelete={handleDeleteOrganization}
-                isEditLoading={updateOrganizationMutation.isPending}
-                isDeleteLoading={deleteOrganizationMutation.isPending}
               />
             ))}
           </div>

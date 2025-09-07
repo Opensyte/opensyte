@@ -100,10 +100,14 @@ export function DashboardNavbar() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  await authClient.signOut();
+                  window.location.href = "/";
+                }}
+              >
+                Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -168,20 +172,10 @@ export function DashboardNavbar() {
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start"
-                >
-                  Profile
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                >
-                  Settings
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
+                  onClick={async () => {
+                    await authClient.signOut();
+                    window.location.href = "/";
+                  }}
                 >
                   Log out
                 </Button>

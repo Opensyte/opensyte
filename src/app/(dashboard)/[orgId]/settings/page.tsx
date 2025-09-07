@@ -1,5 +1,10 @@
-import { SettingsClient } from "~/components/settings/settings-client";
+import { redirect } from "next/navigation";
 
-export default function SettingsPage() {
-  return <SettingsClient />;
+export default async function SettingsPage({
+  params,
+}: {
+  params: Promise<{ orgId: string }>;
+}) {
+  const { orgId } = await params;
+  return redirect(`/${orgId}/settings/general`);
 }

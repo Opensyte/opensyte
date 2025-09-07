@@ -319,4 +319,155 @@ export const rbacRouter = createTRPCRouter({
         };
       });
     }),
+
+  // Remove member from organization
+  removeMember: publicProcedure
+    .input(
+      z.object({
+        userId: z.string(),
+        organizationId: z.string(),
+        targetUserId: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Check if the requesting user has permission to remove members
+      const requestingUserOrg = (await ctx.db.userOrganization.findFirst({
+        where: {
+          userId: input.userId,
+          organizationId: input.organizationId,
+        },
+        include: {
+          customRole: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      })) as ExtendedUserOrganization | null;
+
+      if (!requestingUserOrg) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found in organization",
+        });
+      }
+
+      // Check permissions using custom RBAC
+      const canRemoveMembers = hasAnyPermission(requestingUserOrg, [
+        PERMISSIONS.ORG_ADMIN,
+        PERMISSIONS.ORG_MEMBERS,
+      ]);
+
+      if (!canRemoveMembers) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Insufficient permissions to remove members",
+        });
+      }
+
+      // Prevent removing yourself
+      if (input.userId === input.targetUserId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You cannot remove yourself from the organization",
+        });
+      }
+
+      // Get the target user's organization membership
+      const targetUserOrg = (await ctx.db.userOrganization.findFirst({
+        where: {
+          userId: input.targetUserId,
+          organizationId: input.organizationId,
+        },
+        include: {
+          customRole: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      })) as ExtendedUserOrganization | null;
+
+      if (!targetUserOrg) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Target user not found in organization",
+        });
+      }
+
+      // Prevent removing organization owner unless you are also an owner
+      if (targetUserOrg.role === "ORGANIZATION_OWNER") {
+        if (requestingUserOrg.role !== "ORGANIZATION_OWNER") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only organization owners can remove other owners",
+          });
+        }
+
+        // Check if this is the last owner
+        const ownerCount = await ctx.db.userOrganization.count({
+          where: {
+            organizationId: input.organizationId,
+            role: "ORGANIZATION_OWNER",
+          },
+        });
+
+        if (ownerCount <= 1) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Cannot remove the last organization owner",
+          });
+        }
+      }
+
+      // Check if requesting user has higher privileges than target for custom roles
+      if (targetUserOrg.customRoleId && targetUserOrg.customRole) {
+        const targetRoleAssignment = {
+          type: "custom" as const,
+          customRoleId: targetUserOrg.customRoleId,
+        };
+
+        if (!canAssignRole(requestingUserOrg, targetRoleAssignment)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Cannot remove user with higher or equal privileges",
+          });
+        }
+      } else if (targetUserOrg.role) {
+        const targetRoleAssignment = {
+          type: "predefined" as const,
+          role: targetUserOrg.role,
+        };
+
+        if (!canAssignRole(requestingUserOrg, targetRoleAssignment)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Cannot remove user with higher or equal privileges",
+          });
+        }
+      }
+
+      // Remove the user from the organization
+      await ctx.db.userOrganization.delete({
+        where: {
+          userId_organizationId: {
+            userId: input.targetUserId,
+            organizationId: input.organizationId,
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: "Member removed successfully",
+      };
+    }),
 });

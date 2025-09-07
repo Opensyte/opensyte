@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react";
+import { ChevronsUpDown, CreditCard, LogOut, Sparkles } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
@@ -77,28 +70,32 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="opacity-50 cursor-not-allowed">
                 <Sparkles />
-                Upgrade to Pro
+                Upgrade
+                <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-md">
+                  Coming Soon
+                </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="opacity-50 cursor-not-allowed">
                 <CreditCard />
                 Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
+                <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded-md">
+                  Coming Soon
+                </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                const { authClient } = await import("~/lib/auth-client");
+                await authClient.signOut();
+                window.location.href = "/";
+              }}
+            >
               <LogOut />
               Log out
             </DropdownMenuItem>
