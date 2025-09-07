@@ -1,3 +1,4 @@
+// TODO: Rename the functions components and file names to something related to team management
 "use client";
 
 import { useState } from "react";
@@ -25,11 +26,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import type { CustomRoleWithPermissions } from "~/types/custom-roles";
 import { RoleBadge } from "./role-badge";
 import { ChangeRoleDialog } from "./change-role-dialog";
+import { RemoveMemberDialog } from "./remove-member-dialog";
 import { CustomRoleManagement } from "./custom-role-management";
 import { ROLE_INFO, ROLE_PERMISSIONS } from "~/lib/rbac";
 import { api } from "~/trpc/react";
@@ -60,6 +63,7 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
   const [selectedMember, setSelectedMember] =
     useState<OrganizationMember | null>(null);
   const [showChangeRoleDialog, setShowChangeRoleDialog] = useState(false);
+  const [showRemoveMemberDialog, setShowRemoveMemberDialog] = useState(false);
   const [showRoleInfo, setShowRoleInfo] = useState(false);
 
   // Get current user session
@@ -106,6 +110,30 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
     };
     setSelectedMember(convertedMember as OrganizationMember);
     setShowChangeRoleDialog(true);
+  };
+
+  const handleRemoveMember = (member: {
+    userId: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+      image: string | null;
+    };
+    role: UserRole | null;
+    customRoleId?: string | null;
+    customRole?: CustomRoleWithPermissions | null;
+  }) => {
+    // Convert to expected format for the dialog
+    const convertedMember = {
+      userId: member.userId,
+      user: member.user,
+      role: member.role,
+      customRoleId: member.customRoleId ?? null,
+      customRole: member.customRole ?? null,
+    };
+    setSelectedMember(convertedMember as OrganizationMember);
+    setShowRemoveMemberDialog(true);
   };
 
   const getRoleBadge = (member: {
@@ -168,7 +196,7 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Role Management</h1>
+            <h1 className="text-2xl font-semibold">Team Management</h1>
             <p className="text-muted-foreground">
               Manage roles and permissions for your organization
             </p>
@@ -187,7 +215,7 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Role Management</h1>
+          <h1 className="text-2xl font-semibold">Team Management</h1>
           <p className="text-muted-foreground">
             Manage roles and permissions for your organization
           </p>
@@ -325,6 +353,21 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
                             >
                               Change Role
                             </DropdownMenuItem>
+                            {member.userId !== currentUserId && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleRemoveMember(
+                                      member as OrganizationMember
+                                    )
+                                  }
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  Remove Member
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
@@ -352,6 +395,24 @@ export function RoleManagement({ organizationId }: RoleManagementProps) {
           onOpenChange={setShowChangeRoleDialog}
           member={selectedMember}
           currentUserRole={currentUserRole}
+          currentUserId={currentUserId}
+          organizationId={organizationId}
+        />
+      )}
+
+      {selectedMember && (
+        <RemoveMemberDialog
+          open={showRemoveMemberDialog}
+          onOpenChange={setShowRemoveMemberDialog}
+          member={{
+            userId: selectedMember.userId,
+            user: {
+              name: selectedMember.user.name,
+              email: selectedMember.user.email,
+            },
+            role: selectedMember.role,
+            customRole: selectedMember.customRole,
+          }}
           currentUserId={currentUserId}
           organizationId={organizationId}
         />

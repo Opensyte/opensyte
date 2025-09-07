@@ -204,19 +204,55 @@ export const organizationRouter = createTRPCRouter({
     .input(updateOrganizationSchema.extend({ userId: z.string() }))
     .mutation(async ({ input }) => {
       try {
-        // Check if user has permission to update
+        // Check if user has permission to update - including users with SETTINGS_WRITE permission
         const userOrg = await db.userOrganization.findFirst({
           where: {
             userId: input.userId,
             organizationId: input.id,
-            role: {
-              in: ["ORGANIZATION_OWNER", "SUPER_ADMIN"] as UserRole[],
+          },
+          include: {
+            customRole: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
             },
           },
         });
 
         if (!userOrg) {
-          throw new Error("Insufficient permissions to update organization");
+          throw new Error("User is not a member of this organization");
+        }
+
+        // Check if user has permission to update organization settings
+        let hasPermission = false;
+
+        // Check predefined roles
+        if (userOrg.role) {
+          const allowedRoles: UserRole[] = [
+            "ORGANIZATION_OWNER",
+            "SUPER_ADMIN",
+          ];
+          hasPermission = allowedRoles.includes(userOrg.role);
+        }
+
+        // Check custom role permissions
+        if (!hasPermission && userOrg.customRole) {
+          const hasSettingsWrite = userOrg.customRole.permissions.some(
+            rp =>
+              rp.permission.name === "settings:write" ||
+              rp.permission.name === "settings:admin"
+          );
+          hasPermission = hasSettingsWrite;
+        }
+
+        if (!hasPermission) {
+          throw new Error(
+            "Insufficient permissions to update organization settings"
+          );
         }
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -237,6 +273,9 @@ export const organizationRouter = createTRPCRouter({
                 users: true,
                 customers: true,
                 projects: true,
+                tasks: true,
+                invoices: true,
+                expenses: true,
               },
             },
           },
@@ -252,6 +291,9 @@ export const organizationRouter = createTRPCRouter({
           membersCount: organization._count.users,
           customersCount: organization._count.customers,
           projectsCount: organization._count.projects,
+          tasksCount: organization._count.tasks,
+          invoicesCount: organization._count.invoices,
+          expensesCount: organization._count.expenses,
           createdAt: organization.createdAt.toISOString(),
           updatedAt: organization.updatedAt.toISOString(),
           userRole: userOrg.role,

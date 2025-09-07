@@ -230,8 +230,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       if (permissions.canManageMembers) {
         settingsItems.push({
-          title: "Role Management",
-          url: "/[orgId]/settings/role",
+          title: "Team Management",
+          url: "/[orgId]/settings/teams",
         });
         settingsItems.push({
           title: "Invitations",

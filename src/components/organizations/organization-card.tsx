@@ -2,15 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import {
-  BuildingIcon,
-  MoreHorizontal,
-  PencilIcon,
-  TrashIcon,
-  Users,
-  CalendarIcon,
-} from "lucide-react";
+import { useMemo } from "react";
+import { BuildingIcon, Users, CalendarIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -20,19 +13,8 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { EditOrganizationDialog } from "./edit-organization-dialog";
-import { DeleteOrganizationDialog } from "./delete-organization-dialog";
-import type { EditOrganizationFormValues } from "./edit-organization-dialog";
-import { canManageRoles } from "~/lib/rbac";
-import type { UserRole } from "@prisma/client";
 
-type OrganizationProps = {
+interface OrganizationCardProps {
   id: string;
   name: string;
   description?: string | null;
@@ -40,13 +22,9 @@ type OrganizationProps = {
   website?: string | null;
   industry?: string | null;
   membersCount: number;
-  userRole?: UserRole;
-  createdAt?: string;
-  onEdit?: (id: string, data: EditOrganizationFormValues) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
-  isEditLoading?: boolean;
-  isDeleteLoading?: boolean;
-};
+  userRole: string;
+  createdAt: string;
+}
 
 export function OrganizationCard({
   id,
@@ -56,42 +34,28 @@ export function OrganizationCard({
   website,
   industry,
   membersCount,
-  userRole = "VIEWER",
+  userRole,
   createdAt,
-  onEdit,
-  onDelete,
-  isEditLoading = false,
-  isDeleteLoading = false,
-}: OrganizationProps) {
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+}: OrganizationCardProps) {
+  const formattedDate = useMemo(() => {
+    if (!createdAt) return null;
 
-  // Format date if it exists
-  const formattedDate = createdAt
-    ? new Date(createdAt).toLocaleDateString("en-US", {
+    try {
+      const date = new Date(createdAt);
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
         month: "short",
         day: "numeric",
-        year: "numeric",
-      })
-    : null;
-
-  const canEdit = canManageRoles(userRole);
-  const canDelete = userRole === "ORGANIZATION_OWNER";
-
-  const handleEdit = async (id: string, data: EditOrganizationFormValues) => {
-    if (onEdit) {
-      await onEdit(id, data);
+      });
+    } catch {
+      return null;
     }
-  };
+  }, [createdAt]);
 
-  const handleDelete = async () => {
-    if (onDelete) {
-      await onDelete(id);
-    }
-  };
+  const canEnter = userRole !== "CONTRACTOR" && userRole !== "VIEWER";
 
   return (
-    <>
+    <div className="h-full">
       <Card className="hover:border-primary/30 group flex h-full flex-col gap-3 transition-all hover:shadow-md">
         <CardHeader className="space-y-3 pb-3">
           <div className="flex items-start justify-between gap-2">
@@ -121,40 +85,6 @@ export function OrganizationCard({
                 </div>
               </div>
             </div>
-            {(canEdit || canDelete) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 opacity-70 group-hover:opacity-100"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canEdit && (
-                    <DropdownMenuItem
-                      className="flex items-center gap-2"
-                      onClick={() => setEditDialogOpen(true)}
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                  )}
-                  {canDelete && (
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive flex items-center gap-2"
-                      onClick={() => setDeleteDialogOpen(true)}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
           <CardDescription className="line-clamp-3 text-sm leading-relaxed">
             {description ?? "No description provided"}
@@ -190,30 +120,22 @@ export function OrganizationCard({
             </div>
           )}
         </CardContent>
-        <CardFooter className="bg-muted/30 mt-auto border-t pt-4">
-          <Link href={`/${id}`} className="w-full">
-            <Button variant="default" className="w-full transition-colors">
-              View Dashboard
-            </Button>
-          </Link>
+        <CardFooter className="pt-0">
+          <Button
+            asChild
+            variant={canEnter ? "default" : "secondary"}
+            className="w-full"
+          >
+            <Link
+              href={`/${id}`}
+              className={!canEnter ? "cursor-not-allowed opacity-50" : ""}
+              aria-disabled={!canEnter}
+            >
+              {canEnter ? "Enter Organization" : "View Only (Limited Access)"}
+            </Link>
+          </Button>
         </CardFooter>
       </Card>
-
-      <EditOrganizationDialog
-        isOpen={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        onSave={handleEdit}
-        organization={{ id, name, description, website, industry }}
-        isLoading={isEditLoading}
-      />
-
-      <DeleteOrganizationDialog
-        isOpen={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        organizationName={name}
-        isLoading={isDeleteLoading}
-      />
-    </>
+    </div>
   );
 }

@@ -21,6 +21,7 @@ export function TeamSettingsClient() {
       </div>
     );
   }
+  // TODO: Rename the functions components and file names to something related to team management
 
   return (
     <ClientPermissionGuard
