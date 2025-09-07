@@ -54,8 +54,12 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 /**
- * Check if the current user has access to an organization
- * Returns true if user is a member of the organization
+ * Determine whether the current authenticated user is a member of the given organization.
+ *
+ * Returns false if the user is unauthenticated or not associated with the organization.
+ *
+ * @param organizationId - ID of the organization to check membership for
+ * @returns True when the current user has any role in the organization; otherwise false
  */
 export async function hasOrganizationAccess(
   organizationId: string
@@ -65,8 +69,15 @@ export async function hasOrganizationAccess(
 }
 
 /**
- * Get the first authorized module path for a user in an organization
- * Returns the path to the first module the user has access to
+ * Determine the first module path the current authenticated user is allowed to access within an organization.
+ *
+ * Resolves the user's organization membership and uses custom-role permissions (if present) or standard role permissions
+ * to evaluate a prioritized list of modules. Returns the path for the first module the user has permission to view.
+ * If the user is unauthenticated, not a member of the organization, or no module permissions permit access, this function
+ * returns the default path `"crm/contacts"`.
+ *
+ * @param organizationId - ID of the organization to check permissions for
+ * @returns The route path (e.g., `"crm/contacts"`, `"projects"`, `"finance/invoices"`) for the first authorized module, or `"crm/contacts"` as a fallback.
  */
 export async function getFirstAuthorizedModulePath(
   organizationId: string

@@ -28,6 +28,20 @@ interface ReportFiltersDialogProps {
   onApplyFilters: (filters: { type?: FinancialReportType }) => void;
 }
 
+/**
+ * Dialog for selecting and applying filters for financial reports.
+ *
+ * Renders a controlled dialog that lets the user pick a report type and apply or clear filters.
+ * The initial selection mirrors `selectedType`; "Apply" calls `onApplyFilters` with `{ type: <selected> }`
+ * (or `{ type: undefined }` when no type is chosen). "Clear" resets the local selection and calls
+ * `onApplyFilters({})`. Dialog visibility is controlled by `open` and `onOpenChange`.
+ *
+ * @param open - Whether the dialog is visible.
+ * @param onOpenChange - Callback invoked when the dialog requests an open/close change.
+ * @param selectedType - Initial report type selection; use an empty string for no selection.
+ * @param onApplyFilters - Callback invoked with the chosen filters; receives an object that may include a `type` property.
+ * @returns The ReportFiltersDialog React element.
+ */
 export function ReportFiltersDialog({
   open,
   onOpenChange,

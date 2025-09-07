@@ -43,6 +43,26 @@ interface EditCustomRoleDialogProps {
   role: CustomRoleWithPermissions | null;
 }
 
+/**
+ * Dialog component for editing an existing custom role's name, description, and assigned permissions.
+ *
+ * Renders a form with grouped, collapsible permission modules allowing selection/deselection of permissions,
+ * preserves the role's existing color when updating, and submits changes via a server mutation. If `role` is
+ * null the component renders nothing. While open it fetches available permissions (refetches on mount) and
+ * computes permissions that the current user cannot grant; those are shown as disabled with contextual tooltips.
+ *
+ * Props:
+ * - open: controls whether the dialog is shown.
+ * - onOpenChange: called with the new open state (used to close the dialog).
+ * - organizationId, userId: used to fetch available permissions and to submit the update.
+ * - role: the custom role being edited (if null nothing is rendered).
+ *
+ * Side effects:
+ * - Shows success/error toasts for the update mutation.
+ * - Invalidates the organization custom roles cache on successful update.
+ *
+ * @returns A React element for the dialog, or `null` when `role` is null.
+ */
 export function EditCustomRoleDialog({
   open,
   onOpenChange,

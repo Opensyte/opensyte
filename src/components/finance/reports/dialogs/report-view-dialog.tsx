@@ -43,6 +43,19 @@ interface ReportViewDialogProps {
   reportId: string;
 }
 
+/**
+ * Displays a read-only dialog with detailed information and configuration for a financial report.
+ *
+ * When opened, the component fetches the report by `reportId`. While the query is loading it renders
+ * a centered spinner inside the dialog. If no report is returned it renders nothing (null).
+ *
+ * @param open - Whether the dialog is visible.
+ * @param onOpenChange - Callback invoked with the new open state (e.g., `onOpenChange(false)` closes the dialog).
+ * @param organizationId - Identifier of the organization to display in the report metadata.
+ * @param reportId - Identifier of the report to fetch and display.
+ *
+ * @returns A JSX element rendering the report view dialog (or null if the report is not found).
+ */
 export function ReportViewDialog({
   open,
   onOpenChange,

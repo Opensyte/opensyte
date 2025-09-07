@@ -10,7 +10,22 @@ interface ReportSummaryCardsProps {
   className?: string;
 }
 
-// Compact stats bar following expense-summary-cards pattern
+/**
+ * Render a compact grid of four report summary cards, or a four-item loading skeleton when data is loading.
+ *
+ * When not loading, the component computes:
+ * - total reports,
+ * - reports that have generation data,
+ * - reports generated within the last 7 days,
+ * - the most common report type (mapped to a display label and reduced to its first word; falls back to "None").
+ *
+ * The UI is a responsive grid (sm: 3 cols, lg: 4 cols) of small statistic cards; `className` is appended to the container.
+ *
+ * @param reports - Optional array of FinancialReport objects used to derive the statistics.
+ * @param isLoading - If true, renders animated skeleton cards instead of statistics.
+ * @param className - Optional additional CSS classes applied to the outer grid container.
+ * @returns A React element containing the summary cards or loading placeholders.
+ */
 export function ReportSummaryCards({
   reports,
   isLoading,

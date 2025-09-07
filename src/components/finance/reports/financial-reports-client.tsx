@@ -59,6 +59,19 @@ import { toast } from "sonner";
 import { usePermissions } from "~/hooks/use-permissions";
 import { authClient } from "~/lib/auth-client";
 
+/**
+ * Client component that renders, filters, and manages financial reports for an organization.
+ *
+ * Renders a searchable, filterable list of reports (desktop table and mobile cards), summary cards,
+ * and dialogs for creating, editing, viewing, exporting, and deleting reports. Actions are permission-gated:
+ * users without read access see an access-restricted UI, and create/edit/delete actions require finance write permission.
+ *
+ * The component fetches reports via TRPC, supports generating reports (shows loading/success/error toasts and invalidates the report list),
+ * and memoizes client-side search filtering across report name, description, and type label.
+ *
+ * @param organizationId - ID of the organization whose financial reports are managed and displayed.
+ * @returns A JSX element containing the financial reports UI.
+ */
 export function FinancialReportsClient({
   organizationId,
 }: FinancialReportsClientProps) {
