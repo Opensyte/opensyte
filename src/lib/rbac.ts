@@ -40,7 +40,80 @@ export const PERMISSIONS = {
   ORG_ADMIN: "organization:admin",
   ORG_BILLING: "organization:billing",
   ORG_MEMBERS: "organization:members",
+
+  // Billing permissions (Owner-only)
+  BILLING_READ: "billing:read",
+  BILLING_MANAGE: "billing:manage",
+  BILLING_ADMIN: "billing:admin",
 } as const;
+
+/**
+ * Get all permission names that should exist in the database
+ */
+export function getAllRequiredPermissionNames(): string[] {
+  return Object.values(PERMISSIONS);
+}
+
+/**
+ * Extract module and action from permission name
+ * @param permission Permission string like "crm:read" or "billing:admin"
+ */
+export function parsePermission(permission: string) {
+  const [module, action] = permission.split(":");
+  return { module: module ?? "", action: action ?? "" };
+}
+
+/**
+ * Generate permission metadata for database operations
+ */
+export function getPermissionMetadata(permissionName: string) {
+  const { module, action } = parsePermission(permissionName);
+
+  // Generate a readable description based on module and action
+  const getDescription = (module: string, action: string) => {
+    const moduleNames: Record<string, string> = {
+      crm: "CRM",
+      finance: "Finance",
+      hr: "HR",
+      projects: "Projects",
+      collaboration: "Collaboration",
+      marketing: "Marketing",
+      settings: "Settings",
+      organization: "Organization",
+      billing: "Billing",
+      ai: "AI",
+    };
+
+    const actionNames: Record<string, string> = {
+      read: "View",
+      write: "Manage",
+      admin: "Administer",
+      manage: "Manage",
+      billing: "Billing",
+      members: "Members",
+    };
+
+    const moduleName = moduleNames[module] ?? module;
+    const actionName = actionNames[action] ?? action;
+
+    if (action === "read") {
+      return `View ${moduleName.toLowerCase()} data and information`;
+    } else if (action === "write" || action === "manage") {
+      return `Create and manage ${moduleName.toLowerCase()} data`;
+    } else if (action === "admin") {
+      return `Full ${moduleName.toLowerCase()} administration`;
+    } else {
+      return `${actionName} ${moduleName.toLowerCase()}`;
+    }
+  };
+
+  return {
+    name: permissionName,
+    description: getDescription(module, action),
+    module,
+    action,
+  };
+}
 
 // Define role hierarchies and permissions
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
@@ -56,6 +129,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.ORG_ADMIN,
     PERMISSIONS.ORG_BILLING,
     PERMISSIONS.ORG_MEMBERS,
+    PERMISSIONS.BILLING_READ,
+    PERMISSIONS.BILLING_MANAGE,
+    PERMISSIONS.BILLING_ADMIN,
   ],
 
   SUPER_ADMIN: [
@@ -434,4 +510,158 @@ export function canReadFromModule(
     writePermission,
     adminPermission,
   ]);
+}
+
+// Permission hierarchy levels
+export const PERMISSION_HIERARCHY: Record<string, number> = {
+  read: 1,
+  write: 2,
+  admin: 3,
+  manage: 2,
+  billing: 4, // Billing requires special owner permissions
+  members: 2,
+};
+
+// Role hierarchy levels for custom role creation authorization
+export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  VIEWER: 1,
+  CONTRACTOR: 1,
+  EMPLOYEE: 2,
+  PROJECT_MANAGER: 3,
+  SALES_MANAGER: 3,
+  HR_MANAGER: 3,
+  FINANCE_MANAGER: 3,
+  DEPARTMENT_MANAGER: 4,
+  SUPER_ADMIN: 5,
+  ORGANIZATION_OWNER: 6,
+};
+
+// Get user's role hierarchy level
+export function getUserRoleLevel(userRole: UserRole): number {
+  return ROLE_HIERARCHY[userRole] ?? 1;
+}
+
+// Check if user can create custom roles (Owner or Super Admin)
+export function canCreateCustomRoles(userRole: UserRole): boolean {
+  return getUserRoleLevel(userRole) >= 5; // Super Admin or Owner
+}
+
+// Get permissions that a user can grant to others based on their role
+export function getGrantablePermissions(userRole: UserRole): string[] {
+  const userPermissions = getUserPermissions(userRole);
+  const userLevel = getUserRoleLevel(userRole);
+
+  // Owner can grant all permissions except billing (billing is owner-only)
+  if (userRole === "ORGANIZATION_OWNER") {
+    return userPermissions; // Owner can grant all their permissions including billing
+  }
+
+  // Super Admin can grant permissions they have, but not billing permissions
+  if (userRole === "SUPER_ADMIN") {
+    return userPermissions.filter(
+      permission =>
+        !permission.startsWith("billing:") &&
+        permission !== PERMISSIONS.ORG_BILLING
+    );
+  }
+
+  // Other roles can only grant permissions they have, excluding admin-level and billing
+  return userPermissions.filter(permission => {
+    const [module, action] = permission.split(":");
+    if (!module || !action) return false;
+
+    // Never allow granting billing permissions unless owner
+    if (module === "billing" || permission === PERMISSIONS.ORG_BILLING) {
+      return false;
+    }
+
+    // Can't grant admin permissions unless user has admin or is high-level role
+    if (action === "admin" && userLevel < 4) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+// Validate if user can grant a specific permission
+export function canGrantPermission(
+  userRole: UserRole,
+  permission: string
+): boolean {
+  const grantablePermissions = getGrantablePermissions(userRole);
+
+  // Direct permission check
+  if (grantablePermissions.includes(permission)) {
+    return true;
+  }
+
+  // Check hierarchical permissions
+  const [module, action] = permission.split(":");
+  if (!module || !action) return false;
+
+  const userPermissions = getUserPermissions(userRole);
+  const userLevel = getUserRoleLevel(userRole);
+
+  // Check if user has higher level permission for the same module
+  const adminPermission = `${module}:admin`;
+  if (
+    action !== "admin" &&
+    userPermissions.includes(adminPermission) &&
+    userLevel >= 4
+  ) {
+    return true;
+  }
+
+  const writePermission = `${module}:write`;
+  if (action === "read" && userPermissions.includes(writePermission)) {
+    return true;
+  }
+
+  return false;
+}
+
+// Validate custom role permissions against user's grantable permissions
+export function validateCustomRolePermissions(
+  userRole: UserRole,
+  requestedPermissions: string[]
+): { valid: boolean; errors: string[]; ungrantablePermissions: string[] } {
+  const errors: string[] = [];
+  const ungrantablePermissions: string[] = [];
+
+  for (const permission of requestedPermissions) {
+    if (!canGrantPermission(userRole, permission)) {
+      ungrantablePermissions.push(permission);
+
+      // Provide specific error messages
+      const [module, action] = permission.split(":");
+      if (module === "billing" || permission === PERMISSIONS.ORG_BILLING) {
+        errors.push(
+          `You cannot grant billing permissions (${permission}) - only Organization Owners can manage billing`
+        );
+      } else if (action === "admin") {
+        errors.push(
+          `You cannot grant admin permissions (${permission}) because you don't have admin access to ${module}`
+        );
+      } else {
+        errors.push(
+          `You cannot grant permission (${permission}) because you don't have this permission yourself`
+        );
+      }
+    }
+  }
+
+  // Must include at least one read permission
+  const hasReadPermission = requestedPermissions.some(permission =>
+    permission.endsWith(":read")
+  );
+  if (!hasReadPermission && requestedPermissions.length > 0) {
+    errors.push("Custom role must include at least one read permission");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    ungrantablePermissions,
+  };
 }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getFirstAuthorizedModulePath } from "~/lib/server-auth-utils";
 
 export default async function DashboardPage({
   params,
@@ -6,6 +7,9 @@ export default async function DashboardPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  console.log({ orgId });
-  redirect(`${orgId}/crm/contacts`);
+
+  // Get the first authorized module path for the user
+  const modulePath = await getFirstAuthorizedModulePath(orgId);
+
+  redirect(`${orgId}/${modulePath}`);
 }

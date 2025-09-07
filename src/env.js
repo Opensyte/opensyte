@@ -12,6 +12,12 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
     RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
+    RESEND_FROM_EMAIL: z
+      .string()
+      .email("RESEND_FROM_EMAIL must be a valid email")
+      .optional()
+      .default("no-reply@opensyte.org"),
+    RESEND_FROM_NAME: z.string().min(1).optional().default("Opensyte"),
   },
 
   /**
@@ -31,6 +37,8 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+    RESEND_FROM_NAME: process.env.RESEND_FROM_NAME,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

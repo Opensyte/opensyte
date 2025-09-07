@@ -10,6 +10,8 @@ import {
   ROLE_INFO,
   canAssignRole as canAssignPredefinedRole,
   getUserPermissions as getPredefinedUserPermissions,
+  validateCustomRolePermissions as validateCustomRolePermissionsRBAC,
+  getGrantablePermissions as getGrantablePermissionsRBAC,
 } from "./rbac";
 
 // Permission modules and their available permissions
@@ -430,6 +432,107 @@ export function canManageCustomRoles(
   ]);
 }
 
+// Get permissions that the current user can grant to others
+export function getGrantablePermissions(
+  userOrg: ExtendedUserOrganization
+): string[] {
+  const userEffectivePermissions = getUserEffectivePermissions(userOrg);
+  const roleType = getUserRoleType(userOrg);
+
+  // If user has a predefined role, use RBAC validation
+  if (roleType.type === "predefined" && roleType.role) {
+    return getGrantablePermissionsRBAC(roleType.role);
+  }
+
+  // For custom roles, be more restrictive
+  // User can only grant permissions they have, excluding admin and billing
+  return userEffectivePermissions.filter(permission => {
+    const [module, action] = permission.split(":");
+    if (!module || !action) return false;
+
+    // Never allow granting billing permissions unless explicitly owner
+    if (module === "billing" || permission === PERMISSIONS.ORG_BILLING) {
+      // Only allow if user has organization owner permissions
+      return (
+        hasPermission(userOrg, PERMISSIONS.ORG_ADMIN) &&
+        hasPermission(userOrg, PERMISSIONS.ORG_BILLING) &&
+        userEffectivePermissions.includes(PERMISSIONS.BILLING_ADMIN)
+      );
+    }
+
+    // Can't grant admin permissions unless user has specific admin permission
+    if (action === "admin") {
+      return userEffectivePermissions.includes(permission);
+    }
+
+    return true;
+  });
+}
+
+// Validate if user can grant a specific permission
+export function canGrantPermission(
+  userOrg: ExtendedUserOrganization,
+  permission: string
+): boolean {
+  const grantablePermissions = getGrantablePermissions(userOrg);
+
+  // Direct permission check
+  if (grantablePermissions.includes(permission)) {
+    return true;
+  }
+
+  // Check hierarchical permissions
+  const userPermissions = getUserEffectivePermissions(userOrg);
+  const [module, action] = permission.split(":");
+  if (!module || !action) return false;
+
+  // Check if user has higher level permission for the same module
+  const adminPermission = `${module}:admin`;
+  if (action !== "admin" && userPermissions.includes(adminPermission)) {
+    // Additional check for admin-level permissions
+    return (
+      hasPermission(userOrg, PERMISSIONS.ORG_ADMIN) ||
+      hasPermission(userOrg, PERMISSIONS.SETTINGS_ADMIN)
+    );
+  }
+
+  const writePermission = `${module}:write`;
+  if (action === "read" && userPermissions.includes(writePermission)) {
+    return true;
+  }
+
+  return false;
+}
+
+// Filter available permissions based on what user can grant
+export function getFilteredAvailablePermissions(
+  userOrg: ExtendedUserOrganization,
+  allPermissionGroups: PermissionGroup[]
+): Array<
+  PermissionGroup & {
+    grantablePermissions: PermissionGroup["permissions"];
+    canGrantAll: boolean;
+  }
+> {
+  const grantablePermissionNames = getGrantablePermissions(userOrg);
+
+  return allPermissionGroups
+    .map(group => {
+      const grantablePermissions = group.permissions.filter(
+        permission =>
+          grantablePermissionNames.includes(permission.name) ||
+          canGrantPermission(userOrg, permission.name)
+      );
+
+      return {
+        ...group,
+        grantablePermissions,
+        canGrantAll: grantablePermissions.length === group.permissions.length,
+      };
+    })
+    .filter(group => group.grantablePermissions.length > 0); // Only show modules with grantable permissions
+}
+
 // Get assignable roles for current user
 export function getAssignableRoles(currentUserOrg: ExtendedUserOrganization): {
   predefinedRoles: UserRole[];
@@ -470,18 +573,32 @@ export function getAssignableRoles(currentUserOrg: ExtendedUserOrganization): {
   };
 }
 
-// Validate custom role permissions
-export function validateCustomRolePermissions(permissionNames: string[]): {
+// Validate custom role permissions with hierarchical checking
+export function validateCustomRolePermissions(
+  userOrg: ExtendedUserOrganization,
+  permissionNames: string[]
+): {
   valid: boolean;
   errors: string[];
+  ungrantablePermissions: string[];
 } {
   const errors: string[] = [];
-  // Static canonical permission names
+  const ungrantablePermissions: string[] = [];
+
+  // Get user's role type for validation
+  const roleType = getUserRoleType(userOrg);
+
+  // Use RBAC validation for predefined roles
+  if (roleType.type === "predefined" && roleType.role) {
+    return validateCustomRolePermissionsRBAC(roleType.role, permissionNames);
+  }
+
+  // For custom roles, validate each permission individually
   const availablePermissionNames = getAllAvailablePermissions().map(
     p => p.name
   );
 
-  // Identify any names not part of the canonical permission set
+  // Check for invalid permissions
   const invalid = permissionNames.filter(
     name => !availablePermissionNames.includes(name)
   );
@@ -489,13 +606,39 @@ export function validateCustomRolePermissions(permissionNames: string[]): {
     errors.push(`Invalid permissions: ${invalid.join(", ")}`);
   }
 
-  // Must include at least one *:read permission (semantic rule)
+  // Check if user can grant each permission
+  for (const permission of permissionNames) {
+    if (!canGrantPermission(userOrg, permission)) {
+      ungrantablePermissions.push(permission);
+
+      const [module, action] = permission.split(":");
+      if (module === "billing" || permission === PERMISSIONS.ORG_BILLING) {
+        errors.push(
+          `You cannot grant billing permissions (${permission}) - only Organization Owners can manage billing`
+        );
+      } else if (action === "admin") {
+        errors.push(
+          `You cannot grant admin permissions (${permission}) because you don't have admin access to ${module}`
+        );
+      } else {
+        errors.push(
+          `You cannot grant permission (${permission}) because you don't have sufficient privileges`
+        );
+      }
+    }
+  }
+
+  // Must include at least one read permission
   const hasRead = permissionNames.some(name => name.endsWith(":read"));
   if (!hasRead && permissionNames.length > 0) {
     errors.push("Role must have at least one read permission");
   }
 
-  return { valid: errors.length === 0, errors };
+  return {
+    valid: errors.length === 0,
+    errors,
+    ungrantablePermissions,
+  };
 }
 
 // Create navigation permissions helper for custom roles

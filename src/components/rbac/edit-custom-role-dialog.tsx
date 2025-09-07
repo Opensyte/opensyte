@@ -17,9 +17,22 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Alert, AlertDescription } from "~/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
-import { Shield, Info, Check, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Shield,
+  Info,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Lock,
+} from "lucide-react";
 import type { CustomRoleWithPermissions } from "~/types/custom-roles";
 
 interface EditCustomRoleDialogProps {
@@ -44,6 +57,9 @@ export function EditCustomRoleDialog({
   const [collapsedModules, setCollapsedModules] = useState<Set<string>>(
     new Set()
   );
+  const [ungrantablePermissions, setUngrantablePermissions] = useState<
+    Set<string>
+  >(new Set());
 
   const utils = api.useUtils();
 
@@ -59,14 +75,19 @@ export function EditCustomRoleDialog({
     });
   };
 
-  // Get available permissions
+  // Get available permissions with auto-sync
   const { data: permissionGroups, isLoading: loadingPermissions } =
     api.customRoles.getAvailablePermissions.useQuery(
       {
         userId,
         organizationId,
+        autoSync: true, // Enable automatic permission synchronization
       },
-      { enabled: open }
+      {
+        enabled: open,
+        // Refetch when dialog opens to ensure permissions are up to date
+        refetchOnMount: true,
+      }
     );
 
   // Update custom role mutation
@@ -92,6 +113,23 @@ export function EditCustomRoleDialog({
       setSelectedPermissions(role.permissions?.map(p => p.permission.id) ?? []);
     }
   }, [role, open]);
+
+  // Update ungrantable permissions when permission groups change
+  useEffect(() => {
+    if (permissionGroups) {
+      const ungrantable = new Set<string>();
+      permissionGroups.forEach(group => {
+        // Only permissions NOT in grantablePermissions are ungrantable
+        const grantableIds = new Set(group.permissions.map(p => p.id));
+        group.permissions.forEach(permission => {
+          if (!grantableIds.has(permission.id)) {
+            ungrantable.add(permission.id);
+          }
+        });
+      });
+      setUngrantablePermissions(ungrantable);
+    }
+  }, [permissionGroups]);
 
   const resetForm = () => {
     setName("");
@@ -299,27 +337,76 @@ export function EditCustomRoleDialog({
                       {!isCollapsed && (
                         <div className="px-4 pb-4 border-t bg-muted/20">
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-3">
-                            {group.permissions.map(permission => (
-                              <label
-                                key={permission.id}
-                                className="flex items-center space-x-2 cursor-pointer hover:bg-background/80 p-2 rounded-md transition-colors group"
-                              >
-                                <Checkbox
-                                  checked={selectedPermissions.includes(
-                                    permission.id
+                            {group.permissions.map(permission => {
+                              const isUngrantable = ungrantablePermissions.has(
+                                permission.id
+                              );
+                              const isSelected = selectedPermissions.includes(
+                                permission.id
+                              );
+
+                              const permissionElement = (
+                                <label
+                                  key={permission.id}
+                                  className={`flex items-center space-x-2 cursor-pointer hover:bg-background/80 p-2 rounded-md transition-colors group ${
+                                    isUngrantable
+                                      ? "opacity-60 cursor-not-allowed"
+                                      : ""
+                                  }`}
+                                >
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => {
+                                      if (!isUngrantable) {
+                                        togglePermission(permission.id);
+                                      }
+                                    }}
+                                    disabled={isUngrantable}
+                                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                  />
+                                  <span className="text-xs font-medium flex-1 group-hover:text-foreground transition-colors">
+                                    {permission.name
+                                      .replace(/:/g, ": ")
+                                      .replace(/([a-z])([A-Z])/g, "$1 $2")}
+                                  </span>
+                                  {isUngrantable && (
+                                    <Lock className="h-3 w-3 text-muted-foreground" />
                                   )}
-                                  onCheckedChange={() =>
-                                    togglePermission(permission.id)
-                                  }
-                                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                                />
-                                <span className="text-xs font-medium flex-1 group-hover:text-foreground transition-colors">
-                                  {permission.name
-                                    .replace(/:/g, ": ")
-                                    .replace(/([a-z])([A-Z])/g, "$1 $2")}
-                                </span>
-                              </label>
-                            ))}
+                                </label>
+                              );
+
+                              if (isUngrantable) {
+                                return (
+                                  <TooltipProvider key={permission.id}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        {permissionElement}
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="top"
+                                        className="max-w-xs"
+                                      >
+                                        <p className="text-xs">
+                                          You don&apos;t have permission to
+                                          grant this.
+                                          {permission.name.includes(
+                                            "billing"
+                                          ) &&
+                                            " Only organization owners can grant billing permissions."}
+                                          {permission.name.includes("admin") &&
+                                            !permission.name.includes(
+                                              "billing"
+                                            ) &&
+                                            " You need admin privileges to grant this permission."}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                );
+                              }
+
+                              return permissionElement;
+                            })}
                           </div>
                         </div>
                       )}
