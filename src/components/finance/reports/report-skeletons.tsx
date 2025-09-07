@@ -1,6 +1,16 @@
 import { Skeleton } from "~/components/ui/skeleton";
 import { Card, CardContent } from "~/components/ui/card";
 
+/**
+ * Render responsive skeleton placeholders for report listings.
+ *
+ * Displays a desktop-style table skeleton on medium+ viewports and stacked card
+ * skeletons on small viewports. All content is static placeholders (no props,
+ * no data fetching); five rows/cards are rendered for each layout to indicate
+ * loading state.
+ *
+ * @returns A JSX element containing the responsive skeleton UI.
+ */
 export function ReportSkeletons() {
   return (
     <div className="space-y-4">

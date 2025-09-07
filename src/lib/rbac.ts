@@ -55,8 +55,12 @@ export function getAllRequiredPermissionNames(): string[] {
 }
 
 /**
- * Extract module and action from permission name
- * @param permission Permission string like "crm:read" or "billing:admin"
+ * Parse a permission string into its module and action parts.
+ *
+ * Accepts strings of the form `"module:action"` (e.g., `"crm:read"`, `"billing:admin"`).
+ *
+ * @param permission - Permission string to parse.
+ * @returns An object with `module` and `action` (empty strings if either part is missing).
  */
 export function parsePermission(permission: string) {
   const [module, action] = permission.split(":");
@@ -64,7 +68,23 @@ export function parsePermission(permission: string) {
 }
 
 /**
- * Generate permission metadata for database operations
+ * Build human-readable metadata for a permission string.
+ *
+ * Parses a permission name (typically in the form `"module:action"`) and returns
+ * an object containing the original name, the parsed `module` and `action`, and
+ * a generated `description` suitable for UI or database metadata.
+ *
+ * The description follows these rules:
+ * - `read` → "View <module> data and information"
+ * - `write` or `manage` → "Create and manage <module> data"
+ * - `admin` → "Full <module> administration"
+ * - unknown actions use a fallback of "`<Action> <module>`"
+ *
+ * Unknown module tokens are used verbatim (not humanized) and all module names
+ * in descriptions are lowercased for consistency.
+ *
+ * @param permissionName - Permission identifier, e.g. `"crm:read"` or `"billing:admin"`.
+ * @returns An object: `{ name: string; description: string; module: string; action: string }`.
  */
 export function getPermissionMetadata(permissionName: string) {
   const { module, action } = parsePermission(permissionName);
@@ -497,7 +517,15 @@ export function canWriteToModule(
   return hasAnyPermission(userRole, [writePermission, adminPermission]);
 }
 
-// Check if user can read from a specific module
+/**
+ * Returns true if the role grants read access to the given module.
+ *
+ * This treats write and admin permissions as implicitly granting read access for the module.
+ *
+ * @param userRole - Role to check permissions for
+ * @param module - Module name to check (e.g., "crm", "hr", "finance")
+ * @returns True when the role has read, write, or admin permission for the module
+ */
 export function canReadFromModule(
   userRole: UserRole,
   module: "crm" | "hr" | "finance" | "projects" | "marketing" | "settings"
@@ -536,17 +564,41 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   ORGANIZATION_OWNER: 6,
 };
 
-// Get user's role hierarchy level
+/**
+ * Returns the numeric hierarchy level for a given user role.
+ *
+ * Looks up the role in ROLE_HIERARCHY and returns its level. If the role is not present in the hierarchy map, returns 1 (base level).
+ *
+ * @param userRole - The role to evaluate
+ * @returns The numeric hierarchy level for `userRole` (default 1 if unknown)
+ */
 export function getUserRoleLevel(userRole: UserRole): number {
   return ROLE_HIERARCHY[userRole] ?? 1;
 }
 
-// Check if user can create custom roles (Owner or Super Admin)
+/**
+ * Determines whether a role is allowed to create custom roles.
+ *
+ * Returns true for roles with level 5 or higher (Super Admin and Organization Owner).
+ *
+ * @param userRole - Role to evaluate
+ * @returns True if the role can create custom roles
+ */
 export function canCreateCustomRoles(userRole: UserRole): boolean {
   return getUserRoleLevel(userRole) >= 5; // Super Admin or Owner
 }
 
-// Get permissions that a user can grant to others based on their role
+/**
+ * Returns the list of permissions that a given role is allowed to grant to others.
+ *
+ * Behavior summary:
+ * - ORGANIZATION_OWNER: can grant all permissions they possess (including billing).
+ * - SUPER_ADMIN: can grant their permissions except billing-related ones.
+ * - Other roles: can grant permissions they possess, excluding billing and (unless sufficiently high-level) admin-level permissions.
+ *
+ * @param userRole - Role used to determine grantable permissions.
+ * @returns An array of permission strings the role is permitted to grant.
+ */
 export function getGrantablePermissions(userRole: UserRole): string[] {
   const userPermissions = getUserPermissions(userRole);
   const userLevel = getUserRoleLevel(userRole);
@@ -584,7 +636,19 @@ export function getGrantablePermissions(userRole: UserRole): string[] {
   });
 }
 
-// Validate if user can grant a specific permission
+/**
+ * Returns whether a user with the given role is allowed to grant the specified permission.
+ *
+ * The `permission` string must be in the format "module:action" (for example, "crm:read").
+ * Granting is allowed when:
+ * - The permission is directly grantable to the role (as returned by getGrantablePermissions), or
+ * - The role has module-level admin privileges and a sufficiently high role level (non-admin target actions only, requires role level >= 4), or
+ * - The role has module-level write and the requested permission is the module-level read action.
+ *
+ * @param userRole - The role of the user attempting to grant the permission.
+ * @param permission - Permission name in "module:action" form to check for grantability.
+ * @returns True if the userRole may grant the permission, otherwise false.
+ */
 export function canGrantPermission(
   userRole: UserRole,
   permission: string
@@ -621,7 +685,26 @@ export function canGrantPermission(
   return false;
 }
 
-// Validate custom role permissions against user's grantable permissions
+/**
+ * Validate a list of permissions for a custom role against what a user (by role) is allowed to grant.
+ *
+ * Performs per-permission checks and returns whether the requested set is acceptable, a list of
+ * human-readable error messages for any disallowed items, and the specific permissions that are
+ * not grantable by the given user role.
+ *
+ * The validation enforces:
+ * - Billing permissions are only grantable by Organization Owners.
+ * - Admin-level permissions require the grantee to have admin access for the module.
+ * - A user can only grant permissions they are entitled to grant.
+ * - A custom role must include at least one `:read` permission when any permissions are requested.
+ *
+ * @param userRole - Role of the user attempting to create/assign the custom role (the grantor).
+ * @param requestedPermissions - Permission strings to validate (e.g., `"crm:read"`, `"projects:admin"`).
+ * @returns An object with:
+ *   - `valid`: true if no validation errors were produced.
+ *   - `errors`: array of human-readable error messages explaining why specific permissions are disallowed.
+ *   - `ungrantablePermissions`: array of permission strings from `requestedPermissions` that the userRole cannot grant.
+ */
 export function validateCustomRolePermissions(
   userRole: UserRole,
   requestedPermissions: string[]

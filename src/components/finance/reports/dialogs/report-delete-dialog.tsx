@@ -21,6 +21,23 @@ interface ReportDeleteDialogProps {
   onDeleted: () => void;
 }
 
+/**
+ * Confirmation dialog that displays report details and deletes a financial report.
+ *
+ * Renders a modal showing the report name and optional description, warns about
+ * related data that will be removed, and performs the deletion when confirmed.
+ * Fetches the report details only when the dialog is open and `reportId` is set.
+ *
+ * On confirm it runs a delete mutation, shows success or error toasts, disables
+ * actions while in flight, invokes `onDeleted()` after a successful delete,
+ * and closes the dialog via `onOpenChange(false)`.
+ *
+ * @param open - Controls whether the dialog is visible.
+ * @param onOpenChange - Called to update the dialog open state.
+ * @param organizationId - Organization identifier used for the delete request.
+ * @param reportId - Financial report identifier to fetch and delete.
+ * @param onDeleted - Callback invoked after a successful deletion.
+ */
 export function ReportDeleteDialog({
   open,
   onOpenChange,

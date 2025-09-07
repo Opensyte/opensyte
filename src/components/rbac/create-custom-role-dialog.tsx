@@ -42,6 +42,28 @@ interface CreateCustomRoleDialogProps {
   userId: string;
 }
 
+/**
+ * Dialog component that renders a form to create a custom role and assign permissions.
+ *
+ * Renders a modal with fields for role name and description, a collapsible permission
+ * module list with per-permission and per-module selection controls, and actions to
+ * create the role or cancel. When opened it fetches available permissions (with
+ * automatic sync) and will trigger an intelligent permission synchronization if none
+ * are found. Shows a seeding/loading state while permissions are being synchronized.
+ *
+ * Side effects:
+ * - Fetches permission groups and may call a syncPermissions mutation to synchronize permissions.
+ * - Calls createCustomRole mutation to create the role; on success it closes the dialog,
+ *   resets the form, shows a toast, and invalidates the organization's custom roles cache.
+ * - Displays success/error toasts for network/mutation outcomes.
+ * - Prevents closing the dialog while a create or sync operation is in progress.
+ *
+ * @param open - Whether the dialog is open.
+ * @param onOpenChange - Callback to change the dialog open state (called with `false` to close).
+ * @param organizationId - ID of the organization the role will belong to.
+ * @param userId - ID of the user performing the action (used for permission scoping and sync).
+ * @returns A React element representing the Create Custom Role dialog.
+ */
 export function CreateCustomRoleDialog({
   open,
   onOpenChange,

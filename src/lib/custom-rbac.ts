@@ -422,7 +422,14 @@ export function canAssignRole(
   return false;
 }
 
-// Check if user can manage roles (create, edit, delete custom roles)
+/**
+ * Returns whether the given user (within an organization) is allowed to manage custom roles.
+ *
+ * Checks if the user's effective permissions include either `ORG_ADMIN` or `SETTINGS_ADMIN`.
+ *
+ * @param userOrg - The user's organization context (may include predefined or custom role info).
+ * @returns True if the user can create/edit/delete custom roles; otherwise false.
+ */
 export function canManageCustomRoles(
   userOrg: ExtendedUserOrganization
 ): boolean {
@@ -432,7 +439,19 @@ export function canManageCustomRoles(
   ]);
 }
 
-// Get permissions that the current user can grant to others
+/**
+ * Returns the list of permission names the given user is allowed to grant to others.
+ *
+ * For users with a predefined (RBAC) role this delegates to the RBAC grantable-permissions helper.
+ * For users with a custom role, the result is restricted to permissions the user already possesses,
+ * with special rules:
+ * - Billing-related permissions are only grantable if the user has organization-admin, org-billing,
+ *   and billing-admin privileges.
+ * - Module-level `admin` permissions are grantable only if the user already holds that exact admin permission.
+ *
+ * @param userOrg - The user's organization context (used to compute effective permissions and role type).
+ * @returns An array of permission name strings that the user may grant.
+ */
 export function getGrantablePermissions(
   userOrg: ExtendedUserOrganization
 ): string[] {
@@ -469,7 +488,18 @@ export function getGrantablePermissions(
   });
 }
 
-// Validate if user can grant a specific permission
+/**
+ * Determines whether the given user (within an organization context) is allowed to grant a specific permission.
+ *
+ * This checks:
+ * - If the permission is directly grantable to the user (from getGrantablePermissions).
+ * - Hierarchical rules: an admin permission for a module can grant other permissions in that module only if the user also has ORG_ADMIN or SETTINGS_ADMIN.
+ * - Read/write hierarchy: write for a module allows granting its read permission.
+ *
+ * @param userOrg - The user's organization context (used to compute effective and grantable permissions).
+ * @param permission - Permission name in the form `"<module>:<action>"` (e.g., `"crm:read"`).
+ * @returns True if the user may grant the specified permission, false otherwise.
+ */
 export function canGrantPermission(
   userOrg: ExtendedUserOrganization,
   permission: string
@@ -504,7 +534,18 @@ export function canGrantPermission(
   return false;
 }
 
-// Filter available permissions based on what user can grant
+/**
+ * Returns permission groups filtered and annotated with which permissions the current user can grant.
+ *
+ * For each provided group this produces an object that includes:
+ * - grantablePermissions: the subset of the group's permissions the user is allowed to grant (based on the user's grantable permissions and per-permission checks),
+ * - canGrantAll: true when every permission in the group is grantable.
+ * Groups that contain no grantable permissions are omitted from the result.
+ *
+ * @param userOrg - The current user's organization context (used to determine grantable permissions).
+ * @param allPermissionGroups - All available permission groups to filter and annotate.
+ * @returns An array of permission groups augmented with `grantablePermissions` and `canGrantAll`, including only groups with at least one grantable permission.
+ */
 export function getFilteredAvailablePermissions(
   userOrg: ExtendedUserOrganization,
   allPermissionGroups: PermissionGroup[]
@@ -533,7 +574,16 @@ export function getFilteredAvailablePermissions(
     .filter(group => group.grantablePermissions.length > 0); // Only show modules with grantable permissions
 }
 
-// Get assignable roles for current user
+/**
+ * Determine which roles the current user is allowed to assign.
+ *
+ * Returns available predefined roles the current user can assign and whether they may assign custom roles.
+ *
+ * @param currentUserOrg - The current user's organization role context.
+ * @returns An object with:
+ *   - `predefinedRoles`: array of predefined roles the user may assign.
+ *   - `canAssignCustomRoles`: true if the user may create/assign custom roles.
+ */
 export function getAssignableRoles(currentUserOrg: ExtendedUserOrganization): {
   predefinedRoles: UserRole[];
   canAssignCustomRoles: boolean;
@@ -573,7 +623,21 @@ export function getAssignableRoles(currentUserOrg: ExtendedUserOrganization): {
   };
 }
 
-// Validate custom role permissions with hierarchical checking
+/**
+ * Validate a set of permission names for creating or updating a custom role in the context of a specific user.
+ *
+ * Performs the following:
+ * - If the current user's role is a predefined RBAC role, validation is delegated to the RBAC validation helper.
+ * - For custom-role users, checks that each permission name exists and that the user is allowed to grant it (collects ungrantable permissions).
+ * - Ensures at least one read permission is present when creating a non-empty permission set.
+ *
+ * @param userOrg - The user's organization membership and role context used to determine what the user may grant.
+ * @param permissionNames - Array of permission name strings to validate (e.g., `crm:read`, `projects:write`).
+ * @returns An object with:
+ *  - valid: true when there are no validation errors,
+ *  - errors: human-readable error messages describing invalid or ungrantable permissions and any policy violations,
+ *  - ungrantablePermissions: list of permission names from the input that the user is not permitted to grant.
+ */
 export function validateCustomRolePermissions(
   userOrg: ExtendedUserOrganization,
   permissionNames: string[]
