@@ -44,7 +44,8 @@ export type PermissionModule =
   | "collaboration"
   | "marketing"
   | "settings"
-  | "organization";
+  | "organization"
+  | "billing";
 
 export type PermissionAction =
   | "read"
@@ -52,7 +53,8 @@ export type PermissionAction =
   | "admin"
   | "delete"
   | "billing"
-  | "members";
+  | "members"
+  | "manage";
 
 export interface PermissionGroup {
   module: PermissionModule;

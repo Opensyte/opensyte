@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -17,9 +17,23 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Alert, AlertDescription } from "~/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
-import { Shield, Info, Check, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Shield,
+  Info,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  Lock,
+} from "lucide-react";
 
 interface CreateCustomRoleDialogProps {
   open: boolean;
@@ -28,6 +42,28 @@ interface CreateCustomRoleDialogProps {
   userId: string;
 }
 
+/**
+ * Dialog component that renders a form to create a custom role and assign permissions.
+ *
+ * Renders a modal with fields for role name and description, a collapsible permission
+ * module list with per-permission and per-module selection controls, and actions to
+ * create the role or cancel. When opened it fetches available permissions (with
+ * automatic sync) and will trigger an intelligent permission synchronization if none
+ * are found. Shows a seeding/loading state while permissions are being synchronized.
+ *
+ * Side effects:
+ * - Fetches permission groups and may call a syncPermissions mutation to synchronize permissions.
+ * - Calls createCustomRole mutation to create the role; on success it closes the dialog,
+ *   resets the form, shows a toast, and invalidates the organization's custom roles cache.
+ * - Displays success/error toasts for network/mutation outcomes.
+ * - Prevents closing the dialog while a create or sync operation is in progress.
+ *
+ * @param open - Whether the dialog is open.
+ * @param onOpenChange - Callback to change the dialog open state (called with `false` to close).
+ * @param organizationId - ID of the organization the role will belong to.
+ * @param userId - ID of the user performing the action (used for permission scoping and sync).
+ * @returns A React element representing the Create Custom Role dialog.
+ */
 export function CreateCustomRoleDialog({
   open,
   onOpenChange,
@@ -38,21 +74,92 @@ export function CreateCustomRoleDialog({
   const [description, setDescription] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSeedingPermissions, setIsSeedingPermissions] = useState(false);
   const [collapsedModules, setCollapsedModules] = useState<Set<string>>(
     new Set()
   );
+  const [ungrantablePermissions, setUngrantablePermissions] = useState<
+    Set<string>
+  >(new Set());
 
   const utils = api.useUtils();
 
-  // Get available permissions
-  const { data: permissionGroups, isLoading: loadingPermissions } =
-    api.customRoles.getAvailablePermissions.useQuery(
-      {
+  // Get available permissions with auto-sync
+  const {
+    data: permissionGroups,
+    isLoading: loadingPermissions,
+    refetch: refetchPermissions,
+  } = api.customRoles.getAvailablePermissions.useQuery(
+    {
+      userId,
+      organizationId,
+      autoSync: true, // Enable automatic permission synchronization
+    },
+    {
+      enabled: open,
+      // Refetch when dialog opens to ensure permissions are up to date
+      refetchOnMount: true,
+    }
+  );
+
+  // Manual sync mutation for explicit sync requests
+  const syncPermissionsMutation = api.customRoles.syncPermissions.useMutation({
+    onSuccess: result => {
+      if (result.needsSync) {
+        toast.success(
+          `Permissions synchronized: ${result.syncResults.added} added, ${result.syncResults.updated} updated, ${result.syncResults.removed} removed`
+        );
+      } else {
+        toast.success("Permissions are already up to date");
+      }
+      setIsSeedingPermissions(false);
+      void refetchPermissions();
+    },
+    onError: error => {
+      toast.error(error.message ?? "Failed to synchronize permissions");
+      setIsSeedingPermissions(false);
+    },
+  });
+
+  // Check if permissions need to be synced when dialog opens
+  useEffect(() => {
+    if (
+      open &&
+      permissionGroups !== undefined &&
+      permissionGroups.length === 0 &&
+      !isSeedingPermissions
+    ) {
+      // No permissions found, trigger intelligent sync
+      setIsSeedingPermissions(true);
+      syncPermissionsMutation.mutate({
         userId,
         organizationId,
-      },
-      { enabled: open }
-    );
+        force: true, // Force sync when no permissions exist
+      });
+    }
+  }, [
+    open,
+    permissionGroups,
+    isSeedingPermissions,
+    syncPermissionsMutation,
+    userId,
+    organizationId,
+  ]);
+
+  // Track ungrantable permissions when permission groups load
+  useEffect(() => {
+    if (permissionGroups) {
+      const ungrantableSet = new Set<string>();
+      permissionGroups.forEach(group => {
+        if (!group.canGrantAll) {
+          // Find permissions that are not in the grantable list
+          // This assumes the backend only sends grantable permissions
+          // If we need to show ungrantable ones, we'd need additional API data
+        }
+      });
+      setUngrantablePermissions(ungrantableSet);
+    }
+  }, [permissionGroups]);
 
   // Create custom role mutation
   const createRoleMutation = api.customRoles.createCustomRole.useMutation({
@@ -75,6 +182,7 @@ export function CreateCustomRoleDialog({
     setDescription("");
     setSelectedPermissions([]);
     setCollapsedModules(new Set());
+    setIsSeedingPermissions(false);
   };
 
   const toggleModuleCollapse = (moduleId: string) => {
@@ -138,7 +246,7 @@ export function CreateCustomRoleDialog({
   };
 
   const handleClose = () => {
-    if (!isCreating) {
+    if (!isCreating && !isSeedingPermissions) {
       onOpenChange(false);
       resetForm();
     }
@@ -159,200 +267,251 @@ export function CreateCustomRoleDialog({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              Role Information
-            </h3>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="role-name">Role Name *</Label>
-                <Input
-                  id="role-name"
-                  placeholder="e.g., Sales Coordinator"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  maxLength={50}
-                  className="max-w-md"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role-description">Description</Label>
-                <Textarea
-                  id="role-description"
-                  placeholder="Describe what this role is responsible for..."
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  maxLength={200}
-                  rows={2}
-                  className="max-w-lg"
-                />
+          {isSeedingPermissions ? (
+            // Show seeding loading state
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Synchronizing Permissions
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Updating permission system to ensure all features are
+                  available. This will only take a moment...
+                </p>
               </div>
             </div>
-          </div>
-
-          <Separator />
-
-          {/* Permissions Selection */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">
-                Permissions
-              </h3>
-              <Badge variant="outline" className="text-xs">
-                {selectedPermissions.length} selected
-              </Badge>
-            </div>
-
-            {loadingPermissions ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Loading permissions...
-              </div>
-            ) : (
+          ) : (
+            <>
+              {/* Basic Information */}
               <div className="space-y-4">
-                {permissionGroups?.map(group => {
-                  const modulePermissionIds = group.permissions.map(p => p.id);
-                  const selectedCount = modulePermissionIds.filter(id =>
-                    selectedPermissions.includes(id)
-                  ).length;
-                  const allSelected =
-                    selectedCount === modulePermissionIds.length;
-                  const isCollapsed = collapsedModules.has(group.module);
+                <h3 className="text-sm font-semibold text-foreground">
+                  Role Information
+                </h3>
 
-                  return (
-                    <div
-                      key={group.module}
-                      className="border border-border rounded-xl bg-card shadow-sm hover:shadow-md transition-all duration-200"
-                    >
-                      {/* Header */}
-                      <div className="p-4 border-b border-border bg-muted/30 rounded-t-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => toggleModuleCollapse(group.module)}
-                              className="flex items-center gap-2 hover:bg-muted/50 p-1 rounded-md transition-colors"
-                            >
-                              {isCollapsed ? (
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </button>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="role-name">Role Name *</Label>
+                    <Input
+                      id="role-name"
+                      placeholder="e.g., Sales Coordinator"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      maxLength={50}
+                      className="max-w-md"
+                    />
+                  </div>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                toggleModulePermissions(modulePermissionIds)
-                              }
-                              className="flex items-center gap-3 hover:bg-muted/50 p-2 rounded-lg transition-colors group"
-                            >
-                              <div
-                                className={`w-5 h-5 border-2 rounded-md flex items-center justify-center transition-all ${
-                                  allSelected
-                                    ? "bg-primary border-primary text-primary-foreground shadow-sm"
-                                    : selectedCount > 0
-                                      ? "bg-primary/20 border-primary text-primary"
-                                      : "border-muted-foreground group-hover:border-primary/50"
-                                }`}
-                              >
-                                {allSelected && <Check className="h-3 w-3" />}
-                                {selectedCount > 0 && !allSelected && (
-                                  <div className="w-2 h-2 bg-primary rounded-sm" />
+                  <div className="space-y-2">
+                    <Label htmlFor="role-description">Description</Label>
+                    <Textarea
+                      id="role-description"
+                      placeholder="Describe what this role is responsible for..."
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                      maxLength={200}
+                      rows={2}
+                      className="max-w-lg"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Permissions Selection */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Permissions
+                  </h3>
+                  <Badge variant="outline" className="text-xs">
+                    {selectedPermissions.length} selected
+                  </Badge>
+                </div>
+
+                {loadingPermissions ? (
+                  <div className="flex items-center justify-center py-8 space-x-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading permissions...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {permissionGroups?.map(group => {
+                      const modulePermissionIds = group.permissions.map(
+                        p => p.id
+                      );
+                      const selectedCount = modulePermissionIds.filter(id =>
+                        selectedPermissions.includes(id)
+                      ).length;
+                      const allSelected =
+                        selectedCount === modulePermissionIds.length;
+                      const isCollapsed = collapsedModules.has(group.module);
+
+                      return (
+                        <div
+                          key={group.module}
+                          className="border rounded-lg bg-card shadow-sm hover:shadow-md transition-shadow duration-200"
+                        >
+                          {/* Collapsible Header */}
+                          <div
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-lg"
+                            onClick={() => toggleModuleCollapse(group.module)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
+                                {isCollapsed ? (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                 )}
+                                <Shield className="h-4 w-4 text-primary" />
                               </div>
-
-                              <div className="flex-1 text-left">
-                                <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                              <div>
+                                <h3 className="font-semibold text-sm">
                                   {group.label}
-                                </h4>
+                                </h3>
                                 <p className="text-xs text-muted-foreground">
-                                  {group.permissions.length} permissions
+                                  {group.permissions.length} permission
+                                  {group.permissions.length !== 1
+                                    ? "s"
+                                    : ""}{" "}
                                   available
                                 </p>
                               </div>
-                            </button>
-                          </div>
+                            </div>
 
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant={
-                                selectedCount > 0 ? "default" : "outline"
-                              }
-                              className="text-xs font-medium"
-                            >
-                              {selectedCount}/{modulePermissionIds.length}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Collapsible Content */}
-                      {!isCollapsed && (
-                        <div className="p-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {group.permissions.map(permission => (
-                              <label
-                                key={permission.id}
-                                className="flex items-center gap-3 cursor-pointer hover:bg-muted/30 p-3 rounded-lg transition-all duration-150 border border-transparent hover:border-border group"
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  selectedCount > 0 ? "default" : "outline"
+                                }
+                                className="text-xs"
                               >
-                                <Checkbox
-                                  checked={selectedPermissions.includes(
-                                    permission.id
-                                  )}
-                                  onCheckedChange={() =>
-                                    togglePermission(permission.id)
-                                  }
-                                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors block truncate">
-                                    {permission.name
-                                      .replace(/:/g, ": ")
-                                      .replace(/([a-z])([A-Z])/g, "$1 $2")
-                                      .split(": ")
-                                      .map((part, index) => (
-                                        <span
-                                          key={index}
-                                          className={
-                                            index === 0 ? "capitalize" : ""
-                                          }
-                                        >
-                                          {part}
-                                          {index === 0 ? ": " : ""}
-                                        </span>
-                                      ))}
-                                  </span>
+                                {selectedCount}/{modulePermissionIds.length}
+                              </Badge>
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  toggleModulePermissions(modulePermissionIds);
+                                }}
+                                className="flex items-center gap-1 text-xs font-medium hover:text-primary transition-colors p-1 rounded hover:bg-background"
+                              >
+                                <div
+                                  className={`w-4 h-4 border rounded flex items-center justify-center transition-colors ${
+                                    allSelected
+                                      ? "bg-primary border-primary text-primary-foreground"
+                                      : "border-muted-foreground hover:border-primary"
+                                  }`}
+                                >
+                                  {allSelected && <Check className="h-3 w-3" />}
                                 </div>
-                              </label>
-                            ))}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
 
-            {selectedPermissions.length === 0 && (
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Please select at least one permission for this role.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+                          {/* Collapsible Content */}
+                          {!isCollapsed && (
+                            <div className="px-4 pb-4 border-t bg-muted/20">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-3">
+                                {group.permissions.map(permission => {
+                                  const isUngrantable =
+                                    ungrantablePermissions.has(permission.id);
+                                  const isSelected =
+                                    selectedPermissions.includes(permission.id);
+
+                                  const permissionElement = (
+                                    <label
+                                      key={permission.id}
+                                      className={`flex items-center space-x-2 cursor-pointer hover:bg-background/80 p-2 rounded-md transition-colors group ${
+                                        isUngrantable
+                                          ? "opacity-60 cursor-not-allowed"
+                                          : ""
+                                      }`}
+                                    >
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() => {
+                                          if (!isUngrantable) {
+                                            togglePermission(permission.id);
+                                          }
+                                        }}
+                                        disabled={isUngrantable}
+                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                      />
+                                      <span className="text-xs font-medium flex-1 group-hover:text-foreground transition-colors">
+                                        {permission.name
+                                          .replace(/:/g, ": ")
+                                          .replace(/([a-z])([A-Z])/g, "$1 $2")}
+                                      </span>
+                                      {isUngrantable && (
+                                        <Lock className="h-3 w-3 text-muted-foreground" />
+                                      )}
+                                    </label>
+                                  );
+
+                                  if (isUngrantable) {
+                                    return (
+                                      <TooltipProvider key={permission.id}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            {permissionElement}
+                                          </TooltipTrigger>
+                                          <TooltipContent
+                                            side="top"
+                                            className="max-w-xs"
+                                          >
+                                            <p className="text-xs">
+                                              You don&apos;t have permission to
+                                              grant this.
+                                              {permission.name.includes(
+                                                "billing"
+                                              ) &&
+                                                " Only organization owners can grant billing permissions."}
+                                              {permission.name.includes(
+                                                "admin"
+                                              ) &&
+                                                !permission.name.includes(
+                                                  "billing"
+                                                ) &&
+                                                " You need admin privileges to grant this permission."}
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                  }
+
+                                  return permissionElement;
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {selectedPermissions.length === 0 && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Please select at least one permission for this role.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end pt-6 border-t">
           <Button
             variant="outline"
             onClick={handleClose}
-            disabled={isCreating}
+            disabled={isCreating || isSeedingPermissions}
             className="w-full sm:w-auto"
           >
             Cancel
@@ -360,7 +519,10 @@ export function CreateCustomRoleDialog({
           <Button
             onClick={handleSubmit}
             disabled={
-              isCreating || !name.trim() || selectedPermissions.length === 0
+              isCreating ||
+              isSeedingPermissions ||
+              !name.trim() ||
+              selectedPermissions.length === 0
             }
             className="w-full sm:w-auto"
           >

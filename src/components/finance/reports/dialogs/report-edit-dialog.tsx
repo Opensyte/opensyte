@@ -127,6 +127,18 @@ interface ReportEditDialogProps {
   onUpdated: () => void;
 }
 
+/**
+ * Dialog component that renders a form for editing an existing financial report.
+ *
+ * When opened with a non-null `report` prop the component loads and normalizes the report's
+ * date range and template into a validated form (using zod + react-hook-form). It lets the
+ * user edit basic metadata, date range filters, and template display options, then submits
+ * updates via a TRPC mutation. On successful update it calls `onUpdated` and closes the dialog.
+ *
+ * If `report` is null the dialog instead shows an error message indicating missing report data.
+ *
+ * @returns The rendered dialog JSX for editing a financial report.
+ */
 export function ReportEditDialog({
   open,
   onOpenChange,

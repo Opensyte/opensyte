@@ -2,23 +2,232 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { UserRole } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { PERMISSIONS, hasPermission, canAssignRole } from "~/lib/rbac";
+import {
+  PERMISSIONS,
+  hasPermission,
+  canAssignRole,
+  getAllRequiredPermissionNames,
+  getPermissionMetadata,
+} from "~/lib/rbac";
 import {
   getUserEffectivePermissions,
   getUserRoleType,
   canManageCustomRoles,
   validateCustomRolePermissions,
   getCustomNavPermissions,
+  getFilteredAvailablePermissions,
 } from "~/lib/custom-rbac";
-import type { ExtendedUserOrganization } from "~/types/custom-roles";
+import type {
+  ExtendedUserOrganization,
+  PermissionModule,
+} from "~/types/custom-roles";
 
 export const customRolesRouter = createTRPCRouter({
-  // Get all available permissions for creating custom roles
+  // Smart permission synchronization - checks and syncs database with RBAC library
+  syncPermissions: publicProcedure
+    .input(
+      z.object({
+        userId: z.string(),
+        organizationId: z.string(),
+        force: z.boolean().optional().default(false),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Check if user has permission to manage custom roles
+      const userOrg = await ctx.db.userOrganization.findFirst({
+        where: {
+          userId: input.userId,
+          organizationId: input.organizationId,
+        },
+        include: {
+          customRole: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!userOrg) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found in organization",
+        });
+      }
+
+      const extendedUserOrg = userOrg as ExtendedUserOrganization;
+
+      if (!canManageCustomRoles(extendedUserOrg)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Insufficient permissions to sync permissions",
+        });
+      }
+
+      try {
+        // Get current permissions from database
+        const existingPermissions = await ctx.db.permission.findMany({
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            module: true,
+            action: true,
+          },
+        });
+
+        const existingPermissionNames = new Set(
+          existingPermissions.map(p => p.name)
+        );
+        const requiredPermissionNames = getAllRequiredPermissionNames();
+
+        // Find permissions to add (exist in RBAC lib but not in DB)
+        const permissionsToAdd = requiredPermissionNames
+          .filter(name => !existingPermissionNames.has(name))
+          .map(name => getPermissionMetadata(name));
+
+        // Find permissions to remove (exist in DB but not in RBAC lib)
+        const permissionsToRemove = existingPermissions.filter(
+          p => !requiredPermissionNames.includes(p.name)
+        );
+
+        // Find permissions to update (exist in both but may have different descriptions/modules)
+        const permissionsToUpdate = requiredPermissionNames
+          .filter(name => {
+            const existing = existingPermissions.find(ep => ep.name === name);
+            if (!existing) return false;
+
+            const expected = getPermissionMetadata(name);
+            return (
+              existing.description !== expected.description ||
+              existing.module !== expected.module ||
+              existing.action !== expected.action
+            );
+          })
+          .map(name => getPermissionMetadata(name));
+
+        const syncResults = {
+          added: 0,
+          updated: 0,
+          removed: 0,
+          errors: [] as string[],
+        };
+
+        // Only proceed with sync if there are changes or force is true
+        if (
+          permissionsToAdd.length === 0 &&
+          permissionsToRemove.length === 0 &&
+          permissionsToUpdate.length === 0 &&
+          !input.force
+        ) {
+          return {
+            success: true,
+            syncResults,
+            message: "Permissions are already synchronized",
+            needsSync: false,
+          };
+        }
+
+        // Use transaction for atomic operations
+        await ctx.db.$transaction(async tx => {
+          // Add new permissions
+          for (const permission of permissionsToAdd) {
+            try {
+              await tx.permission.create({
+                data: {
+                  name: permission.name,
+                  description: permission.description,
+                  module: permission.module,
+                  action: permission.action,
+                },
+              });
+              syncResults.added++;
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              syncResults.errors.push(
+                `Failed to add permission ${permission.name}: ${errorMessage}`
+              );
+            }
+          }
+
+          // Update existing permissions
+          for (const permission of permissionsToUpdate) {
+            try {
+              await tx.permission.update({
+                where: { name: permission.name },
+                data: {
+                  description: permission.description,
+                  module: permission.module,
+                  action: permission.action,
+                },
+              });
+              syncResults.updated++;
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              syncResults.errors.push(
+                `Failed to update permission ${permission.name}: ${errorMessage}`
+              );
+            }
+          }
+
+          // Remove obsolete permissions (but only if they're not used in custom roles)
+          for (const permission of permissionsToRemove) {
+            try {
+              // Check if permission is used in any custom roles
+              const usageCount = await tx.customRolePermission.count({
+                where: { permissionId: permission.id },
+              });
+
+              if (usageCount === 0) {
+                await tx.permission.delete({
+                  where: { id: permission.id },
+                });
+                syncResults.removed++;
+              } else {
+                syncResults.errors.push(
+                  `Cannot remove permission ${permission.name}: still used by ${usageCount} custom role(s)`
+                );
+              }
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              syncResults.errors.push(
+                `Failed to remove permission ${permission.name}: ${errorMessage}`
+              );
+            }
+          }
+        });
+
+        const totalChanges =
+          syncResults.added + syncResults.updated + syncResults.removed;
+        return {
+          success: true,
+          syncResults,
+          message: `Permission sync completed: ${totalChanges} changes made`,
+          needsSync: totalChanges > 0,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to synchronize permissions",
+          cause: error,
+        });
+      }
+    }),
+
+  // Get all available permissions for creating custom roles (with auto-sync)
   getAvailablePermissions: publicProcedure
     .input(
       z.object({
         userId: z.string(),
         organizationId: z.string(),
+        autoSync: z.boolean().optional().default(true),
       })
     )
     .query(async ({ input, ctx }) => {
@@ -57,12 +266,63 @@ export const customRolesRouter = createTRPCRouter({
         });
       }
 
+      // Auto-sync permissions if enabled and user has permissions
+      if (input.autoSync) {
+        try {
+          // Check if sync is needed by comparing DB with RBAC definitions
+          const existingPermissions = await ctx.db.permission.findMany({
+            select: { name: true },
+          });
+
+          const existingNames = new Set(existingPermissions.map(p => p.name));
+          const requiredNames = new Set(getAllRequiredPermissionNames());
+
+          // Check if there are missing permissions or extra permissions
+          const hasMissingPermissions = getAllRequiredPermissionNames().some(
+            name => !existingNames.has(name)
+          );
+          const hasExtraPermissions = existingPermissions.some(
+            p => !requiredNames.has(p.name)
+          );
+
+          if (hasMissingPermissions || hasExtraPermissions) {
+            // Trigger sync automatically
+            await ctx.db.$transaction(async tx => {
+              // Use upsert for permissions to ensure they exist with correct data
+              for (const permissionName of getAllRequiredPermissionNames()) {
+                const permissionDef = getPermissionMetadata(permissionName);
+                await tx.permission.upsert({
+                  where: { name: permissionDef.name },
+                  update: {
+                    description: permissionDef.description,
+                    module: permissionDef.module,
+                    action: permissionDef.action,
+                  },
+                  create: {
+                    name: permissionDef.name,
+                    description: permissionDef.description,
+                    module: permissionDef.module,
+                    action: permissionDef.action,
+                  },
+                });
+              }
+            });
+          }
+        } catch (error) {
+          // Log error but don't fail the request
+          console.warn(
+            "Auto-sync failed, continuing with existing permissions:",
+            error
+          );
+        }
+      }
+
       // Get all permissions from database
       const permissions = await ctx.db.permission.findMany({
         orderBy: [{ module: "asc" }, { action: "asc" }],
       });
 
-      // Group permissions by module (client will receive real DB ids)
+      // Group permissions by module
       const permissionGroups = permissions.reduce(
         (acc, permission) => {
           if (!acc[permission.module])
@@ -73,10 +333,27 @@ export const customRolesRouter = createTRPCRouter({
         {} as Record<string, typeof permissions>
       );
 
-      return Object.entries(permissionGroups).map(([module, perms]) => ({
-        module,
-        label: module.charAt(0).toUpperCase() + module.slice(1),
-        permissions: perms,
+      const allPermissionGroups = Object.entries(permissionGroups).map(
+        ([module, perms]) => ({
+          module: module as PermissionModule,
+          label: module.charAt(0).toUpperCase() + module.slice(1),
+          description: `${module.charAt(0).toUpperCase() + module.slice(1)} permissions`,
+          permissions: perms,
+        })
+      );
+
+      // Filter permissions based on what user can grant
+      const filteredGroups = getFilteredAvailablePermissions(
+        extendedUserOrg,
+        allPermissionGroups
+      );
+
+      return filteredGroups.map(group => ({
+        module: group.module,
+        label: group.label,
+        permissions: group.grantablePermissions,
+        canGrantAll: group.canGrantAll,
+        totalPermissions: group.permissions.length,
       }));
     }),
 
@@ -157,8 +434,9 @@ export const customRolesRouter = createTRPCRouter({
         });
       }
 
-      // Validate using permission names
+      // Validate using permission names with user's grantable permissions
       const validation = validateCustomRolePermissions(
+        extendedUserOrg,
         dbPermissions.map(p => p.name)
       );
       if (!validation.valid) {
@@ -367,6 +645,7 @@ export const customRolesRouter = createTRPCRouter({
         });
       }
       const validation = validateCustomRolePermissions(
+        extendedUserOrg,
         dbPermissions.map(p => p.name)
       );
       if (!validation.valid) {

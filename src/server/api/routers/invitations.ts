@@ -166,7 +166,7 @@ export const invitationsRouter = createTRPCRouter({
 
       const resend = new Resend(env.RESEND_API_KEY);
       await resend.emails.send({
-        from: "Acme <onboarding@resend.dev>",
+        from: `${env.RESEND_FROM_NAME} <${env.RESEND_FROM_EMAIL}>`,
         to: invite.email,
         subject: `You're invited to ${organization?.name ?? "an organization"}`,
         html,
@@ -229,7 +229,7 @@ export const invitationsRouter = createTRPCRouter({
 
       const resend = new Resend(env.RESEND_API_KEY);
       await resend.emails.send({
-        from: "Opensyte <onboarding@resend.dev>",
+        from: env.RESEND_FROM_EMAIL,
         to: updated.email,
         subject: `You're invited to ${organization?.name ?? "an organization"}`,
         html,

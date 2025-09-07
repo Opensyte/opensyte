@@ -118,6 +118,20 @@ interface ReportCreateDialogProps {
   onCreated: () => void;
 }
 
+/**
+ * Renders a modal dialog with a validated form to create a financial report.
+ *
+ * The form (validated with the file's Zod schema) collects basic info, date range/filters,
+ * and display/template options. On submit it calls the financial report create mutation;
+ * on success it shows a success toast, calls `onCreated()`, closes the dialog, and resets the form.
+ * On failure it shows an error toast. The component manages an internal loading state while submitting.
+ *
+ * @param open - Controls whether the dialog is visible.
+ * @param onOpenChange - Callback invoked when the dialog visibility should change.
+ * @param organizationId - Organization identifier used when creating the report.
+ * @param onCreated - Callback invoked after a successful report creation.
+ * @returns The report creation dialog JSX element.
+ */
 export function ReportCreateDialog({
   open,
   onOpenChange,

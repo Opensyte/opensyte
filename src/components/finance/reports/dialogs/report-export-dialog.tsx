@@ -22,6 +22,16 @@ interface ReportExportDialogProps {
   onExported: () => void;
 }
 
+/**
+ * Dialog UI for exporting a financial report as a CSV file.
+ *
+ * Opens a modal that lets the user choose export options (currently: include period comparisons)
+ * and download the report as a CSV. Fetches the report when opened, triggers a server-side export,
+ * creates a CSV blob in the browser, and starts a file download. On successful export the dialog
+ * is closed and the `onExported` callback is invoked.
+ *
+ * @param onExported - Called after a successful export and download has been initiated.
+ */
 export function ReportExportDialog({
   open,
   onOpenChange,

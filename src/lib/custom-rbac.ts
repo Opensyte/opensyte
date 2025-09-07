@@ -10,6 +10,8 @@ import {
   ROLE_INFO,
   canAssignRole as canAssignPredefinedRole,
   getUserPermissions as getPredefinedUserPermissions,
+  validateCustomRolePermissions as validateCustomRolePermissionsRBAC,
+  getGrantablePermissions as getGrantablePermissionsRBAC,
 } from "./rbac";
 
 // Permission modules and their available permissions
@@ -420,7 +422,14 @@ export function canAssignRole(
   return false;
 }
 
-// Check if user can manage roles (create, edit, delete custom roles)
+/**
+ * Returns whether the given user (within an organization) is allowed to manage custom roles.
+ *
+ * Checks if the user's effective permissions include either `ORG_ADMIN` or `SETTINGS_ADMIN`.
+ *
+ * @param userOrg - The user's organization context (may include predefined or custom role info).
+ * @returns True if the user can create/edit/delete custom roles; otherwise false.
+ */
 export function canManageCustomRoles(
   userOrg: ExtendedUserOrganization
 ): boolean {
@@ -430,7 +439,151 @@ export function canManageCustomRoles(
   ]);
 }
 
-// Get assignable roles for current user
+/**
+ * Returns the list of permission names the given user is allowed to grant to others.
+ *
+ * For users with a predefined (RBAC) role this delegates to the RBAC grantable-permissions helper.
+ * For users with a custom role, the result is restricted to permissions the user already possesses,
+ * with special rules:
+ * - Billing-related permissions are only grantable if the user has organization-admin, org-billing,
+ *   and billing-admin privileges.
+ * - Module-level `admin` permissions are grantable only if the user already holds that exact admin permission.
+ *
+ * @param userOrg - The user's organization context (used to compute effective permissions and role type).
+ * @returns An array of permission name strings that the user may grant.
+ */
+export function getGrantablePermissions(
+  userOrg: ExtendedUserOrganization
+): string[] {
+  const userEffectivePermissions = getUserEffectivePermissions(userOrg);
+  const roleType = getUserRoleType(userOrg);
+
+  // If user has a predefined role, use RBAC validation
+  if (roleType.type === "predefined" && roleType.role) {
+    return getGrantablePermissionsRBAC(roleType.role);
+  }
+
+  // For custom roles, be more restrictive
+  // User can only grant permissions they have, excluding admin and billing
+  return userEffectivePermissions.filter(permission => {
+    const [module, action] = permission.split(":");
+    if (!module || !action) return false;
+
+    // Never allow granting billing permissions unless explicitly owner
+    if (module === "billing" || permission === PERMISSIONS.ORG_BILLING) {
+      // Only allow if user has organization owner permissions
+      return (
+        hasPermission(userOrg, PERMISSIONS.ORG_ADMIN) &&
+        hasPermission(userOrg, PERMISSIONS.ORG_BILLING) &&
+        userEffectivePermissions.includes(PERMISSIONS.BILLING_ADMIN)
+      );
+    }
+
+    // Can't grant admin permissions unless user has specific admin permission
+    if (action === "admin") {
+      return userEffectivePermissions.includes(permission);
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Determines whether the given user (within an organization context) is allowed to grant a specific permission.
+ *
+ * This checks:
+ * - If the permission is directly grantable to the user (from getGrantablePermissions).
+ * - Hierarchical rules: an admin permission for a module can grant other permissions in that module only if the user also has ORG_ADMIN or SETTINGS_ADMIN.
+ * - Read/write hierarchy: write for a module allows granting its read permission.
+ *
+ * @param userOrg - The user's organization context (used to compute effective and grantable permissions).
+ * @param permission - Permission name in the form `"<module>:<action>"` (e.g., `"crm:read"`).
+ * @returns True if the user may grant the specified permission, false otherwise.
+ */
+export function canGrantPermission(
+  userOrg: ExtendedUserOrganization,
+  permission: string
+): boolean {
+  const grantablePermissions = getGrantablePermissions(userOrg);
+
+  // Direct permission check
+  if (grantablePermissions.includes(permission)) {
+    return true;
+  }
+
+  // Check hierarchical permissions
+  const userPermissions = getUserEffectivePermissions(userOrg);
+  const [module, action] = permission.split(":");
+  if (!module || !action) return false;
+
+  // Check if user has higher level permission for the same module
+  const adminPermission = `${module}:admin`;
+  if (action !== "admin" && userPermissions.includes(adminPermission)) {
+    // Additional check for admin-level permissions
+    return (
+      hasPermission(userOrg, PERMISSIONS.ORG_ADMIN) ||
+      hasPermission(userOrg, PERMISSIONS.SETTINGS_ADMIN)
+    );
+  }
+
+  const writePermission = `${module}:write`;
+  if (action === "read" && userPermissions.includes(writePermission)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Returns permission groups filtered and annotated with which permissions the current user can grant.
+ *
+ * For each provided group this produces an object that includes:
+ * - grantablePermissions: the subset of the group's permissions the user is allowed to grant (based on the user's grantable permissions and per-permission checks),
+ * - canGrantAll: true when every permission in the group is grantable.
+ * Groups that contain no grantable permissions are omitted from the result.
+ *
+ * @param userOrg - The current user's organization context (used to determine grantable permissions).
+ * @param allPermissionGroups - All available permission groups to filter and annotate.
+ * @returns An array of permission groups augmented with `grantablePermissions` and `canGrantAll`, including only groups with at least one grantable permission.
+ */
+export function getFilteredAvailablePermissions(
+  userOrg: ExtendedUserOrganization,
+  allPermissionGroups: PermissionGroup[]
+): Array<
+  PermissionGroup & {
+    grantablePermissions: PermissionGroup["permissions"];
+    canGrantAll: boolean;
+  }
+> {
+  const grantablePermissionNames = getGrantablePermissions(userOrg);
+
+  return allPermissionGroups
+    .map(group => {
+      const grantablePermissions = group.permissions.filter(
+        permission =>
+          grantablePermissionNames.includes(permission.name) ||
+          canGrantPermission(userOrg, permission.name)
+      );
+
+      return {
+        ...group,
+        grantablePermissions,
+        canGrantAll: grantablePermissions.length === group.permissions.length,
+      };
+    })
+    .filter(group => group.grantablePermissions.length > 0); // Only show modules with grantable permissions
+}
+
+/**
+ * Determine which roles the current user is allowed to assign.
+ *
+ * Returns available predefined roles the current user can assign and whether they may assign custom roles.
+ *
+ * @param currentUserOrg - The current user's organization role context.
+ * @returns An object with:
+ *   - `predefinedRoles`: array of predefined roles the user may assign.
+ *   - `canAssignCustomRoles`: true if the user may create/assign custom roles.
+ */
 export function getAssignableRoles(currentUserOrg: ExtendedUserOrganization): {
   predefinedRoles: UserRole[];
   canAssignCustomRoles: boolean;
@@ -470,18 +623,46 @@ export function getAssignableRoles(currentUserOrg: ExtendedUserOrganization): {
   };
 }
 
-// Validate custom role permissions
-export function validateCustomRolePermissions(permissionNames: string[]): {
+/**
+ * Validate a set of permission names for creating or updating a custom role in the context of a specific user.
+ *
+ * Performs the following:
+ * - If the current user's role is a predefined RBAC role, validation is delegated to the RBAC validation helper.
+ * - For custom-role users, checks that each permission name exists and that the user is allowed to grant it (collects ungrantable permissions).
+ * - Ensures at least one read permission is present when creating a non-empty permission set.
+ *
+ * @param userOrg - The user's organization membership and role context used to determine what the user may grant.
+ * @param permissionNames - Array of permission name strings to validate (e.g., `crm:read`, `projects:write`).
+ * @returns An object with:
+ *  - valid: true when there are no validation errors,
+ *  - errors: human-readable error messages describing invalid or ungrantable permissions and any policy violations,
+ *  - ungrantablePermissions: list of permission names from the input that the user is not permitted to grant.
+ */
+export function validateCustomRolePermissions(
+  userOrg: ExtendedUserOrganization,
+  permissionNames: string[]
+): {
   valid: boolean;
   errors: string[];
+  ungrantablePermissions: string[];
 } {
   const errors: string[] = [];
-  // Static canonical permission names
+  const ungrantablePermissions: string[] = [];
+
+  // Get user's role type for validation
+  const roleType = getUserRoleType(userOrg);
+
+  // Use RBAC validation for predefined roles
+  if (roleType.type === "predefined" && roleType.role) {
+    return validateCustomRolePermissionsRBAC(roleType.role, permissionNames);
+  }
+
+  // For custom roles, validate each permission individually
   const availablePermissionNames = getAllAvailablePermissions().map(
     p => p.name
   );
 
-  // Identify any names not part of the canonical permission set
+  // Check for invalid permissions
   const invalid = permissionNames.filter(
     name => !availablePermissionNames.includes(name)
   );
@@ -489,13 +670,39 @@ export function validateCustomRolePermissions(permissionNames: string[]): {
     errors.push(`Invalid permissions: ${invalid.join(", ")}`);
   }
 
-  // Must include at least one *:read permission (semantic rule)
+  // Check if user can grant each permission
+  for (const permission of permissionNames) {
+    if (!canGrantPermission(userOrg, permission)) {
+      ungrantablePermissions.push(permission);
+
+      const [module, action] = permission.split(":");
+      if (module === "billing" || permission === PERMISSIONS.ORG_BILLING) {
+        errors.push(
+          `You cannot grant billing permissions (${permission}) - only Organization Owners can manage billing`
+        );
+      } else if (action === "admin") {
+        errors.push(
+          `You cannot grant admin permissions (${permission}) because you don't have admin access to ${module}`
+        );
+      } else {
+        errors.push(
+          `You cannot grant permission (${permission}) because you don't have sufficient privileges`
+        );
+      }
+    }
+  }
+
+  // Must include at least one read permission
   const hasRead = permissionNames.some(name => name.endsWith(":read"));
   if (!hasRead && permissionNames.length > 0) {
     errors.push("Role must have at least one read permission");
   }
 
-  return { valid: errors.length === 0, errors };
+  return {
+    valid: errors.length === 0,
+    errors,
+    ungrantablePermissions,
+  };
 }
 
 // Create navigation permissions helper for custom roles
