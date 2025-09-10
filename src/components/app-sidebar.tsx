@@ -11,6 +11,7 @@ import {
   Building2,
   Plus,
   Folder,
+  GitBranch,
 } from "lucide-react";
 
 import { NavMain } from "~/components/nav-main";
@@ -122,6 +123,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         items: [],
       });
     }
+
+    // Workflows Module
+    navItems.push({
+      title: "Workflows",
+      url: "/[orgId]/workflows",
+      icon: GitBranch,
+      items: [],
+    });
 
     // Finance Module
     if (permissions.canViewFinance) {
