@@ -113,6 +113,10 @@ model Organization {
   invitations      Invitation[]
   customRoles      CustomRole[]
   financialReports FinancialReport[]
+  workflows        Workflow[]
+  actionTemplates  ActionTemplate[]
+  variableDefinitions VariableDefinition[]
+  integrationConfigs IntegrationConfig[]
 }
 
 model UserOrganization {
@@ -1205,4 +1209,869 @@ enum FinancialReportScheduleFrequency {
   MONTHLY
   QUARTERLY
   YEARLY
+}
+
+
+// ==============================
+// Workflow Management Models
+// ==============================
+
+model Workflow {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  version        Int           @default(1)
+  status         WorkflowStatus @default(INACTIVE)
+  isTemplate     Boolean       @default(false)
+  category       String?       // e.g., "CRM", "HR", "Finance", "Projects"
+  
+  // React Flow Canvas Data
+  canvasData     Json?         // Store React Flow nodes, edges, and viewport
+  
+  // Execution Configuration
+  retryConfig    Json?         // Retry policies and limits
+  timeoutConfig  Json?         // Timeout settings
+  
+  // Analytics
+  totalExecutions Int          @default(0)
+  successfulExecutions Int     @default(0)
+  failedExecutions Int         @default(0)
+  lastExecutedAt DateTime?
+  
+  // Metadata
+  createdById    String
+  updatedById    String?
+  publishedAt    DateTime?
+  publishedById  String?
+  archivedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  triggers       WorkflowTrigger[]
+  nodes          WorkflowNode[]
+  connections    WorkflowConnection[]
+  executions     WorkflowExecution[]
+  analytics      WorkflowAnalytics[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([category])
+  @@index([createdById])
+  @@unique([organizationId, name, version])
+}
+
+enum WorkflowStatus {
+  DRAFT
+  INACTIVE
+  ACTIVE
+  PAUSED
+  ARCHIVED
+  ERROR
+}
+
+model WorkflowTrigger {
+  id             String            @id @default(cuid())
+  workflowId     String
+  name           String
+  description    String?
+  type           WorkflowTriggerType
+  module         String            // e.g., "CRM", "HR", "Finance", "System"
+  
+  // Trigger Configuration
+  entityType     String?           // e.g., "customer", "deal", "employee", "invoice"
+  eventType      String            // e.g., "created", "updated", "deleted", "status_changed"
+  conditions     Json?             // Conditional logic for trigger activation
+  
+  // Timing Configuration
+  delay          Int?              // Delay in minutes before execution
+  
+  // State Management
+  isActive       Boolean           @default(true)
+  lastTriggered  DateTime?
+  triggerCount   Int               @default(0)
+  
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // Relations
+  workflow       Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executions     WorkflowExecution[]
+  variables      TriggerVariable[]
+
+  @@index([workflowId])
+  @@index([type])
+  @@index([module])
+  @@index([entityType])
+}
+
+enum WorkflowTriggerType {
+  RECORD_CREATED
+  RECORD_UPDATED  
+  RECORD_DELETED
+  STATUS_CHANGED
+  FORM_SUBMITTED
+  TIME_BASED
+  MANUAL
+  WEBHOOK
+  API_CALL
+  EMAIL_RECEIVED
+  FILE_UPLOADED
+}
+
+model WorkflowNode {
+  id             String           @id @default(cuid())
+  workflowId     String
+  nodeId         String           // React Flow node ID
+  type           WorkflowNodeType
+  name           String
+  description    String?
+  
+  // React Flow Position
+  position       Json             // {x: number, y: number}
+  
+  // Node Configuration
+  config         Json?            // Node-specific configuration
+  template       Json?            // Template configuration if applicable
+  
+  // Execution Configuration  
+  executionOrder Int?             // For sequential execution
+  isOptional     Boolean          @default(false)
+  retryLimit     Int              @default(3)
+  timeout        Int?             // Timeout in seconds
+  
+  // Conditional Logic
+  conditions     Json?            // Conditions for node execution
+  
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  workflow       Workflow            @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executions     NodeExecution[]
+  dependencies   NodeDependency[]    @relation("DependentNode")
+  dependents     NodeDependency[]    @relation("PrerequisiteNode")
+
+  @@index([workflowId])
+  @@index([type])
+  @@index([nodeId])
+  @@unique([workflowId, nodeId])
+}
+
+enum WorkflowNodeType {
+  TRIGGER
+  ACTION
+  CONDITION
+  DELAY
+  PARALLEL
+  LOOP
+  SWITCH
+  APPROVAL
+  EMAIL
+  SMS
+  WHATSAPP
+  SLACK
+  CALENDAR
+  DATA_TRANSFORM
+  NOTIFICATION
+  CUSTOM
+}
+
+model WorkflowConnection {
+  id             String   @id @default(cuid())
+  workflowId     String
+  edgeId         String   // React Flow edge ID
+  sourceNodeId   String   // React Flow source node ID
+  targetNodeId   String   // React Flow target node ID
+  sourceHandle   String?  // React Flow source handle
+  targetHandle   String?  // React Flow target handle
+  
+  // Connection Configuration
+  label          String?
+  conditions     Json?    // Conditional logic for connection
+  
+  // Visual Configuration
+  style          Json?    // Edge styling
+  animated       Boolean  @default(false)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  workflow       Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@unique([workflowId, edgeId])
+}
+
+model NodeDependency {
+  id                String       @id @default(cuid())
+  dependentNodeId   String       // Node that depends on another
+  prerequisiteNodeId String      // Node that must complete first
+  dependencyType    DependencyType @default(SUCCESS)
+  
+  createdAt         DateTime     @default(now())
+
+  // Relations
+  dependentNode     WorkflowNode @relation("DependentNode", fields: [dependentNodeId], references: [id], onDelete: Cascade)
+  prerequisiteNode  WorkflowNode @relation("PrerequisiteNode", fields: [prerequisiteNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentNodeId, prerequisiteNodeId])
+  @@index([dependentNodeId])
+  @@index([prerequisiteNodeId])
+}
+
+enum DependencyType {
+  SUCCESS       // Execute only if prerequisite succeeds
+  FAILURE       // Execute only if prerequisite fails
+  COMPLETION    // Execute when prerequisite completes (regardless of status)
+}
+
+// ==============================
+// Action Configuration Models
+// ==============================
+
+model ActionTemplate {
+  id             String              @id @default(cuid())
+  organizationId String?             // Null for system templates
+  name           String
+  description    String?
+  category       ActionTemplateCategory
+  type           WorkflowNodeType
+  
+  // Template Configuration
+  template       Json                // Template structure and variables
+  defaultConfig  Json?               // Default configuration values
+  schema         Json?               // JSON schema for validation
+  
+  // Template Metadata
+  version        String              @default("1.0.0")
+  isPublic       Boolean             @default(false)
+  isActive       Boolean             @default(true)
+  usageCount     Int                 @default(0)
+  
+  // Template Variables
+  requiredVariables Json?            // Required variables list
+  optionalVariables Json?            // Optional variables list
+  
+  createdById    String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  // Relations
+  organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions       ActionTemplateVersion[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([type])
+  @@index([isActive])
+}
+
+enum ActionTemplateCategory {
+  COMMUNICATION
+  NOTIFICATION
+  DATA_PROCESSING
+  INTEGRATION
+  APPROVAL
+  REPORTING
+  AUTOMATION
+  CUSTOM
+}
+
+model ActionTemplateVersion {
+  id           String   @id @default(cuid())
+  templateId   String
+  version      String
+  template     Json
+  changes      String?
+  isActive     Boolean  @default(false)
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  actionTemplate ActionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([version])
+  @@unique([templateId, version])
+}
+
+// ==============================
+// Variable System Models
+// ==============================
+
+model VariableDefinition {
+  id             String        @id @default(cuid())
+  organizationId String?       // Null for system variables
+  name           String
+  displayName    String
+  description    String?
+  category       String        // e.g., "User", "CRM", "System", "Organization"
+  dataType       VariableDataType
+  
+  // Variable Configuration
+  defaultValue   String?
+  validation     Json?         // Validation rules
+  formatting     Json?         // Formatting options
+  isRequired     Boolean       @default(false)
+  isCustom       Boolean       @default(false)
+  
+  // Scope Configuration
+  scope          VariableScope @default(ORGANIZATION)
+  moduleScope    String?       // Specific module if applicable
+  
+  createdById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  triggerVars    TriggerVariable[]
+  executionVars  ExecutionVariable[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([scope])
+  @@index([moduleScope])
+  @@unique([organizationId, name])
+}
+
+enum VariableDataType {
+  STRING
+  NUMBER
+  BOOLEAN
+  DATE
+  DATETIME
+  EMAIL
+  PHONE
+  URL
+  JSON
+  ARRAY
+}
+
+enum VariableScope {
+  GLOBAL        // Available across all workflows
+  ORGANIZATION  // Available within organization
+  MODULE        // Available within specific module
+  WORKFLOW      // Available within specific workflow
+  TRIGGER       // Available within specific trigger context
+}
+
+model TriggerVariable {
+  id           String   @id @default(cuid())
+  triggerId    String
+  variableId   String
+  mapping      Json?    // How to extract/map this variable from trigger data
+  isRequired   Boolean  @default(false)
+  defaultValue String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  trigger      WorkflowTrigger    @relation(fields: [triggerId], references: [id], onDelete: Cascade)
+  variable     VariableDefinition @relation(fields: [variableId], references: [id], onDelete: Cascade)
+
+  @@index([triggerId])
+  @@index([variableId])
+  @@unique([triggerId, variableId])
+}
+
+// ==============================
+// Execution and State Management
+// ==============================
+
+model WorkflowExecution {
+  id             String              @id @default(cuid())
+  workflowId     String
+  triggerId      String?
+  
+  // Execution Metadata
+  executionId    String              @unique // Unique execution identifier
+  status         WorkflowExecutionStatus @default(PENDING)
+  priority       ExecutionPriority   @default(NORMAL)
+  
+  // Trigger Context
+  triggerData    Json?               // Original trigger data
+  triggerContext Json?               // Additional trigger context
+  
+  // Execution State
+  currentNodeId  String?             // Currently executing node
+  progress       Float               @default(0) // 0-100 percentage
+  
+  // Timing
+  startedAt      DateTime?
+  completedAt    DateTime?
+  failedAt       DateTime?
+  duration       Int?                // Duration in milliseconds
+  
+  // Results
+  result         Json?               // Final execution result
+  error          String?             // Error message if failed
+  errorDetails   Json?               // Detailed error information
+  
+  // Retry Configuration
+  retryCount     Int                 @default(0)
+  maxRetries     Int                 @default(3)
+  retryDelay     Int                 @default(60) // Delay in seconds
+  
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  // Relations
+  workflow       Workflow            @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  trigger        WorkflowTrigger?    @relation(fields: [triggerId], references: [id], onDelete: SetNull)
+  nodeExecutions NodeExecution[]
+  variables      ExecutionVariable[]
+  logs           ExecutionLog[]
+
+  @@index([workflowId])
+  @@index([triggerId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([executionId])
+}
+
+enum WorkflowExecutionStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum ExecutionPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model NodeExecution {
+  id                String               @id @default(cuid())
+  workflowExecutionId String
+  nodeId            String
+  
+  // Execution Metadata
+  executionOrder    Int
+  status            NodeExecutionStatus  @default(PENDING)
+  
+  // Timing
+  startedAt         DateTime?
+  completedAt       DateTime?
+  duration          Int?                 // Duration in milliseconds
+  
+  // Input/Output
+  input             Json?                // Input data for the node
+  output            Json?                // Output data from the node
+  transformedData   Json?                // Data after transformations
+  
+  // Error Handling
+  error             String?
+  errorDetails      Json?
+  retryCount        Int                  @default(0)
+  maxRetries        Int                  @default(3)
+  
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  // Relations
+  workflowExecution WorkflowExecution    @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+  node              WorkflowNode         @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([workflowExecutionId])
+  @@index([nodeId])
+  @@index([status])
+  @@index([executionOrder])
+}
+
+enum NodeExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+  CANCELLED
+  TIMEOUT
+}
+
+model ExecutionVariable {
+  id                  String             @id @default(cuid())
+  workflowExecutionId String
+  variableDefinitionId String?
+  
+  // Variable Data
+  name                String
+  value               String?
+  resolvedValue       String?            // Final resolved value after processing
+  dataType            VariableDataType
+  
+  // Context
+  source              String?            // Where this variable came from
+  nodeId              String?            // Node that generated this variable
+  
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  // Relations
+  workflowExecution   WorkflowExecution  @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+  variableDefinition  VariableDefinition? @relation(fields: [variableDefinitionId], references: [id], onDelete: SetNull)
+
+  @@index([workflowExecutionId])
+  @@index([variableDefinitionId])
+  @@index([name])
+}
+
+model ExecutionLog {
+  id                  String             @id @default(cuid())
+  workflowExecutionId String
+  nodeId              String?
+  
+  // Log Data
+  level               LogLevel
+  message             String
+  details             Json?
+  timestamp           DateTime           @default(now())
+  
+  // Context
+  source              String?            // Component that generated the log
+  category            String?            // Log category
+  
+  createdAt           DateTime           @default(now())
+
+  // Relations
+  workflowExecution   WorkflowExecution  @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+
+  @@index([workflowExecutionId])
+  @@index([nodeId])
+  @@index([level])
+  @@index([timestamp])
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+
+
+// ==============================
+// Integration and External Services
+// ==============================
+
+model IntegrationConfig {
+  id             String           @id @default(cuid())
+  organizationId String
+  name           String
+  type           IntegrationType
+  
+  // Configuration
+  config         Json             // Service-specific configuration
+  credentials    Json?            // Encrypted credentials
+  endpoints      Json?            // API endpoints and URLs
+  
+  // State Management
+  isActive       Boolean          @default(true)
+  isHealthy      Boolean          @default(true)
+  lastHealthCheck DateTime?
+  healthDetails  Json?
+  
+  // Usage Statistics
+  requestCount   Int              @default(0)
+  errorCount     Int              @default(0)
+  lastUsedAt     DateTime?
+  
+  createdById    String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([isActive])
+  @@unique([organizationId, name])
+}
+
+// ==============================
+// Communication & Action Models
+// ==============================
+
+model EmailAction {
+  id               String   @id @default(cuid())
+  nodeId           String   // Reference to WorkflowNode
+  
+  // Email Configuration
+  integrationId    String?  // Reference to IntegrationConfig
+  fromName         String?
+  fromEmail        String?
+  replyTo          String?
+  
+  // Recipients
+  toEmails         Json     // Array of email addresses or variables
+  ccEmails         Json?    // CC recipients
+  bccEmails        Json?    // BCC recipients
+  
+  // Content
+  subject          String
+  htmlBody         String?
+  textBody         String?
+  templateId       String?  // Reference to email template
+  
+  // Attachments
+  attachments      Json?    // Array of attachment configurations
+  
+  // Tracking
+  trackOpens       Boolean  @default(false)
+  trackClicks      Boolean  @default(false)
+  
+  // Variables
+  variables        Json?    // Variable mappings for personalization
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([nodeId])
+  @@index([integrationId])
+}
+
+model SmsAction {
+  id               String   @id @default(cuid())
+  nodeId           String   // Reference to WorkflowNode
+  
+  // SMS Configuration
+  integrationId    String?  // Reference to IntegrationConfig
+  fromNumber       String?
+  
+  // Recipients
+  toNumbers        Json     // Array of phone numbers or variables
+  
+  // Content
+  message          String
+  templateId       String?  // Reference to SMS template
+  
+  // Configuration
+  maxLength        Int?     @default(160)
+  unicode          Boolean  @default(false)
+  
+  // Variables
+  variables        Json?    // Variable mappings for personalization
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([nodeId])
+  @@index([integrationId])
+}
+
+model WhatsAppAction {
+  id               String   @id @default(cuid())
+  nodeId           String   // Reference to WorkflowNode
+  
+  // WhatsApp Configuration
+  integrationId    String?  // Reference to IntegrationConfig
+  businessAccountId String?
+  
+  // Recipients
+  toNumbers        Json     // Array of phone numbers or variables
+  
+  // Content
+  messageType      WhatsAppMessageType @default(TEXT)
+  textMessage      String?
+  templateName     String?  // WhatsApp template name
+  templateLanguage String?  // Template language code
+  
+  // Media (for media messages)
+  mediaUrl         String?
+  mediaType        String?  // image, video, audio, document
+  caption          String?
+  
+  // Template Parameters
+  templateParams   Json?    // Parameters for template messages
+  
+  // Variables
+  variables        Json?    // Variable mappings for personalization
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([nodeId])
+  @@index([integrationId])
+}
+
+enum WhatsAppMessageType {
+  TEXT
+  TEMPLATE
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  LOCATION
+  CONTACT
+}
+
+model SlackAction {
+  id               String   @id @default(cuid())
+  nodeId           String   // Reference to WorkflowNode
+  
+  // Slack Configuration
+  integrationId    String?  // Reference to IntegrationConfig
+  workspaceId      String?
+  
+  // Target
+  channel          String?  // Channel ID or name
+  userId           String?  // User ID for DM
+  
+  // Content
+  message          String
+  blocks           Json?    // Slack blocks for rich formatting
+  attachments      Json?    // Slack attachments
+  
+  // Options
+  asUser           Boolean  @default(false)
+  username         String?  // Bot username
+  iconEmoji        String?  // Bot icon emoji
+  iconUrl          String?  // Bot icon URL
+  
+  // Threading
+  threadTs         String?  // Thread timestamp for replies
+  replyBroadcast   Boolean  @default(false)
+  
+  // Variables
+  variables        Json?    // Variable mappings for personalization
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([nodeId])
+  @@index([integrationId])
+}
+
+
+
+model CalendarAction {
+  id               String   @id @default(cuid())
+  nodeId           String   // Reference to WorkflowNode
+  
+  // Calendar Configuration
+  integrationId    String?  // Reference to IntegrationConfig
+  calendarId       String?  // Specific calendar ID
+  
+  // Event Details
+  title            String
+  description      String?
+  location         String?
+  
+  // Timing
+  startTime        String   // ISO datetime or variable
+  endTime          String   // ISO datetime or variable
+  isAllDay         Boolean  @default(false)
+  timezone         String   @default("UTC")
+  
+  // Attendees
+  attendees        Json?    // Array of email addresses
+  organizer        String?  // Organizer email
+  
+  // Reminders
+  reminders        Json?    // Reminder configurations
+  
+  // Recurrence
+  recurrence       Json?    // Recurrence rules
+  
+  // Variables
+  variables        Json?    // Variable mappings for personalization
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([nodeId])
+  @@index([integrationId])
+}
+
+
+
+
+
+
+
+enum IntegrationType {
+  // Email Services
+  EMAIL_SMTP
+  EMAIL_SENDGRID
+  EMAIL_MAILGUN
+  EMAIL_RESEND
+  EMAIL_POSTMARK
+  
+  // SMS Gateways
+  SMS_TWILIO
+  SMS_AWS_SNS
+  SMS_NEXMO
+  SMS_MESSAGEBIRD
+  
+  // WhatsApp Business
+  WHATSAPP_BUSINESS
+  WHATSAPP_TWILIO
+  
+  // Workspace Communication
+  SLACK
+  
+  // Calendar Integration
+  GOOGLE_CALENDAR
+  OUTLOOK_CALENDAR
+  APPLE_CALENDAR
+}
+
+// ==============================
+// Analytics and Performance
+// ==============================
+
+model WorkflowAnalytics {
+  id                    String   @id @default(cuid())
+  workflowId            String
+  
+  // Time Period
+  periodStart           DateTime
+  periodEnd             DateTime
+  granularity           String   @default("daily") // daily, weekly, monthly
+  
+  // Execution Metrics
+  totalExecutions       Int      @default(0)
+  successfulExecutions  Int      @default(0)
+  failedExecutions      Int      @default(0)
+  averageDuration       Float?   // Average duration in milliseconds
+  
+  // Performance Metrics
+  minDuration           Int?     // Minimum duration in milliseconds
+  maxDuration           Int?     // Maximum duration in milliseconds
+  p95Duration           Int?     // 95th percentile duration
+  
+  // Error Analysis
+  commonErrors          Json?    // Most common error types and counts
+  errorRate             Float?   // Error rate percentage
+  
+  // Resource Usage
+  avgCpuUsage           Float?
+  avgMemoryUsage        Float?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  workflow              Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([periodStart])
+  @@index([granularity])
+  @@unique([workflowId, periodStart, granularity])
 }
