@@ -7,9 +7,7 @@ import {
 import { PERMISSIONS } from "~/lib/rbac";
 import { db } from "~/server/db";
 import { TRPCError } from "@trpc/server";
-import {
-  InputJsonValueSchema,
-} from "../../../../../prisma/generated/zod";
+import { InputJsonValueSchema } from "../../../../../prisma/generated/zod";
 import type { Prisma } from "@prisma/client";
 
 // Comprehensive workflow analytics router
@@ -48,7 +46,8 @@ export const workflowAnalyticsRouter = createTRPCRouter({
           });
         }
 
-        const dateFrom = input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const dateFrom =
+          input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const dateTo = input.dateTo ?? new Date();
 
         const whereClause: Prisma.WorkflowExecutionWhereInput = {
@@ -79,7 +78,11 @@ export const workflowAnalyticsRouter = createTRPCRouter({
             where: { ...whereClause, status: "CANCELLED" },
           }),
           db.workflowExecution.aggregate({
-            where: { ...whereClause, status: "COMPLETED", duration: { not: null } },
+            where: {
+              ...whereClause,
+              status: "COMPLETED",
+              duration: { not: null },
+            },
             _avg: { duration: true },
             _min: { duration: true },
             _max: { duration: true },
@@ -100,7 +103,10 @@ export const workflowAnalyticsRouter = createTRPCRouter({
         ]);
 
         // Calculate success rate
-        const successRate = totalExecutions > 0 ? (completedExecutions / totalExecutions) * 100 : 0;
+        const successRate =
+          totalExecutions > 0
+            ? (completedExecutions / totalExecutions) * 100
+            : 0;
 
         // Get most common error types
         const errorAnalysis = await db.workflowExecution.groupBy({
@@ -144,11 +150,11 @@ export const workflowAnalyticsRouter = createTRPCRouter({
             minDuration: averageDuration._min.duration,
             maxDuration: averageDuration._max.duration,
           },
-          trends: executionTrends.map((trend) => ({
+          trends: executionTrends.map(trend => ({
             status: trend.status,
             count: trend._count.id,
           })),
-          errorAnalysis: errorAnalysis.map((error) => ({
+          errorAnalysis: errorAnalysis.map(error => ({
             error: error.error,
             count: error._count.id,
           })),
@@ -182,7 +188,8 @@ export const workflowAnalyticsRouter = createTRPCRouter({
       await ctx.requireAnyPermission(input.organizationId);
 
       try {
-        const dateFrom = input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const dateFrom =
+          input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const dateTo = input.dateTo ?? new Date();
 
         // Get workflow overview
@@ -227,13 +234,16 @@ export const workflowAnalyticsRouter = createTRPCRouter({
         ]);
 
         // Calculate success rates for workflows
-        const workflowsWithSuccessRate = topPerformingWorkflows.map((workflow) => ({
-          ...workflow,
-          successRate:
-            workflow.totalExecutions > 0
-              ? (workflow.successfulExecutions / workflow.totalExecutions) * 100
-              : 0,
-        }));
+        const workflowsWithSuccessRate = topPerformingWorkflows.map(
+          workflow => ({
+            ...workflow,
+            successRate:
+              workflow.totalExecutions > 0
+                ? (workflow.successfulExecutions / workflow.totalExecutions) *
+                  100
+                : 0,
+          })
+        );
 
         return {
           organizationId: input.organizationId,
@@ -244,7 +254,7 @@ export const workflowAnalyticsRouter = createTRPCRouter({
             inactiveWorkflows: totalWorkflows - activeWorkflows,
             totalExecutions: organizationExecutions,
           },
-          workflowsByStatus: workflowsByStatus.map((item) => ({
+          workflowsByStatus: workflowsByStatus.map(item => ({
             status: item.status,
             count: item._count.id,
           })),
@@ -302,54 +312,62 @@ export const workflowAnalyticsRouter = createTRPCRouter({
           });
         }
 
-        const dateFrom = input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const dateFrom =
+          input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const dateTo = input.dateTo ?? new Date();
 
         // Get node execution statistics
         const nodeStats = await Promise.all(
-          workflow.nodes.map(async (node) => {
-            const [totalExecutions, completedExecutions, failedExecutions, avgDuration] =
-              await Promise.all([
-                db.nodeExecution.count({
-                  where: {
-                    nodeId: node.id,
-                    workflowExecution: {
-                      createdAt: { gte: dateFrom, lte: dateTo },
-                    },
+          workflow.nodes.map(async node => {
+            const [
+              totalExecutions,
+              completedExecutions,
+              failedExecutions,
+              avgDuration,
+            ] = await Promise.all([
+              db.nodeExecution.count({
+                where: {
+                  nodeId: node.id,
+                  workflowExecution: {
+                    createdAt: { gte: dateFrom, lte: dateTo },
                   },
-                }),
-                db.nodeExecution.count({
-                  where: {
-                    nodeId: node.id,
-                    status: "COMPLETED",
-                    workflowExecution: {
-                      createdAt: { gte: dateFrom, lte: dateTo },
-                    },
+                },
+              }),
+              db.nodeExecution.count({
+                where: {
+                  nodeId: node.id,
+                  status: "COMPLETED",
+                  workflowExecution: {
+                    createdAt: { gte: dateFrom, lte: dateTo },
                   },
-                }),
-                db.nodeExecution.count({
-                  where: {
-                    nodeId: node.id,
-                    status: "FAILED",
-                    workflowExecution: {
-                      createdAt: { gte: dateFrom, lte: dateTo },
-                    },
+                },
+              }),
+              db.nodeExecution.count({
+                where: {
+                  nodeId: node.id,
+                  status: "FAILED",
+                  workflowExecution: {
+                    createdAt: { gte: dateFrom, lte: dateTo },
                   },
-                }),
-                db.nodeExecution.aggregate({
-                  where: {
-                    nodeId: node.id,
-                    status: "COMPLETED",
-                    duration: { not: null },
-                    workflowExecution: {
-                      createdAt: { gte: dateFrom, lte: dateTo },
-                    },
+                },
+              }),
+              db.nodeExecution.aggregate({
+                where: {
+                  nodeId: node.id,
+                  status: "COMPLETED",
+                  duration: { not: null },
+                  workflowExecution: {
+                    createdAt: { gte: dateFrom, lte: dateTo },
                   },
-                  _avg: { duration: true },
-                }),
-              ]);
+                },
+                _avg: { duration: true },
+              }),
+            ]);
 
-            const successRate = totalExecutions > 0 ? (completedExecutions / totalExecutions) * 100 : 0;
+            const successRate =
+              totalExecutions > 0
+                ? (completedExecutions / totalExecutions) * 100
+                : 0;
 
             return {
               nodeId: node.id,
@@ -369,7 +387,9 @@ export const workflowAnalyticsRouter = createTRPCRouter({
           workflowId: input.workflowId,
           workflowName: workflow.name,
           dateRange: { from: dateFrom, to: dateTo },
-          nodePerformance: nodeStats.sort((a, b) => b.totalExecutions - a.totalExecutions),
+          nodePerformance: nodeStats.sort(
+            (a, b) => b.totalExecutions - a.totalExecutions
+          ),
         };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
@@ -400,7 +420,8 @@ export const workflowAnalyticsRouter = createTRPCRouter({
       await ctx.requireAnyPermission(input.organizationId);
 
       try {
-        const dateFrom = input.dateFrom ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const dateFrom =
+          input.dateFrom ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         const dateTo = input.dateTo ?? new Date();
 
         const whereClause: Prisma.WorkflowExecutionWhereInput = {
@@ -411,63 +432,74 @@ export const workflowAnalyticsRouter = createTRPCRouter({
         };
 
         // Get error summary
-        const [totalErrors, errorsByWorkflow, commonErrors, recentErrors] = await Promise.all([
-          db.workflowExecution.count({ where: whereClause }),
-          db.workflowExecution.groupBy({
-            by: ["workflowId"],
-            where: whereClause,
-            _count: { id: true },
-            orderBy: { _count: { id: "desc" } },
-            take: 10,
-          }),
-          db.workflowExecution.groupBy({
-            by: ["error"],
-            where: { ...whereClause, error: { not: null } },
-            _count: { id: true },
-            orderBy: { _count: { id: "desc" } },
-            take: 10,
-          }),
-          db.workflowExecution.findMany({
-            where: whereClause,
-            select: {
-              id: true,
-              executionId: true,
-              error: true,
-              errorDetails: true,
-              failedAt: true,
-              retryCount: true,
-              workflow: {
-                select: { name: true },
+        const [totalErrors, errorsByWorkflow, commonErrors, recentErrors] =
+          await Promise.all([
+            db.workflowExecution.count({ where: whereClause }),
+            db.workflowExecution.groupBy({
+              by: ["workflowId"],
+              where: whereClause,
+              _count: { id: true },
+              orderBy: { _count: { id: "desc" } },
+              take: 10,
+            }),
+            db.workflowExecution.groupBy({
+              by: ["error"],
+              where: { ...whereClause, error: { not: null } },
+              _count: { id: true },
+              orderBy: { _count: { id: "desc" } },
+              take: 10,
+            }),
+            db.workflowExecution.findMany({
+              where: whereClause,
+              select: {
+                id: true,
+                executionId: true,
+                error: true,
+                errorDetails: true,
+                failedAt: true,
+                retryCount: true,
+                workflow: {
+                  select: { name: true },
+                },
               },
-            },
-            orderBy: { failedAt: "desc" },
-            take: input.limit,
-          }),
-        ]);
+              orderBy: { failedAt: "desc" },
+              take: input.limit,
+            }),
+          ]);
 
         // Get workflow names for error grouping
-        const workflowIds = errorsByWorkflow.map((item) => item.workflowId);
+        const workflowIds = errorsByWorkflow.map(item => item.workflowId);
         const workflowNames = await db.workflow.findMany({
           where: { id: { in: workflowIds } },
           select: { id: true, name: true },
         });
 
         const workflowNameMap = Object.fromEntries(
-          workflowNames.map((w) => [w.id, w.name])
+          workflowNames.map(w => [w.id, w.name])
         );
 
         return {
           dateRange: { from: dateFrom, to: dateTo },
           summary: {
             totalErrors,
-            averageErrorsPerDay: Math.round(totalErrors / Math.max(1, Math.ceil((dateTo.getTime() - dateFrom.getTime()) / (24 * 60 * 60 * 1000)))),
+            averageErrorsPerDay: Math.round(
+              totalErrors /
+                Math.max(
+                  1,
+                  Math.ceil(
+                    (dateTo.getTime() - dateFrom.getTime()) /
+                      (24 * 60 * 60 * 1000)
+                  )
+                )
+            ),
           },
-          errorsByWorkflow: errorsByWorkflow.map((item) => ({
+          errorsByWorkflow: errorsByWorkflow.map(item => ({
             workflowId: item.workflowId,
-            workflowName: workflowNameMap[item.workflowId] ?? "Unknown Workflow",
+            workflowName:
+              workflowNameMap[item.workflowId] ?? "Unknown Workflow",
             errorCount: item._count.id,
           })),
-          commonErrors: commonErrors.map((item) => ({
+          commonErrors: commonErrors.map(item => ({
             error: item.error,
             count: item._count.id,
           })),
@@ -610,10 +642,11 @@ export const workflowAnalyticsRouter = createTRPCRouter({
         const whereClause: Prisma.WorkflowAnalyticsWhereInput = {
           workflowId: input.workflowId,
           ...(input.granularity && { granularity: input.granularity }),
-          ...(input.dateFrom && input.dateTo && {
-            periodStart: { gte: input.dateFrom },
-            periodEnd: { lte: input.dateTo },
-          }),
+          ...(input.dateFrom &&
+            input.dateTo && {
+              periodStart: { gte: input.dateFrom },
+              periodEnd: { lte: input.dateTo },
+            }),
         };
 
         const analytics = await db.workflowAnalytics.findMany({

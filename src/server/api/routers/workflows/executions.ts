@@ -315,7 +315,7 @@ export const executionsRouter = createTRPCRouter({
         const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Start database transaction
-        const execution = await db.$transaction(async (tx) => {
+        const execution = await db.$transaction(async tx => {
           // Create execution record
           const newExecution = await tx.workflowExecution.create({
             data: {
@@ -333,7 +333,7 @@ export const executionsRouter = createTRPCRouter({
           // Create execution variables if provided
           if (input.variables && input.variables.length > 0) {
             await tx.executionVariable.createMany({
-              data: input.variables.map((variable) => ({
+              data: input.variables.map(variable => ({
                 workflowExecutionId: newExecution.id,
                 name: variable.name,
                 value: variable.value,
@@ -608,7 +608,7 @@ export const executionsRouter = createTRPCRouter({
 
         // Log bulk action
         await Promise.all(
-          input.executionIds.map((executionId) =>
+          input.executionIds.map(executionId =>
             db.executionLog.create({
               data: {
                 workflowExecutionId: executionId,
@@ -660,7 +660,8 @@ export const executionsRouter = createTRPCRouter({
       await ctx.requireAnyPermission(input.organizationId);
 
       try {
-        const dateFrom = input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+        const dateFrom =
+          input.dateFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
         const dateTo = input.dateTo ?? new Date();
 
         const whereClause: Prisma.WorkflowExecutionWhereInput = {
@@ -713,10 +714,13 @@ export const executionsRouter = createTRPCRouter({
           },
         });
 
-        const successRate = totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
+        const successRate =
+          totalExecutions > 0
+            ? (successfulExecutions / totalExecutions) * 100
+            : 0;
 
         return {
-          statusCounts: statusCounts.map((item) => ({
+          statusCounts: statusCounts.map(item => ({
             status: item.status,
             count: item._count.id,
           })),

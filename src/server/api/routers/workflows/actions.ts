@@ -76,10 +76,7 @@ export const actionsRouter = createTRPCRouter({
         const template = await db.actionTemplate.findFirst({
           where: {
             id: input.templateId,
-            OR: [
-              { organizationId: input.organizationId },
-              { isPublic: true },
-            ],
+            OR: [{ organizationId: input.organizationId }, { isPublic: true }],
           },
           include: {
             versions: {
@@ -145,7 +142,7 @@ export const actionsRouter = createTRPCRouter({
           });
         }
 
-        const template = await db.$transaction(async (tx) => {
+        const template = await db.$transaction(async tx => {
           // Create the template
           const newTemplate = await tx.actionTemplate.create({
             data: {
@@ -248,7 +245,7 @@ export const actionsRouter = createTRPCRouter({
           }
         }
 
-        const updatedTemplate = await db.$transaction(async (tx) => {
+        const updatedTemplate = await db.$transaction(async tx => {
           // Update the template
           const template = await tx.actionTemplate.update({
             where: { id: templateId },
@@ -261,7 +258,8 @@ export const actionsRouter = createTRPCRouter({
                 template: updateData.template as Prisma.InputJsonValue,
               }),
               ...(updateData.defaultConfig && {
-                defaultConfig: updateData.defaultConfig as Prisma.InputJsonValue,
+                defaultConfig:
+                  updateData.defaultConfig as Prisma.InputJsonValue,
               }),
               ...(updateData.schema && {
                 schema: updateData.schema as Prisma.InputJsonValue,
@@ -273,10 +271,12 @@ export const actionsRouter = createTRPCRouter({
                 isActive: updateData.isActive,
               }),
               ...(updateData.requiredVariables && {
-                requiredVariables: updateData.requiredVariables as Prisma.InputJsonValue,
+                requiredVariables:
+                  updateData.requiredVariables as Prisma.InputJsonValue,
               }),
               ...(updateData.optionalVariables && {
-                optionalVariables: updateData.optionalVariables as Prisma.InputJsonValue,
+                optionalVariables:
+                  updateData.optionalVariables as Prisma.InputJsonValue,
               }),
             },
           });
@@ -290,8 +290,11 @@ export const actionsRouter = createTRPCRouter({
             });
 
             // Create new version
-            const versionNumber = `${existingTemplate.version.split('.').map((n, i) => i === 2 ? String(parseInt(n) + 1) : n).join('.')}`;
-            
+            const versionNumber = `${existingTemplate.version
+              .split(".")
+              .map((n, i) => (i === 2 ? String(parseInt(n) + 1) : n))
+              .join(".")}`;
+
             await tx.actionTemplateVersion.create({
               data: {
                 templateId,
@@ -390,10 +393,7 @@ export const actionsRouter = createTRPCRouter({
         const template = await db.actionTemplate.findFirst({
           where: {
             id: input.templateId,
-            OR: [
-              { organizationId: input.organizationId },
-              { isPublic: true },
-            ],
+            OR: [{ organizationId: input.organizationId }, { isPublic: true }],
           },
         });
 
