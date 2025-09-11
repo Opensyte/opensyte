@@ -1353,6 +1353,11 @@ model WorkflowNode {
   executions     NodeExecution[]
   dependencies   NodeDependency[]    @relation("DependentNode")
   dependents     NodeDependency[]    @relation("PrerequisiteNode")
+  emailActions   EmailAction[]       @relation("EmailActions")
+  smsActions     SmsAction[]         @relation("SmsActions")
+  whatsAppActions WhatsAppAction[]   @relation("WhatsAppActions")
+  slackActions   SlackAction[]       @relation("SlackActions")
+  calendarActions CalendarAction[]   @relation("CalendarActions")
 
   @@index([workflowId])
   @@index([type])
@@ -1842,6 +1847,9 @@ model EmailAction {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  // Relations
+  node             WorkflowNode @relation("EmailActions", fields: [nodeId], references: [id], onDelete: Cascade)
+
   @@index([nodeId])
   @@index([integrationId])
 }
@@ -1870,6 +1878,9 @@ model SmsAction {
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  // Relations
+  node             WorkflowNode @relation("SmsActions", fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@index([nodeId])
   @@index([integrationId])
@@ -1905,6 +1916,9 @@ model WhatsAppAction {
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  // Relations
+  node             WorkflowNode @relation("WhatsAppActions", fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@index([nodeId])
   @@index([integrationId])
@@ -1954,6 +1968,9 @@ model SlackAction {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  // Relations
+  node             WorkflowNode @relation("SlackActions", fields: [nodeId], references: [id], onDelete: Cascade)
+
   @@index([nodeId])
   @@index([integrationId])
 }
@@ -1994,6 +2011,9 @@ model CalendarAction {
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  // Relations
+  node             WorkflowNode @relation("CalendarActions", fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@index([nodeId])
   @@index([integrationId])

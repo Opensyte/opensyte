@@ -36,6 +36,11 @@ export const PERMISSIONS = {
   SETTINGS_WRITE: "settings:write",
   SETTINGS_ADMIN: "settings:admin",
 
+  // Workflow permissions
+  WORKFLOWS_READ: "workflows:read",
+  WORKFLOWS_WRITE: "workflows:write",
+  WORKFLOWS_ADMIN: "workflows:admin",
+
   // Organization permissions
   ORG_ADMIN: "organization:admin",
   ORG_BILLING: "organization:billing",
@@ -98,6 +103,7 @@ export function getPermissionMetadata(permissionName: string) {
       projects: "Projects",
       collaboration: "Collaboration",
       marketing: "Marketing",
+      workflows: "Workflows",
       settings: "Settings",
       organization: "Organization",
       billing: "Billing",
@@ -145,6 +151,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.PROJECTS_ADMIN,
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_ADMIN,
+    PERMISSIONS.WORKFLOWS_ADMIN,
     PERMISSIONS.SETTINGS_ADMIN,
     PERMISSIONS.ORG_ADMIN,
     PERMISSIONS.ORG_BILLING,
@@ -161,6 +168,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.PROJECTS_ADMIN,
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_ADMIN,
+    PERMISSIONS.WORKFLOWS_ADMIN,
     PERMISSIONS.SETTINGS_ADMIN,
     PERMISSIONS.ORG_MEMBERS,
   ],
@@ -172,6 +180,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.PROJECTS_WRITE,
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_READ,
+    PERMISSIONS.WORKFLOWS_WRITE,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -182,6 +191,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.FINANCE_READ, // Read access to payroll
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
+    PERMISSIONS.WORKFLOWS_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -191,6 +201,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_READ,
     PERMISSIONS.FINANCE_READ,
+    PERMISSIONS.WORKFLOWS_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -200,6 +211,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.CRM_READ,
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
+    PERMISSIONS.WORKFLOWS_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -208,6 +220,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.CRM_READ, // Limited CRM access
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.HR_READ,
+    PERMISSIONS.WORKFLOWS_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -217,6 +230,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.HR_READ, // Own HR data only
+    PERMISSIONS.WORKFLOWS_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -233,6 +247,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.FINANCE_READ,
     PERMISSIONS.HR_READ,
     PERMISSIONS.MARKETING_READ,
+    PERMISSIONS.WORKFLOWS_READ,
   ],
 };
 
@@ -377,6 +392,7 @@ export function getNavPermissions(userRole: UserRole) {
     canViewHR: canAccessModule(userRole, "hr"),
     canViewMarketing: canAccessModule(userRole, "marketing"),
     canViewCollaboration: canAccessModule(userRole, "collaboration"),
+    canViewWorkflows: canAccessModule(userRole, "workflows"),
     canViewSettings: canAccessModule(userRole, "settings"),
 
     canWriteCRM:
@@ -398,6 +414,9 @@ export function getNavPermissions(userRole: UserRole) {
       userRole,
       PERMISSIONS.COLLABORATION_WRITE
     ),
+    canWriteWorkflows:
+      hasPermission(userRole, PERMISSIONS.WORKFLOWS_WRITE) ||
+      hasPermission(userRole, PERMISSIONS.WORKFLOWS_ADMIN),
     canWriteSettings:
       hasPermission(userRole, PERMISSIONS.SETTINGS_WRITE) ||
       hasPermission(userRole, PERMISSIONS.SETTINGS_ADMIN),
@@ -510,7 +529,14 @@ export function requireAnyPermission(
 // Check if user can write to a specific module
 export function canWriteToModule(
   userRole: UserRole,
-  module: "crm" | "hr" | "finance" | "projects" | "marketing" | "settings"
+  module:
+    | "crm"
+    | "hr"
+    | "finance"
+    | "projects"
+    | "marketing"
+    | "workflows"
+    | "settings"
 ): boolean {
   const writePermission = `${module}:write`;
   const adminPermission = `${module}:admin`;
@@ -528,7 +554,14 @@ export function canWriteToModule(
  */
 export function canReadFromModule(
   userRole: UserRole,
-  module: "crm" | "hr" | "finance" | "projects" | "marketing" | "settings"
+  module:
+    | "crm"
+    | "hr"
+    | "finance"
+    | "projects"
+    | "marketing"
+    | "workflows"
+    | "settings"
 ): boolean {
   const readPermission = `${module}:read`;
   const writePermission = `${module}:write`;
