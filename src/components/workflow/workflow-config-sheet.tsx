@@ -56,6 +56,8 @@ import {
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { toast } from "sonner";
+import { api } from "~/trpc/react";
 
 interface WorkflowConfigSheetProps {
   open: boolean;
@@ -68,9 +70,14 @@ interface WorkflowConfigSheetProps {
     status: string;
   };
   onNodeUpdate: (nodeId: string, data: Record<string, unknown>) => void;
+  organizationId: string;
 }
 
+import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
+import { PERMISSIONS } from "~/lib/rbac";
+
 interface FormData {
+  name: string;
   category: string;
   triggerType: string;
   actionType: string;
@@ -301,53 +308,55 @@ function RichTextEditor({
   );
 }
 
-// Dummy data for templates and variables
-const actionTemplates = [
-  {
-    id: 1,
-    name: "Welcome Email",
-    category: "Welcome",
-    templateBody: "Hello {USER_NAME}, welcome!",
-  },
-  {
-    id: 2,
-    name: "Signup SMS",
-    category: "Notification",
-    templateBody: "Hi {USER_NAME}, thanks for signing up!",
-  },
-  {
-    id: 3,
-    name: "Deal Closed Email",
-    category: "Alert",
-    templateBody: "Your deal {DEAL_ID} is complete.",
-  },
-];
-
+// Template variables - these should come from the API eventually
 const templateVariables = [
   {
     id: 1,
+    name: "USER_NAME",
+    description: "Name of the user",
     variableName: "USER_NAME",
-    category: "User",
+    category: "user",
     sampleValue: "John Doe",
   },
   {
     id: 2,
+    name: "USER_EMAIL",
+    description: "Email of the user",
     variableName: "USER_EMAIL",
-    category: "User",
+    category: "user",
     sampleValue: "john@example.com",
   },
-  { id: 3, variableName: "DEAL_ID", category: "CRM", sampleValue: "DEAL-001" },
+  {
+    id: 3,
+    name: "DEAL_ID",
+    description: "ID of the deal",
+    variableName: "DEAL_ID",
+    category: "deal",
+    sampleValue: "DEAL123",
+  },
   {
     id: 4,
-    variableName: "COMPANY_NAME",
-    category: "Organization",
-    sampleValue: "Acme Corp",
+    name: "DEAL_NAME",
+    description: "Name of the deal",
+    variableName: "DEAL_NAME",
+    category: "deal",
+    sampleValue: "Big Sale",
   },
   {
     id: 5,
-    variableName: "CURRENT_DATE",
-    category: "System",
-    sampleValue: "2025-09-10",
+    name: "CUSTOMER_NAME",
+    description: "Name of the customer",
+    variableName: "CUSTOMER_NAME",
+    category: "customer",
+    sampleValue: "Acme Corp",
+  },
+  {
+    id: 6,
+    name: "ORGANIZATION_NAME",
+    description: "Name of the organization",
+    variableName: "ORGANIZATION_NAME",
+    category: "organization",
+    sampleValue: "My Company",
   },
 ];
 
@@ -357,10 +366,58 @@ export function WorkflowConfigSheet({
   selectedNode,
   workflow,
   onNodeUpdate,
+  organizationId,
 }: WorkflowConfigSheetProps) {
+  const utils = api.useUtils();
   const [triggerConfigOpen, setTriggerConfigOpen] = useState(true);
   const [actionConfigOpen, setActionConfigOpen] = useState(true);
   const [variablesOpen, setVariablesOpen] = useState(false);
+
+  // API queries
+  const { data: actionTemplates, isLoading: isLoadingTemplates } =
+    api.workflows.actions.getActionTemplates.useQuery(
+      { organizationId },
+      { enabled: !!organizationId && open }
+    );
+
+  // API queries (triggers for future use)
+  // const { data: workflowTriggers } =
+  //   api.workflows.triggers.getTriggers.useQuery(
+  //     {
+  //       workflowId: workflow?.id ? workflow.id.toString() : '',
+  //       organizationId
+  //     },
+  //     { enabled: !!workflow?.id && !!organizationId && open }
+  //   );
+
+  // Mutations
+  const createEmailActionMutation =
+    api.workflows.actionSystem.createEmailAction.useMutation({
+      onSuccess: () => {
+        toast.success("Email action created successfully");
+        onOpenChange(false);
+        void utils.workflows.nodes.getNodes.invalidate();
+      },
+      onError: err => {
+        toast.error("Failed to create email action", {
+          description: err.message,
+        });
+      },
+    });
+
+  const createSmsActionMutation =
+    api.workflows.actionSystem.createSmsAction.useMutation({
+      onSuccess: () => {
+        toast.success("SMS action created successfully");
+        onOpenChange(false);
+        void utils.workflows.nodes.getNodes.invalidate();
+      },
+      onError: (err: { message: string }) => {
+        toast.error("Failed to create SMS action", {
+          description: err.message,
+        });
+      },
+    });
 
   const emailBodyEditorRef = React.useRef<{
     insertVariable: (variableName: string) => void;
@@ -369,8 +426,9 @@ export function WorkflowConfigSheet({
     insertVariable: (variableName: string) => void;
   } | null>(null);
 
-  const form = useForm({
+  const form = useForm<FormData>({
     defaultValues: {
+      name: "",
       category: "",
       triggerType: "",
       actionType: "",
@@ -390,6 +448,7 @@ export function WorkflowConfigSheet({
     if (selectedNode) {
       const nodeData = selectedNode.data;
       form.reset({
+        name: (nodeData.name as string) ?? (nodeData.label as string) ?? "",
         category: (nodeData.category as string) ?? "",
         triggerType: (nodeData.triggerType as string) ?? "",
         actionType: (nodeData.actionType as string) ?? "",
@@ -406,17 +465,52 @@ export function WorkflowConfigSheet({
     }
   }, [selectedNode, workflow, form]);
 
-  const onSubmit = (data: FormData) => {
-    if (selectedNode) {
+  const onSubmit = async (data: FormData) => {
+    if (!selectedNode) return;
+
+    try {
+      // Update node data optimistically
       onNodeUpdate(selectedNode.id, {
         ...data,
-        label:
-          selectedNode.type === "trigger"
-            ? `${data.category} - ${data.triggerType}`
-            : selectedNode.type === "action"
-              ? `${data.actionType} - ${actionTemplates.find(t => t.id.toString() === data.templateId)?.name ?? "Action"}`
-              : selectedNode.data.label,
+        name: data.name,
+        label: data.name, // Keep label in sync with name for backward compatibility
       });
+
+      // Handle action creation based on type
+      if (selectedNode.type === "action" && selectedNode.data?.nodeId) {
+        const nodeId = selectedNode.data.nodeId as string;
+
+        switch (data.actionType) {
+          case "email":
+            await createEmailActionMutation.mutateAsync({
+              nodeId,
+              organizationId,
+              subject: data.emailSubject,
+              htmlBody: data.emailBody,
+              toEmails: ["placeholder@example.com"], // This should come from form
+              trackOpens: true,
+              trackClicks: true,
+            });
+            break;
+
+          case "sms":
+            await createSmsActionMutation.mutateAsync({
+              nodeId,
+              organizationId,
+              message: data.smsBody,
+              toNumbers: ["+1234567890"], // This should come from form
+            });
+            break;
+
+          default:
+            toast.info("Action type configuration not yet implemented");
+        }
+      }
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("Failed to save configuration");
     }
   };
 
@@ -468,6 +562,39 @@ export function WorkflowConfigSheet({
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-6"
               >
+                {/* Node Name Configuration */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      Node Configuration
+                    </CardTitle>
+                    <CardDescription>
+                      Basic settings for this {selectedNode?.type}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={`Enter ${selectedNode?.type} name`}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            A descriptive name for this {selectedNode?.type}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
                 {/* Trigger Configuration */}
                 {selectedNode?.type === "trigger" && (
                   <Card>
@@ -671,14 +798,21 @@ export function WorkflowConfigSheet({
                                 <Select
                                   onValueChange={field.onChange}
                                   defaultValue={field.value}
+                                  disabled={isLoadingTemplates}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
-                                      <SelectValue placeholder="Select a template" />
+                                      <SelectValue
+                                        placeholder={
+                                          isLoadingTemplates
+                                            ? "Loading templates..."
+                                            : "Select a template"
+                                        }
+                                      />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {actionTemplates.map(template => (
+                                    {actionTemplates?.map(template => (
                                       <SelectItem
                                         key={template.id}
                                         value={template.id.toString()}
@@ -693,7 +827,7 @@ export function WorkflowConfigSheet({
                                           </Badge>
                                         </div>
                                       </SelectItem>
-                                    ))}
+                                    )) ?? []}
                                   </SelectContent>
                                 </Select>
                                 <FormDescription>
@@ -864,7 +998,23 @@ export function WorkflowConfigSheet({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">Save Configuration</Button>
+                  <ClientPermissionGuard
+                    requiredAnyPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
+                  >
+                    <Button
+                      type="submit"
+                      disabled={
+                        createEmailActionMutation.isPending ||
+                        createSmsActionMutation.isPending
+                      }
+                    >
+                      {(createEmailActionMutation.isPending ||
+                        createSmsActionMutation.isPending) && (
+                        <span className="mr-2">⏳</span>
+                      )}
+                      Save Configuration
+                    </Button>
+                  </ClientPermissionGuard>
                 </div>
               </form>
             </Form>
