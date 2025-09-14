@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { type Node } from "@xyflow/react";
+// skipToken removed; we will use enabled flag only
+import type { WorkflowCanvasNode } from "~/hooks/use-workflow-canvas";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import BulletList from "@tiptap/extension-bullet-list";
@@ -79,9 +80,9 @@ type ActionTemplateSummary = {
 };
 
 interface WorkflowConfigSheetProps {
-  open: boolean;
+  isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedNode: Node | null;
+  selectedNode: WorkflowCanvasNode | null;
   workflow?: {
     id: string;
     name: string;
@@ -90,6 +91,7 @@ interface WorkflowConfigSheetProps {
   };
   onNodeUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   organizationId: string;
+  ensureNodeExists: (nodeId: string) => Promise<string>;
 }
 
 import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
@@ -584,12 +586,13 @@ const templateVariables = [
 ];
 
 export function WorkflowConfigSheet({
-  open,
+  isOpen,
   onOpenChange,
   selectedNode,
   workflow,
   onNodeUpdate,
   organizationId,
+  ensureNodeExists,
 }: WorkflowConfigSheetProps) {
   const utils = api.useUtils();
   const [triggerConfigOpen, setTriggerConfigOpen] = useState(true);
@@ -621,19 +624,20 @@ export function WorkflowConfigSheet({
   const { data: actionTemplates, isLoading: isLoadingTemplates } =
     api.workflows.actions.getActionTemplates.useQuery(
       { organizationId },
-      { enabled: !!organizationId && open }
+      { enabled: !!organizationId && isOpen }
     );
 
   // Fetch full template details when a template is selected
   const selectedTemplateId = (form.watch("templateId") ?? "").trim();
   const templateDetailsQuery = api.workflows.actions.getActionTemplate.useQuery(
     { templateId: selectedTemplateId, organizationId },
-    { enabled: open && !!organizationId && !!selectedTemplateId }
+    { enabled: isOpen && !!organizationId && !!selectedTemplateId }
   );
 
   const [isTemplateLocked, setIsTemplateLocked] = useState<boolean>(false);
 
-  // API queries for trigger data
+  // API queries for trigger data using ReactFlow node ID
+  const rfNodeId = selectedNode?.id ?? "";
   const {
     data: nodeTrigger,
     refetch: refetchTrigger,
@@ -642,15 +646,15 @@ export function WorkflowConfigSheet({
     {
       workflowId: workflow?.id ?? "",
       organizationId,
-      nodeId: selectedNode?.id ?? "",
+      nodeId: rfNodeId,
     },
     {
       enabled:
         !!workflow?.id &&
         !!organizationId &&
-        !!selectedNode?.id &&
+        !!rfNodeId &&
         selectedNode?.type === "trigger" &&
-        open,
+        isOpen,
       refetchOnWindowFocus: false,
     }
   );
@@ -710,7 +714,7 @@ export function WorkflowConfigSheet({
 
   // When a template is selected, if locked and of matching action type, set content and lock editors
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     const currentActionType = form.getValues("actionType");
     if (!currentActionType) return;
 
@@ -759,7 +763,7 @@ export function WorkflowConfigSheet({
       }
     }
   }, [
-    open,
+    isOpen,
     selectedTemplateId,
     templateDetailsQuery.data,
     actionTemplates,
@@ -767,42 +771,35 @@ export function WorkflowConfigSheet({
   ]);
 
   // Fetch existing actions for action nodes to repopulate
-  const actionIdForActions =
-    selectedNode?.type === "action"
-      ? (selectedNode.data?.nodeId as string | undefined) // React Flow node.id maps to WorkflowNode.id (actionId)
-      : undefined;
+  const actionIdForActions = selectedNode?.data.dbId ?? "";
   const {
     data: existingActions,
     refetch: refetchActions,
     isFetching: isFetchingActions,
   } = api.workflows.actionSystem.getNodeActions.useQuery(
-    { actionId: actionIdForActions ?? "", organizationId },
+    { actionId: actionIdForActions, organizationId },
     {
+      // Only fetch for action nodes that have been persisted
       enabled:
-        open &&
-        !!organizationId &&
-        !!actionIdForActions &&
-        /^[a-z0-9]{25}$/i.test(actionIdForActions),
+        isOpen && selectedNode?.type === "action" && actionIdForActions !== "",
     }
   );
 
   // Repopulate form when existing action data loads (only if it matches the currently selected node)
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     if (!selectedNode) return;
     if (selectedNode.type !== "action") return;
     if (!existingActions) return;
-    if (existingActions.actionId !== selectedNode.data?.nodeId) return;
+    // Compare actionId to dbId rather than react flow nodeId
+    if (existingActions.actionId !== selectedNode.data?.dbId) return;
 
     const email = existingActions.actions.email[0];
     const sms = existingActions.actions.sms[0];
 
     if (email) {
       form.reset({
-        name:
-          (selectedNode.data?.name as string) ??
-          (selectedNode.data?.label as string) ??
-          "",
+        name: selectedNode.data?.name ?? selectedNode.data?.label ?? "",
         category: "",
         triggerType: "",
         eventType: "",
@@ -815,10 +812,7 @@ export function WorkflowConfigSheet({
       });
     } else if (sms) {
       form.reset({
-        name:
-          (selectedNode.data?.name as string) ??
-          (selectedNode.data?.label as string) ??
-          "",
+        name: selectedNode.data?.name ?? selectedNode.data?.label ?? "",
         category: "",
         triggerType: "",
         eventType: "",
@@ -832,10 +826,7 @@ export function WorkflowConfigSheet({
     } else {
       // No existing actions, set defaults with node name
       form.reset({
-        name:
-          (selectedNode.data?.name as string) ??
-          (selectedNode.data?.label as string) ??
-          "",
+        name: selectedNode.data?.name ?? selectedNode.data?.label ?? "",
         category: "",
         triggerType: "",
         eventType: "",
@@ -847,13 +838,13 @@ export function WorkflowConfigSheet({
         condition: { field: "", operator: "equals", value: "" },
       });
     }
-  }, [open, existingActions, selectedNode, form]);
+  }, [isOpen, existingActions, selectedNode, form]);
 
   // Derive eventType from triggerType + category if missing
   const watchedCategory = form.watch("category");
   const watchedTriggerType = form.watch("triggerType");
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     const category = watchedCategory;
     const triggerType = watchedTriggerType;
     if (!category || !triggerType) return;
@@ -862,11 +853,11 @@ export function WorkflowConfigSheet({
     if (found?.eventType) {
       form.setValue("eventType", found.eventType);
     }
-  }, [open, watchedCategory, watchedTriggerType, form]);
+  }, [isOpen, watchedCategory, watchedTriggerType, form]);
 
   // Repopulate form when trigger data loads (only if it matches the currently selected node)
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     if (!selectedNode || selectedNode.type !== "trigger") return;
     if (!nodeTrigger) return;
     if (nodeTrigger.nodeId && nodeTrigger.nodeId !== selectedNode.id) return;
@@ -889,58 +880,60 @@ export function WorkflowConfigSheet({
       form.setValue("triggerType", nodeTrigger.type);
       form.setValue("eventType", nodeTrigger.eventType);
     }, 0);
-  }, [open, nodeTrigger, selectedNode, form]);
+  }, [isOpen, nodeTrigger, selectedNode, form]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     if (!selectedNode) return;
 
     // Do not override server-fetched values for the current node
-    if (
-      (selectedNode.type === "trigger" && nodeTrigger) ||
-      (selectedNode.type === "action" &&
-        existingActions &&
-        existingActions.actionId ===
-          (selectedNode.data?.nodeId as string | undefined))
-    ) {
+    const hasTriggerData = selectedNode.type === "trigger" && !!nodeTrigger;
+    const hasActionData =
+      selectedNode.type === "action" &&
+      existingActions &&
+      existingActions.actionId === selectedNode.data?.dbId;
+    if (hasTriggerData || hasActionData) {
       return;
     }
 
+    // Use stored config values for initial form
     const nodeData = selectedNode.data ?? {};
-    const category = (nodeData.category as string) ?? "";
-
+    const cfg = nodeData.config ?? {};
     form.reset({
-      name: (nodeData.name as string) ?? (nodeData.label as string) ?? "",
-      category: category,
-      triggerType: (nodeData.triggerType as string) ?? "",
-      eventType: (nodeData.eventType as string) ?? "",
-      actionType: (nodeData.actionType as string) ?? "",
-      templateId: (nodeData.templateId as string) ?? "",
-      emailSubject: (nodeData.emailSubject as string) ?? "",
-      emailBody: (nodeData.emailBody as string) ?? "",
-      smsBody: (nodeData.smsBody as string) ?? "",
-      condition: {
-        field: "",
-        operator: "equals",
-        value: "",
-      },
+      name: nodeData.name ?? nodeData.label ?? "",
+      category: (cfg.module as string) ?? "",
+      triggerType: (cfg.triggerType as string) ?? "",
+      eventType: (cfg.eventType as string) ?? "",
+      actionType: (cfg.actionType as string) ?? "",
+      templateId: (cfg.templateId as string) ?? "",
+      emailSubject: (cfg.emailSubject as string) ?? "",
+      emailBody: (cfg.emailBody as string) ?? "",
+      smsBody: (cfg.smsBody as string) ?? "",
+      condition: { field: "", operator: "equals", value: "" },
     });
-  }, [open, selectedNode, nodeTrigger, existingActions, form]);
+  }, [isOpen, selectedNode, nodeTrigger, existingActions, form]);
 
   // Refetch when sheet opens to ensure fresh data
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     if (selectedNode?.type === "trigger") {
       void refetchTrigger();
     }
-    if (selectedNode?.type === "action") {
+    // Only refetch actions if the node has been persisted (has a database ID)
+    if (selectedNode?.type === "action" && actionIdForActions) {
       void refetchActions();
     }
-  }, [open, selectedNode, refetchTrigger, refetchActions]);
+  }, [
+    isOpen,
+    selectedNode,
+    refetchTrigger,
+    refetchActions,
+    actionIdForActions,
+  ]);
 
   // Clear form immediately when switching nodes to avoid showing previous node's values
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     if (!selectedNode) return;
     form.reset({
       name: "",
@@ -954,12 +947,14 @@ export function WorkflowConfigSheet({
       smsBody: "",
       condition: { field: "", operator: "equals", value: "" },
     });
-  }, [open, selectedNode?.id, form, selectedNode]);
+  }, [isOpen, selectedNode?.id, form, selectedNode]);
 
   const onSubmit = async (data: FormData) => {
     if (!selectedNode) return;
 
     try {
+      // Ensure the node exists in the database before creating triggers/actions
+      await ensureNodeExists(selectedNode.id);
       // Additional validation for action-specific required fields
       if (selectedNode.type === "action") {
         // If template mode is TEMPLATE, content can be omitted (backend enforces)
@@ -1000,21 +995,7 @@ export function WorkflowConfigSheet({
 
       // Handle trigger creation/update
       if (selectedNode.type === "trigger") {
-        // Check if this is a temporary node that needs to be saved first
-        const nodeId = selectedNode.data?.nodeId as string | undefined;
-        const isTemporaryNode =
-          nodeId?.startsWith("action_") ?? nodeId?.startsWith("trigger_");
-
-        if (isTemporaryNode) {
-          toast.error(
-            "Please save the workflow first before configuring triggers",
-            {
-              description:
-                "Click the Save button to save new nodes, then try configuring again",
-            }
-          );
-          return;
-        }
+        // Proceed with trigger creation/update directly
 
         if (!data.category?.trim()) {
           throw new Error("Category is required for triggers");
@@ -1049,24 +1030,15 @@ export function WorkflowConfigSheet({
       }
 
       // Handle action creation based on type
-      if (selectedNode.type === "action" && selectedNode.data?.nodeId) {
-        // Check if this is a temporary node that needs to be saved first
-        const nodeId = selectedNode.data.nodeId as string;
-        const isTemporaryNode =
-          nodeId.startsWith("action_") || nodeId.startsWith("trigger_");
+      if (selectedNode.type === "action") {
+        // Proceed with action creation/update directly
 
-        if (isTemporaryNode) {
-          toast.error(
-            "Please save the workflow first before configuring actions",
-            {
-              description:
-                "Click the Save button to save new nodes, then try configuring again",
-            }
-          );
-          return;
+        // Ensure node exists and get the database ID
+        let actionId = selectedNode.data.dbId;
+        if (!actionId) {
+          // Node hasn't been persisted yet, ensure it exists first
+          actionId = await ensureNodeExists(selectedNode.id);
         }
-
-        const actionId = nodeId; // Use database WorkflowNode.id (CUID)
         const templateMode = data.templateMode ?? "CUSTOM";
         const templateId =
           data.templateId && data.templateId.length > 0
@@ -1122,6 +1094,15 @@ export function WorkflowConfigSheet({
 
   const insertVariable = (variableName: string) => {
     const actionType = form.watch("actionType");
+    const templateMode = form.watch("templateMode");
+
+    // Don't allow variable insertion when using a template
+    if (templateMode === "TEMPLATE") {
+      toast.info("Variables cannot be inserted when using a template", {
+        description: "Switch to Custom mode to insert variables manually",
+      });
+      return;
+    }
 
     if (actionType === "email") {
       emailBodyEditorRef.current?.insertVariable(variableName);
@@ -1140,7 +1121,7 @@ export function WorkflowConfigSheet({
     }) ?? [];
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-hidden p-0 w-full sm:max-w-2xl">
         <ScrollArea className="h-full">
           <div className="p-6 space-y-6">

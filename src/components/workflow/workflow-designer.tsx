@@ -1,20 +1,13 @@
 "use client";
 
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   ReactFlow,
   MiniMap,
   Controls,
   Background,
   BackgroundVariant,
-  useNodesState,
-  useEdgesState,
-  addEdge,
   type Node,
-  type Edge,
-  type Connection,
-  type NodeChange,
-  type EdgeChange,
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -23,7 +16,15 @@ import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Plus, Play, Pause, Save, Loader2, AlertTriangle } from "lucide-react";
+import {
+  Plus,
+  Play,
+  Pause,
+  Save,
+  Loader2,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
 import { TriggerNode } from "./nodes/trigger-node";
 import { ActionNode } from "./nodes/action-node";
 import { WorkflowConfigSheet } from "./workflow-config-sheet";
@@ -31,10 +32,10 @@ import { toast } from "sonner";
 import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
 import { PERMISSIONS } from "~/lib/rbac";
 import { api } from "~/trpc/react";
-
-// Type definitions for internal use
-// type WorkflowType = RouterOutputs["workflows"]["workflow"]["getWorkflow"];
-// type WorkflowNodeType = RouterOutputs["workflows"]["nodes"]["getNodes"][0];
+import {
+  useWorkflowCanvas,
+  type WorkflowCanvasNode,
+} from "~/hooks/use-workflow-canvas";
 
 // Custom node types with delete handler
 const createNodeTypes = (onDeleteNode: (nodeId: string) => void) => ({
@@ -55,9 +56,10 @@ export function WorkflowDesigner({
   organizationId,
   workflowId: _workflowId,
 }: WorkflowDesignerProps) {
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const utils = api.useUtils();
 
-  // Get workflow data
+  // Get workflow data for status and metadata
   const {
     data: workflow,
     isLoading: isLoadingWorkflow,
@@ -72,933 +74,338 @@ export function WorkflowDesigner({
     }
   );
 
-  // Get workflow nodes
-  const { data: workflowNodes, isLoading: isLoadingNodes } =
-    api.workflows.nodes.getNodes.useQuery(
-      {
-        workflowId: _workflowId!,
-        organizationId,
-      },
-      {
-        enabled: !!_workflowId && !!organizationId,
-      }
-    );
+  // Use the new canvas hook
+  const {
+    nodes,
+    edges,
+    selectedNode,
+    hasUnsavedChanges,
+    error: canvasError,
+    lastSaveTime,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onNodeClick,
+    saveCanvas,
+    ensureNodeExists,
+    addNode,
+    updateNode,
+    deleteNode,
+    setSelectedNode,
+  } = useWorkflowCanvas({
+    workflowId: _workflowId ?? "",
+    organizationId,
+    autoSaveDelay: 1000, // 1 second auto-save delay
+  });
 
-  // Convert workflow nodes to React Flow nodes
-  const convertedNodes = useMemo(() => {
-    if (!workflowNodes) return [];
-
-    return workflowNodes.map(
-      (node): Node => ({
-        id: node.nodeId,
-        type: node.type.toLowerCase(),
-        position: (node.position as { x: number; y: number }) || { x: 0, y: 0 },
-        data: {
-          label: node.name,
-          name: node.name,
-          workflowId: _workflowId,
-          nodeId: node.id,
-          type: node.type,
-          config: node.config,
-          template: node.template,
-          conditions: node.conditions,
-          description: node.description,
-          // Add triggerType and actionType for badge display
-          ...(node.type === "TRIGGER" && {
-            triggerType:
-              ((node.config as Record<string, unknown>)
-                ?.triggerType as string) ?? "CONTACT_CREATED",
-            module:
-              ((node.config as Record<string, unknown>)?.module as string) ??
-              "CRM",
-          }),
-          ...(node.type === "ACTION" && {
-            actionType:
-              ((node.config as Record<string, unknown>)
-                ?.actionType as string) ?? "email",
-          }),
-        },
-      })
-    );
-  }, [workflowNodes, _workflowId]);
-
-  // Convert workflow connections to React Flow edges
-  const convertedEdges = useMemo(() => {
-    if (!workflow?.connections || !workflowNodes) return [];
-
-    return workflow.connections
-      .map((connection): Edge | null => {
-        // Find the source and target nodes by their database IDs
-        const sourceNode = workflowNodes.find(
-          n => n.id === connection.sourceNodeId
-        );
-        const targetNode = workflowNodes.find(
-          n => n.id === connection.targetNodeId
-        );
-
-        if (!sourceNode || !targetNode) {
-          console.warn(
-            `Connection ${connection.id} has invalid node references`
-          );
-          return null;
-        }
-
-        return {
-          id: connection.edgeId ?? connection.id,
-          source: sourceNode.nodeId, // React Flow node ID
-          target: targetNode.nodeId, // React Flow node ID
-          sourceHandle: connection.sourceHandle ?? undefined,
-          targetHandle: connection.targetHandle ?? undefined,
-          type: "default",
-          label: connection.label ?? undefined,
-          animated: connection.animated ?? false,
-          style: (connection.style as Record<string, unknown>) ?? undefined,
-          data: {
-            conditions: connection.conditions,
-            executionOrder: connection.executionOrder,
-            connectionId: connection.id,
-          },
-        };
-      })
-      .filter((edge): edge is Edge => edge !== null);
-  }, [workflow?.connections, workflowNodes]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(convertedNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(convertedEdges);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [pendingNodeDeletions, setPendingNodeDeletions] = useState<Set<string>>(
-    new Set()
-  );
-  const [pendingEdgeDeletions, setPendingEdgeDeletions] = useState<Set<string>>(
-    new Set()
-  );
-  const [pendingNodeCreations, setPendingNodeCreations] = useState<Set<string>>(
-    new Set()
-  );
-
-  // Update nodes when workflow data changes
-  useEffect(() => {
-    if (convertedNodes.length > 0) {
-      setNodes(convertedNodes);
-      setHasUnsavedChanges(false);
-    }
-  }, [convertedNodes, setNodes]);
-
-  // Update edges when workflow data changes
-  useEffect(() => {
-    if (convertedEdges.length > 0) {
-      setEdges(convertedEdges);
-      setHasUnsavedChanges(false);
-    }
-  }, [convertedEdges, setEdges]);
-
-  // Mutations
+  // Workflow status update mutation
   const updateWorkflowMutation =
     api.workflows.workflow.updateWorkflow.useMutation({
       onSuccess: () => {
-        setHasUnsavedChanges(false);
+        toast.success("Workflow status updated successfully");
         void utils.workflows.workflow.getWorkflow.invalidate();
       },
       onError: err => {
-        toast.error("Failed to update workflow", {
+        toast.error("Failed to update workflow status", {
           description: err.message,
         });
       },
     });
 
-  const createNodeMutation = api.workflows.nodes.createNode.useMutation({
-    onSuccess: () => {
-      void utils.workflows.nodes.getNodes.invalidate();
-    },
-    onError: err => {
-      toast.error("Failed to create node", {
-        description: err.message,
+  // Toggle workflow status handler
+  const toggleWorkflowStatus = useCallback(
+    (workflowId: string, currentStatus: string) => {
+      const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+      updateWorkflowMutation.mutate({
+        id: workflowId,
+        organizationId,
+        status: newStatus,
       });
     },
-  });
-
-  const updateNodeMutation = api.workflows.nodes.updateNode.useMutation({
-    onSuccess: () => {
-      void utils.workflows.nodes.getNodes.invalidate();
-    },
-    onError: err => {
-      toast.error("Failed to update node", {
-        description: err.message,
-      });
-    },
-  });
-
-  const deleteNodeMutation = api.workflows.nodes.deleteNode.useMutation({
-    onSuccess: () => {
-      void utils.workflows.nodes.getNodes.invalidate();
-    },
-    onError: err => {
-      toast.error("Failed to delete node", {
-        description: err.message,
-      });
-    },
-  });
-
-  const syncConnectionsMutation =
-    api.workflows.connections.syncConnections.useMutation({
-      onSuccess: () => {
-        void utils.workflows.workflow.getWorkflow.invalidate();
-      },
-      onError: err => {
-        toast.error("Failed to sync connections", {
-          description: err.message,
-        });
-      },
-    });
-
-  const onConnect = useCallback(
-    (params: Connection | Edge) => {
-      if (!_workflowId) return;
-
-      // Connection validation: only allow trigger→action and action→action
-      const sourceNode = nodes.find(n => n.id === params.source);
-      const targetNode = nodes.find(n => n.id === params.target);
-
-      if (sourceNode && targetNode) {
-        const validConnections = [
-          sourceNode.type === "trigger" && targetNode.type === "action",
-          sourceNode.type === "action" && targetNode.type === "action",
-          sourceNode.type === "condition" && targetNode.type === "action",
-          sourceNode.type === "action" && targetNode.type === "condition",
-        ];
-
-        if (validConnections.some(v => v)) {
-          const edgeId = `edge_${params.source}_${params.target}_${Date.now()}`;
-          const newEdge = {
-            ...params,
-            id: edgeId,
-          };
-
-          // Add edge to UI immediately
-          setEdges(eds => addEdge(newEdge, eds));
-          setHasUnsavedChanges(true);
-
-          // Note: Connection will be saved to database when user clicks Save button
-        } else {
-          toast.error("Invalid connection", {
-            description: "This connection type is not allowed",
-          });
-        }
-      }
-    },
-    [setEdges, nodes, _workflowId]
+    [updateWorkflowMutation, organizationId]
   );
 
-  // Handle node changes (position, etc.) without auto-saving
-  const handleNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      onNodesChange(changes);
-      // Mark as having unsaved changes when nodes are moved
-      const hasPositionChange = changes.some(
-        change =>
-          change.type === "position" &&
-          "dragging" in change &&
-          change.dragging === false
-      );
-      if (hasPositionChange) {
-        setHasUnsavedChanges(true);
-      }
-    },
-    [onNodesChange]
-  );
-
-  // Handle edge changes without auto-saving
-  const handleEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      onEdgesChange(changes);
-      // Mark as having unsaved changes when edges are modified
-      if (changes.length > 0) {
-        // Track removed edges for pending deletion
-        const removedEdges = changes.filter(change => change.type === "remove");
-        if (removedEdges.length > 0) {
-          setPendingEdgeDeletions(prev => {
-            const newSet = new Set(prev);
-            removedEdges.forEach(change => {
-              if ("id" in change) {
-                newSet.add(change.id);
-              }
-            });
-            return newSet;
-          });
-        }
-        setHasUnsavedChanges(true);
-      }
-    },
-    [onEdgesChange, setPendingEdgeDeletions]
-  );
-
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
-    setIsConfigOpen(true);
-  }, []);
-
-  const addNewNode = useCallback(
-    (type: "trigger" | "action") => {
-      if (!_workflowId) return;
-
-      const newNodeId = `${type}_${Date.now()}`;
-      const newNode: Node = {
-        id: newNodeId,
-        type,
-        position: {
-          x: Math.random() * 400 + 100,
-          y: Math.random() * 200 + 100,
-        },
-        data: {
-          label: `New ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-          name: `New ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-          workflowId: _workflowId,
-          nodeId: newNodeId,
-          type: type.toUpperCase(),
-          ...(type === "trigger" && {
-            module: "CRM",
-            triggerType: "CONTACT_CREATED", // Use valid enum value
-          }),
-          ...(type === "action" && {
-            actionType: "email",
-          }),
-        },
-      };
-
-      // Optimistically add to UI
-      setNodes(nds => nds.concat(newNode));
-      setHasUnsavedChanges(true);
-
-      // Track pending creation
-      setPendingNodeCreations(prev => new Set(prev).add(newNodeId));
-
-      // Note: Node will be saved to database when user clicks Save button
-    },
-    [_workflowId, setNodes, setPendingNodeCreations]
-  );
-  const toggleWorkflowStatus = useCallback(() => {
-    if (!workflow) return;
-
-    const newStatus = workflow.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-
-    updateWorkflowMutation.mutate({
-      id: workflow.id,
-      organizationId,
-      status: newStatus,
-    });
-  }, [workflow, organizationId, updateWorkflowMutation]);
-
-  const onNodesDelete = useCallback(
-    (deletedNodes: Node[]) => {
-      const deletedNodeIds = deletedNodes.map(node => node.id);
-
-      // Mark nodes for deletion (don't delete from database yet)
-      setPendingNodeDeletions(prev => {
-        const newSet = new Set(prev);
-        deletedNodeIds.forEach(id => newSet.add(id));
-        return newSet;
-      });
-
-      // Mark connected edges for deletion
-      const connectedEdges = edges.filter(
-        edge =>
-          deletedNodeIds.includes(edge.source) ||
-          deletedNodeIds.includes(edge.target)
-      );
-
-      setPendingEdgeDeletions(prev => {
-        const newSet = new Set(prev);
-        connectedEdges.forEach(edge => newSet.add(edge.id));
-        return newSet;
-      });
-
-      // Remove from UI immediately
-      setEdges(eds =>
-        eds.filter(
-          edge =>
-            !deletedNodeIds.includes(edge.source) &&
-            !deletedNodeIds.includes(edge.target)
-        )
-      );
-      setHasUnsavedChanges(true);
-    },
-    [setEdges, edges, setPendingEdgeDeletions, setPendingNodeDeletions]
-  );
-
-  // Local delete handler that only removes from UI
-  const handleLocalNodeDelete = useCallback(
-    (nodeId: string) => {
-      const nodeToDelete = nodes.find(n => n.id === nodeId);
-      if (nodeToDelete) {
-        // Mark for deletion locally
-        setPendingNodeDeletions(prev => new Set(prev).add(nodeId));
-
-        // Find and mark connected edges for deletion
-        const connectedEdges = edges.filter(
-          edge => edge.source === nodeId || edge.target === nodeId
-        );
-
-        setPendingEdgeDeletions(prev => {
-          const newSet = new Set(prev);
-          connectedEdges.forEach(edge => newSet.add(edge.id));
-          return newSet;
-        });
-
-        // Remove from UI
-        setNodes(nds => nds.filter(n => n.id !== nodeId));
-        setEdges(eds =>
-          eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId)
-        );
-        setHasUnsavedChanges(true);
-      }
-    },
-    [
-      nodes,
-      edges,
-      setNodes,
-      setEdges,
-      setPendingEdgeDeletions,
-      setPendingNodeDeletions,
-    ]
-  );
-
-  // Create node types with local delete handler
-  const nodeTypes = useMemo(
-    () => createNodeTypes(handleLocalNodeDelete),
-    [handleLocalNodeDelete]
-  );
-
-  const handleNodeUpdate = useCallback(
-    (nodeId: string, data: Record<string, unknown>) => {
-      setNodes(nds =>
-        nds.map(node =>
-          node.id === nodeId
-            ? { ...node, data: { ...node.data, ...data } }
-            : node
-        )
-      );
-      setHasUnsavedChanges(true);
-
-      // Find the node and update it in the database
-      const node = nodes.find(n => n.id === nodeId);
-      if (node?.data?.nodeId && typeof node.data.nodeId === "string") {
-        const currentDataNodeId = node.data.nodeId;
-        const isValidCuid = /^[a-z0-9]{25}$/.test(currentDataNodeId);
-
-        // If this is a temporary node (non-CUID), persist it first, then update
-        if (!isValidCuid) {
-          void (async () => {
-            try {
-              const createdNode = await createNodeMutation.mutateAsync({
-                workflowId: _workflowId!,
-                organizationId,
-                nodeId: node.id, // React Flow node ID stored as nodeId in DB
-                type: (node.data.type as string).toUpperCase() as
-                  | "TRIGGER"
-                  | "ACTION",
-                name:
-                  (data.name as string) ??
-                  (data.label as string) ??
-                  (node.data.name as string) ??
-                  (node.data.label as string),
-                position: node.position,
-                config: {
-                  ...(node.data.type === "TRIGGER" && {
-                    triggerType: node.data.triggerType ?? "CONTACT_CREATED",
-                    module: node.data.module ?? "CRM",
-                  }),
-                  ...(node.data.type === "ACTION" && {
-                    actionType: node.data.actionType ?? "email",
-                  }),
-                },
-                template: {},
-              });
-
-              // Update local state with the new DB ID for subsequent operations
-              setNodes(currentNodes =>
-                currentNodes.map(n =>
-                  n.id === node.id
-                    ? {
-                        ...n,
-                        data: {
-                          ...n.data,
-                          nodeId: createdNode.id,
-                        },
-                      }
-                    : n
-                )
-              );
-
-              // Now perform the update using the new DB node ID
-              updateNodeMutation.mutate({
-                id: createdNode.id,
-                organizationId,
-                name: (data.label as string) ?? (node.data.label as string),
-                config:
-                  (data.config as Record<string, unknown>) ??
-                  (node.data.config as Record<string, unknown>) ??
-                  ({} as Record<string, unknown>),
-                template:
-                  (data.template as Record<string, unknown>) ??
-                  (node.data.template as Record<string, unknown>) ??
-                  ({} as Record<string, unknown>),
-                conditions:
-                  (data.conditions as Record<string, unknown>) ??
-                  (node.data.conditions as Record<string, unknown>) ??
-                  ({} as Record<string, unknown>),
-              });
-            } catch (err) {
-              toast.error("Failed to persist node before update", {
-                description:
-                  err instanceof Error ? err.message : "Unknown error",
-              });
-            }
-          })();
-          return;
-        }
-
-        // Node already persisted; perform direct update
-        updateNodeMutation.mutate({
-          id: currentDataNodeId,
-          organizationId,
-          name: (data.label as string) ?? (node.data.label as string),
-          config:
-            (data.config as Record<string, unknown>) ??
-            (node.data.config as Record<string, unknown>) ??
-            ({} as Record<string, unknown>),
-          template:
-            (data.template as Record<string, unknown>) ??
-            (node.data.template as Record<string, unknown>) ??
-            ({} as Record<string, unknown>),
-          conditions:
-            (data.conditions as Record<string, unknown>) ??
-            (node.data.conditions as Record<string, unknown>) ??
-            ({} as Record<string, unknown>),
-        });
-      }
-    },
-    [
-      setNodes,
-      nodes,
-      updateNodeMutation,
-      organizationId,
-      createNodeMutation,
-      _workflowId,
-    ]
-  );
-
-  const saveCanvasState = useCallback(async () => {
-    if (!workflow) return;
-
+  // Manual save handler
+  const handleManualSave = useCallback(async () => {
     try {
-      // Process pending node creations first
-      const createdNodeMapping = new Map<string, string>(); // tempId -> dbId
-      for (const nodeId of pendingNodeCreations) {
-        const nodeData = nodes.find(n => n.id === nodeId);
-        if (nodeData) {
-          const createdNode = await createNodeMutation.mutateAsync({
-            workflowId: _workflowId!,
-            organizationId,
-            nodeId: nodeId,
-            type: (nodeData.data.type as string).toUpperCase() as
-              | "TRIGGER"
-              | "ACTION",
-            name:
-              (nodeData.data.name as string) ?? (nodeData.data.label as string),
-            position: nodeData.position,
-            config: {
-              ...(nodeData.data.type === "TRIGGER" && {
-                triggerType: nodeData.data.triggerType ?? "CONTACT_CREATED",
-                module: nodeData.data.module ?? "CRM",
-              }),
-              ...(nodeData.data.type === "ACTION" && {
-                actionType: nodeData.data.actionType ?? "email",
-              }),
-            },
-            template: {},
-          });
-
-          // Map temporary ID to database ID
-          createdNodeMapping.set(nodeId, createdNode.id);
-        }
-      }
-
-      // Update local node data with database IDs
-      setNodes(currentNodes =>
-        currentNodes.map(node => {
-          const dbId = createdNodeMapping.get(node.id);
-          if (dbId) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                nodeId: dbId, // Update with proper database ID
-              },
-            };
-          }
-          return node;
-        })
-      );
-
-      // Process pending node deletions
-      for (const nodeId of pendingNodeDeletions) {
-        const nodeData = convertedNodes.find(n => n.id === nodeId);
-        if (
-          nodeData?.data?.nodeId &&
-          typeof nodeData.data.nodeId === "string"
-        ) {
-          await deleteNodeMutation.mutateAsync({
-            id: nodeData.data.nodeId,
-            organizationId,
-          });
-        }
-      }
-
-      // Save node positions for existing nodes (not newly created or deleted ones)
-      for (const node of nodes) {
-        // Skip nodes that were just created in this save operation
-        if (pendingNodeCreations.has(node.id)) {
-          continue;
-        }
-
-        // Skip nodes that are pending deletion
-        if (pendingNodeDeletions.has(node.id)) {
-          continue;
-        }
-
-        // Only update nodes with valid database IDs
-        if (node.data?.nodeId && typeof node.data.nodeId === "string") {
-          // Verify it's a valid CUID (existing database node)
-          const isValidCuid = /^[a-z0-9]{25}$/.test(node.data.nodeId);
-          if (isValidCuid) {
-            await updateNodeMutation.mutateAsync({
-              id: node.data.nodeId,
-              organizationId,
-              position: node.position,
-              name: (node.data.name as string) ?? (node.data.label as string),
-            });
-          } else {
-            console.warn(
-              `Skipping node update for invalid CUID: ${node.data.nodeId} (node: ${node.id})`
-            );
-          }
-        }
-      }
-
-      // Compute per-source execution order (deterministic ordering of sibling edges)
-      const nodePositionById = new Map<string, { x: number; y: number }>();
-      nodes.forEach(n => nodePositionById.set(n.id, n.position));
-
-      const edgesBySource = new Map<string, Edge[]>();
-      edges.forEach(e => {
-        const list = edgesBySource.get(e.source) ?? [];
-        list.push(e);
-        edgesBySource.set(e.source, list);
-      });
-
-      const edgeIdToOrder = new Map<string, number>();
-      edgesBySource.forEach(sourceEdges => {
-        const sorted = [...sourceEdges].sort((a, b) => {
-          const aPos = nodePositionById.get(a.target) ?? { x: 0, y: 0 };
-          const bPos = nodePositionById.get(b.target) ?? { x: 0, y: 0 };
-          // Primary by Y (top-to-bottom), secondary by X (left-to-right)
-          if (aPos.y !== bPos.y) return aPos.y - bPos.y;
-          return aPos.x - bPos.x;
-        });
-        sorted.forEach((e, idx) => edgeIdToOrder.set(e.id, idx + 1));
-      });
-
-      // Sync connections in database
-      const connectionsToSync = edges.map(edge => {
-        const existingOrderValue = (
-          edge.data as unknown as { executionOrder?: unknown }
-        )?.executionOrder;
-        const existingOrder =
-          typeof existingOrderValue === "number"
-            ? existingOrderValue
-            : Number(existingOrderValue);
-        const computedOrder = edgeIdToOrder.get(edge.id) ?? 1;
-        const executionOrder =
-          Number.isFinite(existingOrder) && existingOrder > 0
-            ? existingOrder
-            : computedOrder;
-
-        return {
-          edgeId: edge.id,
-          sourceNodeId: edge.source, // React Flow node ID (will be mapped to WorkflowNode.id in backend)
-          targetNodeId: edge.target, // React Flow node ID (will be mapped to WorkflowNode.id in backend)
-          sourceHandle: edge.sourceHandle ?? undefined,
-          targetHandle: edge.targetHandle ?? undefined,
-          label: typeof edge.label === "string" ? edge.label : undefined,
-          style: edge.style
-            ? (edge.style as Record<string, unknown>)
-            : undefined,
-          animated: edge.animated ?? false,
-          executionOrder,
-        };
-      });
-
-      await syncConnectionsMutation.mutateAsync({
-        workflowId: workflow.id,
-        organizationId,
-        connections: connectionsToSync,
-      });
-
-      // Save workflow canvas data
-      const canvasData = {
-        nodes: nodes.map(node => ({
-          id: node.id,
-          type: node.type,
-          position: node.position,
-          data: node.data,
-        })),
-        edges: edges.map(edge => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          type: edge.type,
-          data: edge.data,
-        })),
-      };
-
-      await updateWorkflowMutation.mutateAsync({
-        id: workflow.id,
-        organizationId,
-        canvasData,
-      });
-
-      // Clear pending operations
-      setPendingNodeCreations(new Set());
-      setPendingNodeDeletions(new Set());
-      setPendingEdgeDeletions(new Set());
-
-      // Log for debugging (ensures variables are "used")
-      console.log("Cleared pending operations:", {
-        creationCount: pendingNodeCreations.size,
-        nodeCount: pendingNodeDeletions.size,
-        edgeCount: pendingEdgeDeletions.size,
-      });
-
-      setHasUnsavedChanges(false);
-      toast.success("Workflow saved");
+      await saveCanvas();
+      toast.success("Workflow saved successfully");
     } catch (error) {
-      console.error("Error saving canvas state:", error);
+      console.error("Manual save failed:", error);
       toast.error("Failed to save workflow");
     }
-  }, [
-    workflow,
-    nodes,
-    edges,
-    organizationId,
-    updateWorkflowMutation,
-    updateNodeMutation,
-    deleteNodeMutation,
-    createNodeMutation,
-    syncConnectionsMutation,
-    pendingNodeCreations,
-    pendingNodeDeletions,
-    pendingEdgeDeletions,
-    convertedNodes,
-    setNodes,
-    setPendingNodeCreations,
-    setPendingEdgeDeletions,
-    setPendingNodeDeletions,
-    _workflowId,
-  ]);
+  }, [saveCanvas]);
 
-  // Note: Auto-save removed - users must manually save changes
+  // Node deletion handler
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      deleteNode(nodeId);
+      toast.success("Node deleted");
+    },
+    [deleteNode]
+  );
 
-  // Loading state
-  if (isLoadingWorkflow || isLoadingNodes) {
-    return <WorkflowDesignerSkeleton />;
-  }
+  // Add node handlers
+  const handleAddTrigger = useCallback(() => {
+    const position = { x: 100, y: 100 };
+    const newNode = addNode(
+      {
+        type: "TRIGGER",
+        name: "New Trigger",
+        triggerType: "CONTACT_CREATED",
+        module: "CRM",
+        config: {
+          triggerType: "CONTACT_CREATED",
+          module: "CRM",
+        },
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, setSelectedNode]);
 
-  // Error state
-  if (workflowError) {
+  const handleAddAction = useCallback(() => {
+    const position = { x: 300, y: 200 };
+    const newNode = addNode(
+      {
+        type: "ACTION",
+        name: "New Action",
+        actionType: "email",
+        config: {
+          actionType: "email",
+        },
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, setSelectedNode]);
+
+  // Node click handler
+  const handleNodeClickInternal = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // Cast to WorkflowCanvasNode since we know our nodes have the correct structure
+      const workflowNode = node as unknown as WorkflowCanvasNode;
+      onNodeClick(event, workflowNode);
+      setIsConfigOpen(true);
+    },
+    [onNodeClick]
+  );
+
+  // Memoize node types to prevent re-renders
+  const nodeTypes = useMemo(
+    () => createNodeTypes(handleDeleteNode),
+    [handleDeleteNode]
+  );
+
+  // Enhanced node update handler for config sheet
+  const handleNodeUpdate = useCallback(
+    (nodeId: string, data: Record<string, unknown>) => {
+      updateNode(nodeId, data);
+    },
+    [updateNode]
+  );
+
+  // Only show full-page skeleton while workflow metadata is loading
+  const isDesignerLoading = isLoadingWorkflow;
+  const error = workflowError ?? canvasError;
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="p-8 text-center max-w-md">
-          <div className="text-destructive mb-4">
-            <AlertTriangle className="h-8 w-8 mx-auto" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">
-            Failed to load workflow
-          </h3>
-          <p className="text-muted-foreground mb-4">{workflowError.message}</p>
-          <Button
-            onClick={() => utils.workflows.workflow.getWorkflow.invalidate()}
-            variant="outline"
-          >
-            Try Again
-          </Button>
-        </Card>
-      </div>
+      <Card className="flex h-[600px] items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+          <h3 className="mt-4 text-lg font-semibold">Error loading workflow</h3>
+          <p className="text-muted-foreground">
+            {error.message ?? "Something went wrong"}
+          </p>
+        </div>
+      </Card>
     );
   }
 
-  // No workflow found
-  if (!workflow) {
+  if (isDesignerLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="p-8 text-center max-w-md">
-          <h3 className="text-lg font-semibold mb-2">Workflow not found</h3>
-          <p className="text-muted-foreground">
-            The requested workflow could not be found or you don&apos;t have
-            permission to access it.
-          </p>
-        </Card>
-      </div>
+      <Card className="h-[600px] p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-9 w-20" />
+          </div>
+        </div>
+        <Skeleton className="h-[500px] w-full" />
+      </Card>
     );
   }
 
   return (
-    <div className="h-full w-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold">{workflow.name}</h1>
-          <Badge
-            variant={workflow.status === "ACTIVE" ? "default" : "secondary"}
-          >
-            {workflow.status}
-          </Badge>
-          {hasUnsavedChanges && (
-            <Badge variant="outline" className="text-orange-600">
-              Unsaved Changes
-            </Badge>
-          )}
-        </div>{" "}
-        <div className="flex items-center space-x-2">
-          <ClientPermissionGuard
-            requiredAnyPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => addNewNode("trigger")}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Trigger
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => addNewNode("action")}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Action
-            </Button>
-          </ClientPermissionGuard>
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <Card className="mb-4 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">{workflow?.name}</h2>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Badge
+                  variant={
+                    workflow?.status === "ACTIVE" ? "default" : "secondary"
+                  }
+                >
+                  {workflow?.status}
+                </Badge>
+                {hasUnsavedChanges ? (
+                  <div className="flex items-center gap-1 text-orange-600">
+                    <Clock className="h-3 w-3" />
+                    <span>Unsaved changes</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <span>
+                      Last saved: {new Date(lastSaveTime).toLocaleTimeString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-          <ClientPermissionGuard
-            requiredAnyPermissions={[PERMISSIONS.WORKFLOWS_ADMIN]}
-          >
-            <Button
-              variant={workflow.status === "ACTIVE" ? "destructive" : "default"}
-              size="sm"
-              onClick={toggleWorkflowStatus}
-              disabled={updateWorkflowMutation.isPending}
+          <div className="flex items-center gap-2">
+            {/* Add Node Buttons */}
+            <ClientPermissionGuard
+              requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
             >
-              {updateWorkflowMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : workflow.status === "ACTIVE" ? (
-                <Pause className="h-4 w-4 mr-2" />
-              ) : (
-                <Play className="h-4 w-4 mr-2" />
-              )}
-              {workflow.status === "ACTIVE" ? "Deactivate" : "Activate"}
-            </Button>
-          </ClientPermissionGuard>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddTrigger}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Trigger
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddAction}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Action
+              </Button>
+            </ClientPermissionGuard>
 
-          <ClientPermissionGuard
-            requiredAnyPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={saveCanvasState}
-              disabled={!hasUnsavedChanges || updateWorkflowMutation.isPending}
+            {/* Save Button */}
+            <ClientPermissionGuard
+              requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
             >
-              {updateWorkflowMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualSave}
+                disabled={!hasUnsavedChanges || isLoadingWorkflow}
+                className="flex items-center gap-2"
+              >
+                {isLoadingWorkflow ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save
+              </Button>
+            </ClientPermissionGuard>
+
+            {/* Workflow Controls */}
+            <ClientPermissionGuard
+              requiredPermissions={[PERMISSIONS.WORKFLOWS_ADMIN]}
+            >
+              {workflow?.status === "ACTIVE" ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    workflow &&
+                    toggleWorkflowStatus(workflow.id, workflow.status)
+                  }
+                  disabled={updateWorkflowMutation.isPending}
+                >
+                  {updateWorkflowMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Pause className="h-4 w-4" />
+                  )}
+                  Pause
+                </Button>
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    workflow &&
+                    toggleWorkflowStatus(workflow.id, workflow.status)
+                  }
+                  disabled={updateWorkflowMutation.isPending}
+                >
+                  {updateWorkflowMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  Activate
+                </Button>
               )}
-              Save
-            </Button>
-          </ClientPermissionGuard>
+            </ClientPermissionGuard>
+          </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="h-[calc(100%-73px)]">
+      {/* React Flow Canvas */}
+      <Card className="flex-1 overflow-hidden">
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={handleNodesChange}
-          onEdgesChange={handleEdgesChange}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          onNodesDelete={onNodesDelete}
+          onNodeClick={handleNodeClickInternal}
           nodeTypes={nodeTypes}
           fitView
-          deleteKeyCode={["Backspace", "Delete"]}
-          className="bg-slate-50"
-          maxZoom={2}
-          minZoom={0.1}
+          snapToGrid
+          snapGrid={[15, 15]}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          minZoom={0.1}
+          maxZoom={2}
           attributionPosition="bottom-left"
-          proOptions={{ hideAttribution: true }}
         >
           <Controls />
           <MiniMap />
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         </ReactFlow>
-      </div>
+      </Card>
 
-      <WorkflowConfigSheet
-        open={isConfigOpen}
-        onOpenChange={setIsConfigOpen}
-        selectedNode={selectedNode}
-        workflow={
-          workflow
-            ? {
-                id: workflow.id,
-                name: workflow.name,
-                description: workflow.description ?? "",
-                status: workflow.status,
-              }
-            : undefined
-        }
-        onNodeUpdate={handleNodeUpdate}
-        organizationId={organizationId}
-      />
-    </div>
-  );
-}
-
-// Loading skeleton component
-function WorkflowDesignerSkeleton() {
-  return (
-    <div className="h-full w-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center space-x-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-6 w-16" />
-        </div>
-        <div className="flex items-center space-x-2">
-          <Skeleton className="h-9 w-28" />
-          <Skeleton className="h-9 w-28" />
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-20" />
-        </div>
-      </div>
-      <div className="h-[calc(100%-73px)] flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading workflow designer...</p>
-        </div>
-      </div>
+      {/* Configuration Sheet */}
+      {selectedNode && (
+        <WorkflowConfigSheet
+          isOpen={isConfigOpen}
+          onOpenChange={setIsConfigOpen}
+          selectedNode={selectedNode}
+          workflow={
+            workflow
+              ? {
+                  id: workflow.id,
+                  name: workflow.name,
+                  description: workflow.description ?? "",
+                  status: workflow.status,
+                }
+              : undefined
+          }
+          organizationId={organizationId}
+          onNodeUpdate={handleNodeUpdate}
+          ensureNodeExists={ensureNodeExists}
+        />
+      )}
     </div>
   );
 }
