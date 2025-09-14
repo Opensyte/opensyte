@@ -3,7 +3,6 @@
 import React from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Card } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Play,
@@ -16,6 +15,7 @@ import {
 
 interface ActionNodeData {
   label: string;
+  name?: string;
   templateId?: number;
   actionId?: number;
   actionType?: string;
@@ -47,6 +47,7 @@ const getActionIcon = (type?: string) => {
 export function ActionNode({ data, selected, id, onDelete }: ActionNodeProps) {
   const nodeData = data as unknown as ActionNodeData;
   const IconComponent = getActionIcon(nodeData.actionType);
+  const displayName = nodeData.name ?? nodeData.label ?? "Action";
 
   return (
     <Card
@@ -79,22 +80,10 @@ export function ActionNode({ data, selected, id, onDelete }: ActionNodeProps) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-sm text-foreground truncate">
-            {nodeData.label}
+            {displayName}
           </h3>
-          {nodeData.actionType && (
-            <Badge variant="secondary" className="mt-1 text-xs">
-              {nodeData.actionType}
-            </Badge>
-          )}
         </div>
       </div>
-
-      {nodeData.condition && (
-        <div className="text-xs text-muted-foreground">
-          Condition: {nodeData.condition.field} ={" "}
-          {String(nodeData.condition.equals)}
-        </div>
-      )}
 
       <Handle
         type="source"

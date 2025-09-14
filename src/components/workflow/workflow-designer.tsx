@@ -1,106 +1,51 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
   ReactFlow,
   MiniMap,
   Controls,
   Background,
-  useNodesState,
-  useEdgesState,
-  addEdge,
+  BackgroundVariant,
   type Node,
-  type Edge,
-  type Connection,
+  type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Zap, Play, Pause } from "lucide-react";
+import { Badge } from "~/components/ui/badge";
+import { Skeleton } from "~/components/ui/skeleton";
+import {
+  Plus,
+  Play,
+  Pause,
+  Save,
+  Loader2,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
 import { TriggerNode } from "./nodes/trigger-node";
 import { ActionNode } from "./nodes/action-node";
 import { WorkflowConfigSheet } from "./workflow-config-sheet";
+import { toast } from "sonner";
+import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
+import { PERMISSIONS } from "~/lib/rbac";
+import { api } from "~/trpc/react";
+import {
+  useWorkflowCanvas,
+  type WorkflowCanvasNode,
+} from "~/hooks/use-workflow-canvas";
 
-// Custom node types
-const nodeTypes = {
-  trigger: TriggerNode,
-  action: ActionNode,
-};
-
-// Dummy data for development
-const workflows = [
-  {
-    id: 1,
-    name: "Customer Onboarding",
-    description: "Automate new customer welcome process",
-    triggerConfig: { type: "customer_created", module: "CRM" },
-    status: "ACTIVE",
-    organizationId: 1,
-  },
-  {
-    id: 2,
-    name: "Deal Closure Notification",
-    description: "Notify team when deal status changes to closed",
-    triggerConfig: {
-      type: "deal_status_updated",
-      module: "CRM",
-      criteria: { status: "CLOSED_WON" },
-    },
-    status: "ACTIVE",
-    organizationId: 1,
-  },
-  {
-    id: 3,
-    name: "Employee Onboarding",
-    description: "Automate new employee onboarding process",
-    triggerConfig: { type: "employee_created", module: "HR" },
-    status: "ACTIVE",
-    organizationId: 1,
-  },
-];
-
-const initialNodes: Node[] = [
-  {
-    id: "t1",
-    type: "trigger",
-    position: { x: 100, y: 100 },
-    data: {
-      label: "Customer Created",
-      workflowId: 1,
-      triggerId: 1,
-      module: "CRM",
-      triggerType: "customer_created",
-    },
-  },
-  {
-    id: "a1",
-    type: "action",
-    position: { x: 350, y: 80 },
-    data: {
-      label: "Send Welcome Email",
-      templateId: 1,
-      actionId: 1,
-      actionType: "email",
-    },
-  },
-  {
-    id: "a2",
-    type: "action",
-    position: { x: 350, y: 180 },
-    data: {
-      label: "Send SMS Notification",
-      templateId: 2,
-      actionId: 2,
-      actionType: "sms",
-    },
-  },
-];
-
-const initialEdges: Edge[] = [
-  { id: "e1", source: "t1", target: "a1" },
-  { id: "e2", source: "t1", target: "a2" },
-];
+// Custom node types with delete handler
+const createNodeTypes = (onDeleteNode: (nodeId: string) => void) => ({
+  trigger: (props: NodeProps) => (
+    <TriggerNode {...props} onDelete={onDeleteNode} />
+  ),
+  action: (props: NodeProps) => (
+    <ActionNode {...props} onDelete={onDeleteNode} />
+  ),
+});
 
 interface WorkflowDesignerProps {
   organizationId: string;
@@ -108,177 +53,359 @@ interface WorkflowDesignerProps {
 }
 
 export function WorkflowDesigner({
-  organizationId: _organizationId,
+  organizationId,
   workflowId: _workflowId,
 }: WorkflowDesignerProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [currentWorkflow, setCurrentWorkflow] = useState(workflows[0]);
+  const utils = api.useUtils();
 
-  const onConnect = useCallback(
-    (params: Connection | Edge) => {
-      // Connection validation: only allow trigger→action and action→action
-      const sourceNode = nodes.find(n => n.id === params.source);
-      const targetNode = nodes.find(n => n.id === params.target);
-
-      if (sourceNode && targetNode) {
-        const validConnections = [
-          sourceNode.type === "trigger" && targetNode.type === "action",
-          sourceNode.type === "action" && targetNode.type === "action",
-          sourceNode.type === "condition" && targetNode.type === "action",
-          sourceNode.type === "action" && targetNode.type === "condition",
-        ];
-
-        if (validConnections.some(v => v)) {
-          setEdges(eds => addEdge(params, eds));
-        }
-      }
+  // Get workflow data for status and metadata
+  const {
+    data: workflow,
+    isLoading: isLoadingWorkflow,
+    error: workflowError,
+  } = api.workflows.workflow.getWorkflow.useQuery(
+    {
+      id: _workflowId!,
+      organizationId,
     },
-    [setEdges, nodes]
+    {
+      enabled: !!_workflowId && !!organizationId,
+    }
   );
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
-    setIsConfigOpen(true);
-  }, []);
+  // Use the new canvas hook
+  const {
+    nodes,
+    edges,
+    selectedNode,
+    hasUnsavedChanges,
+    error: canvasError,
+    lastSaveTime,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onNodeClick,
+    saveCanvas,
+    ensureNodeExists,
+    addNode,
+    updateNode,
+    deleteNode,
+    setSelectedNode,
+  } = useWorkflowCanvas({
+    workflowId: _workflowId ?? "",
+    organizationId,
+    autoSaveDelay: 1000, // 1 second auto-save delay
+  });
 
-  const addNewNode = useCallback(
-    (type: string) => {
-      const newNode: Node = {
-        id: `${type}_${Date.now()}`,
-        type,
-        position: { x: Math.random() * 500, y: Math.random() * 300 },
-        data: {
-          label: `New ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-          ...(type === "trigger" && {
-            module: "System",
-            triggerType: "manual",
-          }),
-          ...(type === "action" && { actionType: "email" }),
-        },
-      };
-      setNodes(nds => nds.concat(newNode));
-    },
-    [setNodes]
-  );
-
-  const toggleWorkflowStatus = useCallback(() => {
-    setCurrentWorkflow(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        status: prev.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-      };
+  // Workflow status update mutation
+  const updateWorkflowMutation =
+    api.workflows.workflow.updateWorkflow.useMutation({
+      onSuccess: () => {
+        toast.success("Workflow status updated successfully");
+        void utils.workflows.workflow.getWorkflow.invalidate();
+      },
+      onError: err => {
+        toast.error("Failed to update workflow status", {
+          description: err.message,
+        });
+      },
     });
-  }, []);
 
-  const onNodesDelete = useCallback(
-    (deletedNodes: Node[]) => {
-      const deletedNodeIds = deletedNodes.map(node => node.id);
-      setEdges(eds =>
-        eds.filter(
-          edge =>
-            !deletedNodeIds.includes(edge.source) &&
-            !deletedNodeIds.includes(edge.target)
-        )
-      );
+  // Toggle workflow status handler
+  const toggleWorkflowStatus = useCallback(
+    (workflowId: string, currentStatus: string) => {
+      const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+      updateWorkflowMutation.mutate({
+        id: workflowId,
+        organizationId,
+        status: newStatus,
+      });
     },
-    [setEdges]
+    [updateWorkflowMutation, organizationId]
   );
+
+  // Manual save handler
+  const handleManualSave = useCallback(async () => {
+    try {
+      await saveCanvas();
+      toast.success("Workflow saved successfully");
+    } catch (error) {
+      console.error("Manual save failed:", error);
+      toast.error("Failed to save workflow");
+    }
+  }, [saveCanvas]);
+
+  // Node deletion handler
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      deleteNode(nodeId);
+      toast.success("Node deleted");
+    },
+    [deleteNode]
+  );
+
+  // Add node handlers
+  const handleAddTrigger = useCallback(() => {
+    const position = { x: 100, y: 100 };
+    const newNode = addNode(
+      {
+        type: "TRIGGER",
+        name: "New Trigger",
+        triggerType: "CONTACT_CREATED",
+        module: "CRM",
+        config: {
+          triggerType: "CONTACT_CREATED",
+          module: "CRM",
+        },
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, setSelectedNode]);
+
+  const handleAddAction = useCallback(() => {
+    const position = { x: 300, y: 200 };
+    const newNode = addNode(
+      {
+        type: "ACTION",
+        name: "New Action",
+        actionType: "email",
+        config: {
+          actionType: "email",
+        },
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, setSelectedNode]);
+
+  // Node click handler
+  const handleNodeClickInternal = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // Cast to WorkflowCanvasNode since we know our nodes have the correct structure
+      const workflowNode = node as unknown as WorkflowCanvasNode;
+      onNodeClick(event, workflowNode);
+      setIsConfigOpen(true);
+    },
+    [onNodeClick]
+  );
+
+  // Memoize node types to prevent re-renders
+  const nodeTypes = useMemo(
+    () => createNodeTypes(handleDeleteNode),
+    [handleDeleteNode]
+  );
+
+  // Enhanced node update handler for config sheet
+  const handleNodeUpdate = useCallback(
+    (nodeId: string, data: Record<string, unknown>) => {
+      updateNode(nodeId, data);
+    },
+    [updateNode]
+  );
+
+  // Only show full-page skeleton while workflow metadata is loading
+  const isDesignerLoading = isLoadingWorkflow;
+  const error = workflowError ?? canvasError;
+
+  if (error) {
+    return (
+      <Card className="flex h-[600px] items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+          <h3 className="mt-4 text-lg font-semibold">Error loading workflow</h3>
+          <p className="text-muted-foreground">
+            {error.message ?? "Something went wrong"}
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (isDesignerLoading) {
+    return (
+      <Card className="h-[600px] p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-9 w-20" />
+          </div>
+        </div>
+        <Skeleton className="h-[500px] w-full" />
+      </Card>
+    );
+  }
 
   return (
-    <div className="h-[calc(100vh-12rem)] w-full flex gap-4">
-      {/* Main Canvas Area */}
-      <Card className="flex-1 p-0 overflow-hidden">
-        <div className="h-full w-full relative">
-          {/* Toolbar */}
-          <div className="absolute top-4 left-4 z-10 flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => addNewNode("trigger")}
-              className="gap-2"
-            >
-              <Zap className="h-4 w-4 text-green-500" />
-              Trigger
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => addNewNode("action")}
-              className="gap-2"
-            >
-              <Play className="h-4 w-4 text-blue-500" />
-              Action
-            </Button>
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <Card className="mb-4 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">{workflow?.name}</h2>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Badge
+                  variant={
+                    workflow?.status === "ACTIVE" ? "default" : "secondary"
+                  }
+                >
+                  {workflow?.status}
+                </Badge>
+                {hasUnsavedChanges ? (
+                  <div className="flex items-center gap-1 text-orange-600">
+                    <Clock className="h-3 w-3" />
+                    <span>Unsaved changes</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <span>
+                      Last saved: {new Date(lastSaveTime).toLocaleTimeString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Workflow Status Toggle */}
-          <div className="absolute top-4 right-4 z-10">
-            <Button
-              size="sm"
-              variant={
-                currentWorkflow?.status === "ACTIVE" ? "default" : "secondary"
-              }
-              onClick={toggleWorkflowStatus}
-              className="gap-2"
+          <div className="flex items-center gap-2">
+            {/* Add Node Buttons */}
+            <ClientPermissionGuard
+              requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
             >
-              {currentWorkflow?.status === "ACTIVE" ? (
-                <>
-                  <Play className="h-4 w-4" />
-                  Active
-                </>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddTrigger}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Trigger
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddAction}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Action
+              </Button>
+            </ClientPermissionGuard>
+
+            {/* Save Button */}
+            <ClientPermissionGuard
+              requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualSave}
+                disabled={!hasUnsavedChanges || isLoadingWorkflow}
+                className="flex items-center gap-2"
+              >
+                {isLoadingWorkflow ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save
+              </Button>
+            </ClientPermissionGuard>
+
+            {/* Workflow Controls */}
+            <ClientPermissionGuard
+              requiredPermissions={[PERMISSIONS.WORKFLOWS_ADMIN]}
+            >
+              {workflow?.status === "ACTIVE" ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    workflow &&
+                    toggleWorkflowStatus(workflow.id, workflow.status)
+                  }
+                  disabled={updateWorkflowMutation.isPending}
+                >
+                  {updateWorkflowMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Pause className="h-4 w-4" />
+                  )}
+                  Pause
+                </Button>
               ) : (
-                <>
-                  <Pause className="h-4 w-4" />
-                  Inactive
-                </>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    workflow &&
+                    toggleWorkflowStatus(workflow.id, workflow.status)
+                  }
+                  disabled={updateWorkflowMutation.isPending}
+                >
+                  {updateWorkflowMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  Activate
+                </Button>
               )}
-            </Button>
+            </ClientPermissionGuard>
           </div>
-
-          {/* React Flow Canvas */}
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onNodesDelete={onNodesDelete}
-            nodeTypes={nodeTypes}
-            fitView
-            deleteKeyCode="Delete"
-            className="bg-slate-50 dark:bg-slate-900"
-          >
-            <Controls position="bottom-left" />
-            <MiniMap
-              position="bottom-right"
-              className="bg-background border border-border rounded-lg"
-            />
-            <Background gap={20} size={1} className="opacity-30" />
-          </ReactFlow>
         </div>
       </Card>
 
+      {/* React Flow Canvas */}
+      <Card className="flex-1 overflow-hidden">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={handleNodeClickInternal}
+          nodeTypes={nodeTypes}
+          fitView
+          snapToGrid
+          snapGrid={[15, 15]}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          minZoom={0.1}
+          maxZoom={2}
+          attributionPosition="bottom-left"
+        >
+          <Controls />
+          <MiniMap />
+          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+        </ReactFlow>
+      </Card>
+
       {/* Configuration Sheet */}
-      <WorkflowConfigSheet
-        open={isConfigOpen}
-        onOpenChange={setIsConfigOpen}
-        selectedNode={selectedNode}
-        workflow={currentWorkflow}
-        onNodeUpdate={(nodeId: string, data: Record<string, unknown>) => {
-          setNodes(nds =>
-            nds.map(node =>
-              node.id === nodeId
-                ? { ...node, data: { ...node.data, ...data } }
-                : node
-            )
-          );
-        }}
-      />
+      {selectedNode && (
+        <WorkflowConfigSheet
+          isOpen={isConfigOpen}
+          onOpenChange={setIsConfigOpen}
+          selectedNode={selectedNode}
+          workflow={
+            workflow
+              ? {
+                  id: workflow.id,
+                  name: workflow.name,
+                  description: workflow.description ?? "",
+                  status: workflow.status,
+                }
+              : undefined
+          }
+          organizationId={organizationId}
+          onNodeUpdate={handleNodeUpdate}
+          ensureNodeExists={ensureNodeExists}
+        />
+      )}
     </div>
   );
 }

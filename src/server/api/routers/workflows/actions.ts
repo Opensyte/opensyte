@@ -5,6 +5,7 @@ import {
   createAnyPermissionProcedure,
 } from "../../trpc";
 import { PERMISSIONS } from "~/lib/rbac";
+import { SystemTemplateService } from "~/lib/system-templates";
 import { db } from "~/server/db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -13,6 +14,15 @@ import {
   InputJsonValueSchema,
 } from "../../../../../prisma/generated/zod";
 import type { Prisma } from "@prisma/client";
+
+// Custom template ID validation: accepts either system template IDs or CUIDs
+const templateIdSchema = z
+  .string()
+  .refine(
+    val =>
+      val.startsWith("sys_tpl_") || z.string().cuid().safeParse(val).success,
+    { message: "Invalid template ID format" }
+  );
 
 // Enhanced action templates router that matches actual Prisma schema
 export const actionsRouter = createTRPCRouter({
@@ -32,7 +42,7 @@ export const actionsRouter = createTRPCRouter({
       await ctx.requireAnyPermission(input.organizationId);
 
       try {
-        const templates = await db.actionTemplate.findMany({
+        const dbTemplates = await db.actionTemplate.findMany({
           where: {
             OR: [{ organizationId: input.organizationId }, { isPublic: true }],
             ...(input.category && { category: input.category }),
@@ -44,10 +54,15 @@ export const actionsRouter = createTRPCRouter({
             category: true,
             type: true,
             isActive: true,
+            isLocked: true,
+            requiredVariables: true,
+            optionalVariables: true,
           },
         });
 
-        return templates;
+        // Prepend system templates so UI slice(0,2) picks them first
+        const systemTemplates = SystemTemplateService.getAllForApi();
+        return [...systemTemplates, ...dbTemplates];
       } catch (error) {
         console.error("Failed to fetch action templates:", error);
         throw new TRPCError({
@@ -65,7 +80,7 @@ export const actionsRouter = createTRPCRouter({
   ])
     .input(
       z.object({
-        templateId: z.string().cuid(),
+        templateId: z.string(),
         organizationId: z.string().cuid(),
       })
     )
@@ -73,6 +88,17 @@ export const actionsRouter = createTRPCRouter({
       await ctx.requireAnyPermission(input.organizationId);
 
       try {
+        // Check if it's a system template first
+        if (SystemTemplateService.isSystemTemplate(input.templateId)) {
+          const systemTemplate = SystemTemplateService.findById(
+            input.templateId
+          );
+          if (systemTemplate) {
+            return SystemTemplateService.toFullTemplateResponse(systemTemplate);
+          }
+        }
+
+        // DB template
         const template = await db.actionTemplate.findFirst({
           where: {
             id: input.templateId,
@@ -192,7 +218,7 @@ export const actionsRouter = createTRPCRouter({
   updateActionTemplate: createPermissionProcedure(PERMISSIONS.WORKFLOWS_ADMIN)
     .input(
       z.object({
-        templateId: z.string().cuid(),
+        templateId: templateIdSchema,
         organizationId: z.string().cuid(),
         name: z.string().min(1).max(100).optional(),
         description: z.string().optional(),
@@ -331,7 +357,7 @@ export const actionsRouter = createTRPCRouter({
   deleteActionTemplate: createPermissionProcedure(PERMISSIONS.WORKFLOWS_ADMIN)
     .input(
       z.object({
-        templateId: z.string().cuid(),
+        templateId: templateIdSchema,
         organizationId: z.string().cuid(),
       })
     )
@@ -381,7 +407,7 @@ export const actionsRouter = createTRPCRouter({
   ])
     .input(
       z.object({
-        templateId: z.string().cuid(),
+        templateId: templateIdSchema,
         organizationId: z.string().cuid(),
       })
     )
