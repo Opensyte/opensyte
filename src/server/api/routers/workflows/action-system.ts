@@ -5,6 +5,7 @@ import {
   createAnyPermissionProcedure,
 } from "../../trpc";
 import { PERMISSIONS } from "~/lib/rbac";
+import { TemplateResolver } from "~/lib/template-resolver";
 import { db } from "~/server/db";
 import { TRPCError } from "@trpc/server";
 import {
@@ -12,6 +13,15 @@ import {
   InputJsonValueSchema,
 } from "../../../../../prisma/generated/zod";
 import type { Prisma } from "@prisma/client";
+
+// Custom template ID validation: accepts either system template IDs or CUIDs
+const templateIdSchema = z
+  .string()
+  .refine(
+    val =>
+      val.startsWith("sys_tpl_") || z.string().cuid().safeParse(val).success,
+    { message: "Invalid template ID format" }
+  );
 
 // Comprehensive action system router for workflow actions
 export const actionSystemRouter = createTRPCRouter({
@@ -21,19 +31,19 @@ export const actionSystemRouter = createTRPCRouter({
   createEmailAction: createPermissionProcedure(PERMISSIONS.WORKFLOWS_WRITE)
     .input(
       z.object({
-        nodeId: z.string().cuid(),
+        actionId: z.string().cuid(), // Changed from nodeId to actionId
         organizationId: z.string().cuid(),
         integrationId: z.string().cuid().optional(),
         fromName: z.string().max(100).optional(),
         fromEmail: z.string().email().optional(),
         replyTo: z.string().email().optional(),
-        toEmails: z.array(z.string()).min(1).max(100),
         ccEmails: z.array(z.string()).optional(),
         bccEmails: z.array(z.string()).optional(),
-        subject: z.string().min(1).max(500),
+        templateMode: z.enum(["TEMPLATE", "CUSTOM"]).default("CUSTOM"),
+        templateId: templateIdSchema.optional(),
+        subject: z.string().min(1).max(500).optional(),
         htmlBody: z.string().optional(),
         textBody: z.string().optional(),
-        templateId: z.string().optional(),
         attachments: z
           .array(
             z.object({
@@ -52,64 +62,71 @@ export const actionSystemRouter = createTRPCRouter({
       await ctx.requirePermission(input.organizationId);
 
       try {
-        // Verify node exists and belongs to organization's workflow
-        const node = await db.workflowNode.findFirst({
+        // Verify action node exists and belongs to organization's workflow
+        const actionNode = await db.workflowNode.findFirst({
           where: {
-            id: input.nodeId,
+            id: input.actionId,
+            type: "ACTION", // Ensure it's an action node
             workflow: {
               organizationId: input.organizationId,
             },
           },
         });
 
-        if (!node) {
+        if (!actionNode) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Workflow node not found",
+            message: "Action node not found",
           });
         }
 
-        // Verify integration if provided
-        if (input.integrationId) {
-          const integration = await db.integrationConfig.findFirst({
-            where: {
-              id: input.integrationId,
-              organizationId: input.organizationId,
-              type: {
-                in: [
-                  "EMAIL_SMTP",
-                  "EMAIL_SENDGRID",
-                  "EMAIL_MAILGUN",
-                  "EMAIL_RESEND",
-                  "EMAIL_POSTMARK",
-                ],
-              },
-              isActive: true,
-            },
-          });
+        // Process template content using the resolver
+        const { finalContent, templateId } =
+          await TemplateResolver.processEmailTemplate(
+            input.templateMode,
+            input.templateId,
+            input.organizationId,
+            {
+              subject: input.subject,
+              htmlBody: input.htmlBody,
+            }
+          );
 
-          if (!integration) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Email integration not found or inactive",
-            });
-          }
-        }
+        const subject = finalContent.subject ?? "";
+        const htmlBody = finalContent.htmlBody ?? "";
 
-        const emailAction = await db.emailAction.create({
-          data: {
-            nodeId: input.nodeId,
+        const emailAction = await db.emailAction.upsert({
+          where: {
+            actionId: input.actionId,
+          },
+          create: {
+            actionId: input.actionId, // Changed from nodeId to actionId
             integrationId: input.integrationId,
             fromName: input.fromName,
             fromEmail: input.fromEmail,
             replyTo: input.replyTo,
-            toEmails: input.toEmails as Prisma.InputJsonValue,
             ccEmails: input.ccEmails as Prisma.InputJsonValue,
             bccEmails: input.bccEmails as Prisma.InputJsonValue,
-            subject: input.subject,
-            htmlBody: input.htmlBody,
+            subject,
+            htmlBody,
             textBody: input.textBody,
-            templateId: input.templateId,
+            templateId,
+            attachments: input.attachments as Prisma.InputJsonValue,
+            trackOpens: input.trackOpens,
+            trackClicks: input.trackClicks,
+            variables: input.variables!,
+          },
+          update: {
+            integrationId: input.integrationId,
+            fromName: input.fromName,
+            fromEmail: input.fromEmail,
+            replyTo: input.replyTo,
+            ccEmails: input.ccEmails as Prisma.InputJsonValue,
+            bccEmails: input.bccEmails as Prisma.InputJsonValue,
+            subject,
+            htmlBody,
+            textBody: input.textBody,
+            templateId,
             attachments: input.attachments as Prisma.InputJsonValue,
             trackOpens: input.trackOpens,
             trackClicks: input.trackClicks,
@@ -128,7 +145,7 @@ export const actionSystemRouter = createTRPCRouter({
       }
     }),
 
-  // Get email actions for a node
+  // Get email actions for an action node
   getEmailActions: createAnyPermissionProcedure([
     PERMISSIONS.WORKFLOWS_READ,
     PERMISSIONS.WORKFLOWS_WRITE,
@@ -136,7 +153,7 @@ export const actionSystemRouter = createTRPCRouter({
   ])
     .input(
       z.object({
-        nodeId: z.string().cuid(),
+        actionId: z.string().cuid(), // Changed from nodeId to actionId
         organizationId: z.string().cuid(),
       })
     )
@@ -146,7 +163,7 @@ export const actionSystemRouter = createTRPCRouter({
       try {
         const emailActions = await db.emailAction.findMany({
           where: {
-            nodeId: input.nodeId,
+            actionId: input.actionId, // Changed from nodeId to actionId
           },
           orderBy: { createdAt: "asc" },
         });
@@ -167,13 +184,13 @@ export const actionSystemRouter = createTRPCRouter({
   createSmsAction: createPermissionProcedure(PERMISSIONS.WORKFLOWS_WRITE)
     .input(
       z.object({
-        nodeId: z.string().cuid(),
+        actionId: z.string().cuid(), // Changed from nodeId to actionId
         organizationId: z.string().cuid(),
         integrationId: z.string().cuid().optional(),
         fromNumber: z.string().optional(),
-        toNumbers: z.array(z.string()).min(1).max(50),
-        message: z.string().min(1).max(1600),
-        templateId: z.string().optional(),
+        templateMode: z.enum(["TEMPLATE", "CUSTOM"]).default("CUSTOM"),
+        templateId: templateIdSchema.optional(),
+        message: z.string().max(1600).optional(),
         maxLength: z.number().min(70).max(1600).optional(),
         unicode: z.boolean().default(false),
         variables: InputJsonValueSchema.optional(),
@@ -183,20 +200,21 @@ export const actionSystemRouter = createTRPCRouter({
       await ctx.requirePermission(input.organizationId);
 
       try {
-        // Verify node exists and belongs to organization's workflow
-        const node = await db.workflowNode.findFirst({
+        // Verify action node exists and belongs to organization's workflow
+        const actionNode = await db.workflowNode.findFirst({
           where: {
-            id: input.nodeId,
+            id: input.actionId,
+            type: "ACTION",
             workflow: {
               organizationId: input.organizationId,
             },
           },
         });
 
-        if (!node) {
+        if (!actionNode) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Workflow node not found",
+            message: "Action node not found",
           });
         }
 
@@ -226,14 +244,38 @@ export const actionSystemRouter = createTRPCRouter({
           }
         }
 
-        const smsAction = await db.smsAction.create({
-          data: {
-            nodeId: input.nodeId,
+        // Process template content using the resolver
+        const { finalContent, templateId } =
+          await TemplateResolver.processSmsTemplate(
+            input.templateMode,
+            input.templateId,
+            input.organizationId,
+            {
+              message: input.message,
+            }
+          );
+
+        const message = finalContent.message ?? "";
+
+        const smsAction = await db.smsAction.upsert({
+          where: {
+            actionId: input.actionId,
+          },
+          create: {
+            actionId: input.actionId, // Changed from nodeId to actionId
             integrationId: input.integrationId,
             fromNumber: input.fromNumber,
-            toNumbers: input.toNumbers as Prisma.InputJsonValue,
-            message: input.message,
-            templateId: input.templateId,
+            message,
+            templateId,
+            maxLength: input.maxLength,
+            unicode: input.unicode,
+            variables: input.variables!,
+          },
+          update: {
+            integrationId: input.integrationId,
+            fromNumber: input.fromNumber,
+            message,
+            templateId,
             maxLength: input.maxLength,
             unicode: input.unicode,
             variables: input.variables!,
@@ -257,11 +299,11 @@ export const actionSystemRouter = createTRPCRouter({
   createWhatsAppAction: createPermissionProcedure(PERMISSIONS.WORKFLOWS_WRITE)
     .input(
       z.object({
-        nodeId: z.string().cuid(),
+        actionId: z.string().cuid(), // Changed from nodeId to actionId
         organizationId: z.string().cuid(),
         integrationId: z.string().cuid().optional(),
         businessAccountId: z.string().optional(),
-        toNumbers: z.array(z.string()).min(1).max(50),
+        toNumbers: z.array(z.string()).default([]),
         messageType: WhatsAppMessageTypeSchema.default("TEXT"),
         textMessage: z.string().optional(),
         templateName: z.string().optional(),
@@ -277,20 +319,21 @@ export const actionSystemRouter = createTRPCRouter({
       await ctx.requirePermission(input.organizationId);
 
       try {
-        // Verify node exists and belongs to organization's workflow
-        const node = await db.workflowNode.findFirst({
+        // Verify action node exists and belongs to organization's workflow
+        const actionNode = await db.workflowNode.findFirst({
           where: {
-            id: input.nodeId,
+            id: input.actionId,
+            type: "ACTION",
             workflow: {
               organizationId: input.organizationId,
             },
           },
         });
 
-        if (!node) {
+        if (!actionNode) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Workflow node not found",
+            message: "Action node not found",
           });
         }
 
@@ -313,12 +356,29 @@ export const actionSystemRouter = createTRPCRouter({
           }
         }
 
-        const whatsAppAction = await db.whatsAppAction.create({
-          data: {
-            nodeId: input.nodeId,
+        const whatsAppAction = await db.whatsAppAction.upsert({
+          where: {
+            actionId: input.actionId,
+          },
+          create: {
+            actionId: input.actionId, // Changed from nodeId to actionId
             integrationId: input.integrationId,
             businessAccountId: input.businessAccountId,
-            toNumbers: input.toNumbers as Prisma.InputJsonValue,
+            toNumbers: input.toNumbers,
+            messageType: input.messageType,
+            textMessage: input.textMessage,
+            templateName: input.templateName,
+            templateLanguage: input.templateLanguage,
+            mediaUrl: input.mediaUrl,
+            mediaType: input.mediaType,
+            caption: input.caption,
+            templateParams: input.templateParams!,
+            variables: input.variables!,
+          },
+          update: {
+            integrationId: input.integrationId,
+            businessAccountId: input.businessAccountId,
+            toNumbers: input.toNumbers,
             messageType: input.messageType,
             textMessage: input.textMessage,
             templateName: input.templateName,
@@ -348,7 +408,7 @@ export const actionSystemRouter = createTRPCRouter({
   createSlackAction: createPermissionProcedure(PERMISSIONS.WORKFLOWS_WRITE)
     .input(
       z.object({
-        nodeId: z.string().cuid(),
+        actionId: z.string().cuid(), // Changed from nodeId to actionId
         organizationId: z.string().cuid(),
         integrationId: z.string().cuid().optional(),
         workspaceId: z.string().optional(),
@@ -370,20 +430,21 @@ export const actionSystemRouter = createTRPCRouter({
       await ctx.requirePermission(input.organizationId);
 
       try {
-        // Verify node exists and belongs to organization's workflow
-        const node = await db.workflowNode.findFirst({
+        // Verify action node exists and belongs to organization's workflow
+        const actionNode = await db.workflowNode.findFirst({
           where: {
-            id: input.nodeId,
+            id: input.actionId,
+            type: "ACTION",
             workflow: {
               organizationId: input.organizationId,
             },
           },
         });
 
-        if (!node) {
+        if (!actionNode) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Workflow node not found",
+            message: "Action node not found",
           });
         }
 
@@ -406,9 +467,28 @@ export const actionSystemRouter = createTRPCRouter({
           }
         }
 
-        const slackAction = await db.slackAction.create({
-          data: {
-            nodeId: input.nodeId,
+        const slackAction = await db.slackAction.upsert({
+          where: {
+            actionId: input.actionId,
+          },
+          create: {
+            actionId: input.actionId, // Changed from nodeId to actionId
+            integrationId: input.integrationId,
+            workspaceId: input.workspaceId,
+            channel: input.channel,
+            userId: input.userId,
+            message: input.message,
+            blocks: input.blocks!,
+            attachments: input.attachments!,
+            asUser: input.asUser,
+            username: input.username,
+            iconEmoji: input.iconEmoji,
+            iconUrl: input.iconUrl,
+            threadTs: input.threadTs,
+            replyBroadcast: input.replyBroadcast,
+            variables: input.variables!,
+          },
+          update: {
             integrationId: input.integrationId,
             workspaceId: input.workspaceId,
             channel: input.channel,
@@ -443,7 +523,7 @@ export const actionSystemRouter = createTRPCRouter({
   createCalendarAction: createPermissionProcedure(PERMISSIONS.WORKFLOWS_WRITE)
     .input(
       z.object({
-        nodeId: z.string().cuid(),
+        actionId: z.string().cuid(), // Changed from nodeId to actionId
         organizationId: z.string().cuid(),
         integrationId: z.string().cuid().optional(),
         calendarId: z.string().optional(),
@@ -465,20 +545,21 @@ export const actionSystemRouter = createTRPCRouter({
       await ctx.requirePermission(input.organizationId);
 
       try {
-        // Verify node exists and belongs to organization's workflow
-        const node = await db.workflowNode.findFirst({
+        // Verify action node exists and belongs to organization's workflow
+        const actionNode = await db.workflowNode.findFirst({
           where: {
-            id: input.nodeId,
+            id: input.actionId,
+            type: "ACTION",
             workflow: {
               organizationId: input.organizationId,
             },
           },
         });
 
-        if (!node) {
+        if (!actionNode) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Workflow node not found",
+            message: "Action node not found",
           });
         }
 
@@ -503,9 +584,28 @@ export const actionSystemRouter = createTRPCRouter({
           }
         }
 
-        const calendarAction = await db.calendarAction.create({
-          data: {
-            nodeId: input.nodeId,
+        const calendarAction = await db.calendarAction.upsert({
+          where: {
+            actionId: input.actionId,
+          },
+          create: {
+            actionId: input.actionId, // Changed from nodeId to actionId
+            integrationId: input.integrationId,
+            calendarId: input.calendarId,
+            title: input.title,
+            description: input.description,
+            location: input.location,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            isAllDay: input.isAllDay,
+            timezone: input.timezone,
+            attendees: input.attendees as Prisma.InputJsonValue,
+            organizer: input.organizer,
+            reminders: input.reminders!,
+            recurrence: input.recurrence!,
+            variables: input.variables!,
+          },
+          update: {
             integrationId: input.integrationId,
             calendarId: input.calendarId,
             title: input.title,
@@ -536,7 +636,7 @@ export const actionSystemRouter = createTRPCRouter({
 
   // ==================== GENERIC ACTION MANAGEMENT ====================
 
-  // Get all actions for a workflow node
+  // Get all actions for a workflow action node
   getNodeActions: createAnyPermissionProcedure([
     PERMISSIONS.WORKFLOWS_READ,
     PERMISSIONS.WORKFLOWS_WRITE,
@@ -544,7 +644,7 @@ export const actionSystemRouter = createTRPCRouter({
   ])
     .input(
       z.object({
-        nodeId: z.string().cuid(),
+        actionId: z.string().cuid(), // Changed from nodeId to actionId
         organizationId: z.string().cuid(),
       })
     )
@@ -552,24 +652,25 @@ export const actionSystemRouter = createTRPCRouter({
       await ctx.requireAnyPermission(input.organizationId);
 
       try {
-        // Verify node belongs to organization
-        const node = await db.workflowNode.findFirst({
+        // Verify action node belongs to organization
+        const actionNode = await db.workflowNode.findFirst({
           where: {
-            id: input.nodeId,
+            id: input.actionId,
+            type: "ACTION",
             workflow: {
               organizationId: input.organizationId,
             },
           },
         });
 
-        if (!node) {
+        if (!actionNode) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Workflow node not found",
+            message: "Action node not found",
           });
         }
 
-        // Fetch all action types for this node
+        // Fetch all action types for this action node
         const [
           emailActions,
           smsActions,
@@ -577,16 +678,16 @@ export const actionSystemRouter = createTRPCRouter({
           slackActions,
           calendarActions,
         ] = await Promise.all([
-          db.emailAction.findMany({ where: { nodeId: input.nodeId } }),
-          db.smsAction.findMany({ where: { nodeId: input.nodeId } }),
-          db.whatsAppAction.findMany({ where: { nodeId: input.nodeId } }),
-          db.slackAction.findMany({ where: { nodeId: input.nodeId } }),
-          db.calendarAction.findMany({ where: { nodeId: input.nodeId } }),
+          db.emailAction.findMany({ where: { actionId: input.actionId } }),
+          db.smsAction.findMany({ where: { actionId: input.actionId } }),
+          db.whatsAppAction.findMany({ where: { actionId: input.actionId } }),
+          db.slackAction.findMany({ where: { actionId: input.actionId } }),
+          db.calendarAction.findMany({ where: { actionId: input.actionId } }),
         ]);
 
         return {
-          nodeId: input.nodeId,
-          nodeType: node.type,
+          actionId: input.actionId,
+          nodeType: actionNode.type,
           actions: {
             email: emailActions,
             sms: smsActions,
@@ -628,10 +729,10 @@ export const actionSystemRouter = createTRPCRouter({
         let deletedAction;
         switch (input.actionType) {
           case "email":
-            // Verify action exists and get its nodeId
+            // Verify action exists and get its actionId
             const emailAction = await db.emailAction.findUnique({
               where: { id: input.actionId },
-              select: { nodeId: true },
+              select: { actionId: true },
             });
 
             if (!emailAction) {
@@ -644,7 +745,7 @@ export const actionSystemRouter = createTRPCRouter({
             // Verify the workflow belongs to the organization
             const emailWorkflow = await db.workflowNode.findFirst({
               where: {
-                id: emailAction.nodeId,
+                id: emailAction.actionId,
                 workflow: {
                   organizationId: input.organizationId,
                 },
@@ -666,7 +767,7 @@ export const actionSystemRouter = createTRPCRouter({
           case "sms":
             const smsAction = await db.smsAction.findUnique({
               where: { id: input.actionId },
-              select: { nodeId: true },
+              select: { actionId: true },
             });
 
             if (!smsAction) {
@@ -678,7 +779,7 @@ export const actionSystemRouter = createTRPCRouter({
 
             const smsWorkflow = await db.workflowNode.findFirst({
               where: {
-                id: smsAction.nodeId,
+                id: smsAction.actionId,
                 workflow: {
                   organizationId: input.organizationId,
                 },
@@ -700,7 +801,7 @@ export const actionSystemRouter = createTRPCRouter({
           case "whatsapp":
             const whatsAppAction = await db.whatsAppAction.findUnique({
               where: { id: input.actionId },
-              select: { nodeId: true },
+              select: { actionId: true },
             });
 
             if (!whatsAppAction) {
@@ -712,7 +813,7 @@ export const actionSystemRouter = createTRPCRouter({
 
             const whatsAppWorkflow = await db.workflowNode.findFirst({
               where: {
-                id: whatsAppAction.nodeId,
+                id: whatsAppAction.actionId,
                 workflow: {
                   organizationId: input.organizationId,
                 },
@@ -734,7 +835,7 @@ export const actionSystemRouter = createTRPCRouter({
           case "slack":
             const slackAction = await db.slackAction.findUnique({
               where: { id: input.actionId },
-              select: { nodeId: true },
+              select: { actionId: true },
             });
 
             if (!slackAction) {
@@ -746,7 +847,7 @@ export const actionSystemRouter = createTRPCRouter({
 
             const slackWorkflow = await db.workflowNode.findFirst({
               where: {
-                id: slackAction.nodeId,
+                id: slackAction.actionId,
                 workflow: {
                   organizationId: input.organizationId,
                 },
@@ -768,7 +869,7 @@ export const actionSystemRouter = createTRPCRouter({
           case "calendar":
             const calendarAction = await db.calendarAction.findUnique({
               where: { id: input.actionId },
-              select: { nodeId: true },
+              select: { actionId: true },
             });
 
             if (!calendarAction) {
@@ -780,7 +881,7 @@ export const actionSystemRouter = createTRPCRouter({
 
             const calendarWorkflow = await db.workflowNode.findFirst({
               where: {
-                id: calendarAction.nodeId,
+                id: calendarAction.actionId,
                 workflow: {
                   organizationId: input.organizationId,
                 },

@@ -231,4 +231,150 @@ export const triggersRouter = createTRPCRouter({
         });
       }
     }),
+
+  // Create or update trigger for a specific node (for workflow config sheet)
+  createOrUpdateNodeTrigger: createPermissionProcedure(
+    PERMISSIONS.WORKFLOWS_WRITE
+  )
+    .input(
+      z.object({
+        workflowId: z.string().cuid(),
+        organizationId: z.string().cuid(),
+        nodeId: z.string(), // React Flow node ID
+        name: z.string().min(1).max(100),
+        type: WorkflowTriggerTypeSchema,
+        module: z.string().min(1),
+        eventType: z.string().min(1),
+        entityType: z.string().optional(),
+        conditions: z.record(z.unknown()).optional(),
+        delay: z.number().min(0).optional(),
+        isActive: z.boolean().default(true),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
+
+      try {
+        // Verify workflow belongs to organization
+        const workflow = await db.workflow.findFirst({
+          where: {
+            id: input.workflowId,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!workflow) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Workflow not found",
+          });
+        }
+
+        // Verify the workflow node exists
+        const workflowNode = await db.workflowNode.findFirst({
+          where: {
+            nodeId: input.nodeId,
+            workflowId: input.workflowId,
+            type: "TRIGGER",
+          },
+        });
+
+        if (!workflowNode) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Trigger node not found",
+          });
+        }
+
+        const trigger = await db.workflowTrigger.upsert({
+          where: {
+            nodeId_workflowId: {
+              nodeId: input.nodeId,
+              workflowId: input.workflowId,
+            },
+          },
+          create: {
+            workflowId: input.workflowId,
+            nodeId: input.nodeId,
+            name: input.name,
+            type: input.type,
+            module: input.module,
+            eventType: input.eventType,
+            entityType: input.entityType,
+            conditions: input.conditions as Prisma.InputJsonValue,
+            delay: input.delay,
+            isActive: input.isActive,
+          },
+          update: {
+            name: input.name,
+            type: input.type,
+            module: input.module,
+            eventType: input.eventType,
+            entityType: input.entityType,
+            conditions: input.conditions as Prisma.InputJsonValue,
+            delay: input.delay,
+            isActive: input.isActive,
+          },
+        });
+
+        return trigger;
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        console.error("Failed to create/update trigger:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create/update trigger",
+        });
+      }
+    }),
+
+  // Get trigger for a specific node (for workflow config sheet)
+  getNodeTrigger: createAnyPermissionProcedure([
+    PERMISSIONS.WORKFLOWS_READ,
+    PERMISSIONS.WORKFLOWS_WRITE,
+    PERMISSIONS.WORKFLOWS_ADMIN,
+  ])
+    .input(
+      z.object({
+        workflowId: z.string().cuid(),
+        organizationId: z.string().cuid(),
+        nodeId: z.string(), // React Flow node ID
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      await ctx.requireAnyPermission(input.organizationId);
+
+      try {
+        // Verify workflow belongs to organization
+        const workflow = await db.workflow.findFirst({
+          where: {
+            id: input.workflowId,
+            organizationId: input.organizationId,
+          },
+        });
+
+        if (!workflow) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Workflow not found",
+          });
+        }
+
+        const trigger = await db.workflowTrigger.findFirst({
+          where: {
+            nodeId: input.nodeId,
+            workflowId: input.workflowId,
+          },
+        });
+
+        return trigger;
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        console.error("Failed to fetch node trigger:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch node trigger",
+        });
+      }
+    }),
 });

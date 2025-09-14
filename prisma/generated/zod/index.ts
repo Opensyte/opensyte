@@ -161,15 +161,15 @@ export const FinancialReportScheduleScalarFieldEnumSchema = z.enum(['id','report
 
 export const WorkflowScalarFieldEnumSchema = z.enum(['id','organizationId','name','description','version','status','isTemplate','category','canvasData','retryConfig','timeoutConfig','totalExecutions','successfulExecutions','failedExecutions','lastExecutedAt','createdById','updatedById','publishedAt','publishedById','archivedAt','createdAt','updatedAt']);
 
-export const WorkflowTriggerScalarFieldEnumSchema = z.enum(['id','workflowId','name','description','type','module','entityType','eventType','conditions','delay','isActive','lastTriggered','triggerCount','createdAt','updatedAt']);
+export const WorkflowTriggerScalarFieldEnumSchema = z.enum(['id','workflowId','nodeId','name','description','type','module','entityType','eventType','conditions','delay','isActive','lastTriggered','triggerCount','createdAt','updatedAt']);
 
 export const WorkflowNodeScalarFieldEnumSchema = z.enum(['id','workflowId','nodeId','type','name','description','position','config','template','executionOrder','isOptional','retryLimit','timeout','conditions','createdAt','updatedAt']);
 
-export const WorkflowConnectionScalarFieldEnumSchema = z.enum(['id','workflowId','edgeId','sourceNodeId','targetNodeId','sourceHandle','targetHandle','label','conditions','style','animated','createdAt','updatedAt']);
+export const WorkflowConnectionScalarFieldEnumSchema = z.enum(['id','workflowId','sourceNodeId','targetNodeId','executionOrder','label','conditions','edgeId','sourceHandle','targetHandle','style','animated','createdAt','updatedAt']);
 
 export const NodeDependencyScalarFieldEnumSchema = z.enum(['id','dependentNodeId','prerequisiteNodeId','dependencyType','createdAt']);
 
-export const ActionTemplateScalarFieldEnumSchema = z.enum(['id','organizationId','name','description','category','type','template','defaultConfig','schema','version','isPublic','isActive','usageCount','requiredVariables','optionalVariables','createdById','createdAt','updatedAt']);
+export const ActionTemplateScalarFieldEnumSchema = z.enum(['id','organizationId','name','description','category','type','template','defaultConfig','schema','version','isPublic','isActive','usageCount','isLocked','requiredVariables','optionalVariables','createdById','createdAt','updatedAt']);
 
 export const ActionTemplateVersionScalarFieldEnumSchema = z.enum(['id','templateId','version','template','changes','isActive','createdById','createdAt']);
 
@@ -187,15 +187,15 @@ export const ExecutionLogScalarFieldEnumSchema = z.enum(['id','workflowExecution
 
 export const IntegrationConfigScalarFieldEnumSchema = z.enum(['id','organizationId','name','type','config','credentials','endpoints','isActive','isHealthy','lastHealthCheck','healthDetails','requestCount','errorCount','lastUsedAt','createdById','createdAt','updatedAt']);
 
-export const EmailActionScalarFieldEnumSchema = z.enum(['id','nodeId','integrationId','fromName','fromEmail','replyTo','toEmails','ccEmails','bccEmails','subject','htmlBody','textBody','templateId','attachments','trackOpens','trackClicks','variables','createdAt','updatedAt']);
+export const EmailActionScalarFieldEnumSchema = z.enum(['id','actionId','integrationId','fromName','fromEmail','replyTo','ccEmails','bccEmails','subject','htmlBody','textBody','templateId','attachments','trackOpens','trackClicks','variables','createdAt','updatedAt']);
 
-export const SmsActionScalarFieldEnumSchema = z.enum(['id','nodeId','integrationId','fromNumber','toNumbers','message','templateId','maxLength','unicode','variables','createdAt','updatedAt']);
+export const SmsActionScalarFieldEnumSchema = z.enum(['id','actionId','integrationId','fromNumber','message','templateId','maxLength','unicode','variables','createdAt','updatedAt']);
 
-export const WhatsAppActionScalarFieldEnumSchema = z.enum(['id','nodeId','integrationId','businessAccountId','toNumbers','messageType','textMessage','templateName','templateLanguage','mediaUrl','mediaType','caption','templateParams','variables','createdAt','updatedAt']);
+export const WhatsAppActionScalarFieldEnumSchema = z.enum(['id','actionId','integrationId','businessAccountId','toNumbers','messageType','textMessage','templateName','templateLanguage','mediaUrl','mediaType','caption','templateParams','variables','createdAt','updatedAt']);
 
-export const SlackActionScalarFieldEnumSchema = z.enum(['id','nodeId','integrationId','workspaceId','channel','userId','message','blocks','attachments','asUser','username','iconEmoji','iconUrl','threadTs','replyBroadcast','variables','createdAt','updatedAt']);
+export const SlackActionScalarFieldEnumSchema = z.enum(['id','actionId','integrationId','workspaceId','channel','userId','message','blocks','attachments','asUser','username','iconEmoji','iconUrl','threadTs','replyBroadcast','variables','createdAt','updatedAt']);
 
-export const CalendarActionScalarFieldEnumSchema = z.enum(['id','nodeId','integrationId','calendarId','title','description','location','startTime','endTime','isAllDay','timezone','attendees','organizer','reminders','recurrence','variables','createdAt','updatedAt']);
+export const CalendarActionScalarFieldEnumSchema = z.enum(['id','actionId','integrationId','calendarId','title','description','location','startTime','endTime','isAllDay','timezone','attendees','organizer','reminders','recurrence','variables','createdAt','updatedAt']);
 
 export const WorkflowAnalyticsScalarFieldEnumSchema = z.enum(['id','workflowId','periodStart','periodEnd','granularity','totalExecutions','successfulExecutions','failedExecutions','averageDuration','minDuration','maxDuration','p95Duration','commonErrors','errorRate','avgCpuUsage','avgMemoryUsage','createdAt','updatedAt']);
 
@@ -331,7 +331,7 @@ export const WorkflowStatusSchema = z.enum(['DRAFT','INACTIVE','ACTIVE','PAUSED'
 
 export type WorkflowStatusType = `${z.infer<typeof WorkflowStatusSchema>}`
 
-export const WorkflowTriggerTypeSchema = z.enum(['RECORD_CREATED','RECORD_UPDATED','RECORD_DELETED','STATUS_CHANGED','FORM_SUBMITTED','TIME_BASED','MANUAL','WEBHOOK','API_CALL','EMAIL_RECEIVED','FILE_UPLOADED']);
+export const WorkflowTriggerTypeSchema = z.enum(['CONTACT_CREATED','CONTACT_UPDATED','DEAL_CREATED','DEAL_STATUS_CHANGED','EMPLOYEE_CREATED','EMPLOYEE_UPDATED','EMPLOYEE_STATUS_CHANGED','TIME_OFF_REQUESTED','INVOICE_CREATED','INVOICE_STATUS_CHANGED','EXPENSE_CREATED','PAYMENT_STATUS_CHANGED','PROJECT_CREATED','PROJECT_UPDATED','TASK_CREATED','TASK_STATUS_CHANGED','RECORD_CREATED','RECORD_UPDATED','RECORD_DELETED','STATUS_CHANGED','FORM_SUBMITTED']);
 
 export type WorkflowTriggerTypeType = `${z.infer<typeof WorkflowTriggerTypeSchema>}`
 
@@ -1259,6 +1259,7 @@ export const WorkflowTriggerSchema = z.object({
   type: WorkflowTriggerTypeSchema,
   id: z.string().cuid(),
   workflowId: z.string(),
+  nodeId: z.string().nullable(),
   name: z.string(),
   description: z.string().nullable(),
   module: z.string(),
@@ -1307,13 +1308,14 @@ export type WorkflowNode = z.infer<typeof WorkflowNodeSchema>
 export const WorkflowConnectionSchema = z.object({
   id: z.string().cuid(),
   workflowId: z.string(),
-  edgeId: z.string(),
   sourceNodeId: z.string(),
   targetNodeId: z.string(),
-  sourceHandle: z.string().nullable(),
-  targetHandle: z.string().nullable(),
+  executionOrder: z.number().int(),
   label: z.string().nullable(),
   conditions: JsonValueSchema.nullable(),
+  edgeId: z.string().nullable(),
+  sourceHandle: z.string().nullable(),
+  targetHandle: z.string().nullable(),
   style: JsonValueSchema.nullable(),
   animated: z.boolean(),
   createdAt: z.coerce.date(),
@@ -1354,6 +1356,7 @@ export const ActionTemplateSchema = z.object({
   isPublic: z.boolean(),
   isActive: z.boolean(),
   usageCount: z.number().int(),
+  isLocked: z.boolean(),
   requiredVariables: JsonValueSchema.nullable(),
   optionalVariables: JsonValueSchema.nullable(),
   createdById: z.string().nullable(),
@@ -1551,12 +1554,11 @@ export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>
 
 export const EmailActionSchema = z.object({
   id: z.string().cuid(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().nullable(),
   fromName: z.string().nullable(),
   fromEmail: z.string().nullable(),
   replyTo: z.string().nullable(),
-  toEmails: JsonValueSchema,
   ccEmails: JsonValueSchema.nullable(),
   bccEmails: JsonValueSchema.nullable(),
   subject: z.string(),
@@ -1579,10 +1581,9 @@ export type EmailAction = z.infer<typeof EmailActionSchema>
 
 export const SmsActionSchema = z.object({
   id: z.string().cuid(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().nullable(),
   fromNumber: z.string().nullable(),
-  toNumbers: JsonValueSchema,
   message: z.string(),
   templateId: z.string().nullable(),
   maxLength: z.number().int().nullable(),
@@ -1601,7 +1602,7 @@ export type SmsAction = z.infer<typeof SmsActionSchema>
 export const WhatsAppActionSchema = z.object({
   messageType: WhatsAppMessageTypeSchema,
   id: z.string().cuid(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().nullable(),
   businessAccountId: z.string().nullable(),
   toNumbers: JsonValueSchema,
@@ -1625,7 +1626,7 @@ export type WhatsAppAction = z.infer<typeof WhatsAppActionSchema>
 
 export const SlackActionSchema = z.object({
   id: z.string().cuid(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().nullable(),
   workspaceId: z.string().nullable(),
   channel: z.string().nullable(),
@@ -1652,7 +1653,7 @@ export type SlackAction = z.infer<typeof SlackActionSchema>
 
 export const CalendarActionSchema = z.object({
   id: z.string().cuid(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().nullable(),
   calendarId: z.string().nullable(),
   title: z.string(),
@@ -3180,6 +3181,7 @@ export const WorkflowTriggerIncludeSchema: z.ZodType<Prisma.WorkflowTriggerInclu
   workflow: z.union([z.boolean(),z.lazy(() => WorkflowArgsSchema)]).optional(),
   executions: z.union([z.boolean(),z.lazy(() => WorkflowExecutionFindManyArgsSchema)]).optional(),
   variables: z.union([z.boolean(),z.lazy(() => TriggerVariableFindManyArgsSchema)]).optional(),
+  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => WorkflowTriggerCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -3200,6 +3202,7 @@ export const WorkflowTriggerCountOutputTypeSelectSchema: z.ZodType<Prisma.Workfl
 export const WorkflowTriggerSelectSchema: z.ZodType<Prisma.WorkflowTriggerSelect> = z.object({
   id: z.boolean().optional(),
   workflowId: z.boolean().optional(),
+  nodeId: z.boolean().optional(),
   name: z.boolean().optional(),
   description: z.boolean().optional(),
   type: z.boolean().optional(),
@@ -3216,6 +3219,7 @@ export const WorkflowTriggerSelectSchema: z.ZodType<Prisma.WorkflowTriggerSelect
   workflow: z.union([z.boolean(),z.lazy(() => WorkflowArgsSchema)]).optional(),
   executions: z.union([z.boolean(),z.lazy(() => WorkflowExecutionFindManyArgsSchema)]).optional(),
   variables: z.union([z.boolean(),z.lazy(() => TriggerVariableFindManyArgsSchema)]).optional(),
+  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => WorkflowTriggerCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -3227,11 +3231,14 @@ export const WorkflowNodeIncludeSchema: z.ZodType<Prisma.WorkflowNodeInclude> = 
   executions: z.union([z.boolean(),z.lazy(() => NodeExecutionFindManyArgsSchema)]).optional(),
   dependencies: z.union([z.boolean(),z.lazy(() => NodeDependencyFindManyArgsSchema)]).optional(),
   dependents: z.union([z.boolean(),z.lazy(() => NodeDependencyFindManyArgsSchema)]).optional(),
-  emailActions: z.union([z.boolean(),z.lazy(() => EmailActionFindManyArgsSchema)]).optional(),
-  smsActions: z.union([z.boolean(),z.lazy(() => SmsActionFindManyArgsSchema)]).optional(),
-  whatsAppActions: z.union([z.boolean(),z.lazy(() => WhatsAppActionFindManyArgsSchema)]).optional(),
-  slackActions: z.union([z.boolean(),z.lazy(() => SlackActionFindManyArgsSchema)]).optional(),
-  calendarActions: z.union([z.boolean(),z.lazy(() => CalendarActionFindManyArgsSchema)]).optional(),
+  sourceConnections: z.union([z.boolean(),z.lazy(() => WorkflowConnectionFindManyArgsSchema)]).optional(),
+  targetConnections: z.union([z.boolean(),z.lazy(() => WorkflowConnectionFindManyArgsSchema)]).optional(),
+  emailAction: z.union([z.boolean(),z.lazy(() => EmailActionArgsSchema)]).optional(),
+  smsAction: z.union([z.boolean(),z.lazy(() => SmsActionArgsSchema)]).optional(),
+  whatsAppAction: z.union([z.boolean(),z.lazy(() => WhatsAppActionArgsSchema)]).optional(),
+  slackAction: z.union([z.boolean(),z.lazy(() => SlackActionArgsSchema)]).optional(),
+  calendarAction: z.union([z.boolean(),z.lazy(() => CalendarActionArgsSchema)]).optional(),
+  trigger: z.union([z.boolean(),z.lazy(() => WorkflowTriggerArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => WorkflowNodeCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -3248,11 +3255,8 @@ export const WorkflowNodeCountOutputTypeSelectSchema: z.ZodType<Prisma.WorkflowN
   executions: z.boolean().optional(),
   dependencies: z.boolean().optional(),
   dependents: z.boolean().optional(),
-  emailActions: z.boolean().optional(),
-  smsActions: z.boolean().optional(),
-  whatsAppActions: z.boolean().optional(),
-  slackActions: z.boolean().optional(),
-  calendarActions: z.boolean().optional(),
+  sourceConnections: z.boolean().optional(),
+  targetConnections: z.boolean().optional(),
 }).strict();
 
 export const WorkflowNodeSelectSchema: z.ZodType<Prisma.WorkflowNodeSelect> = z.object({
@@ -3276,11 +3280,14 @@ export const WorkflowNodeSelectSchema: z.ZodType<Prisma.WorkflowNodeSelect> = z.
   executions: z.union([z.boolean(),z.lazy(() => NodeExecutionFindManyArgsSchema)]).optional(),
   dependencies: z.union([z.boolean(),z.lazy(() => NodeDependencyFindManyArgsSchema)]).optional(),
   dependents: z.union([z.boolean(),z.lazy(() => NodeDependencyFindManyArgsSchema)]).optional(),
-  emailActions: z.union([z.boolean(),z.lazy(() => EmailActionFindManyArgsSchema)]).optional(),
-  smsActions: z.union([z.boolean(),z.lazy(() => SmsActionFindManyArgsSchema)]).optional(),
-  whatsAppActions: z.union([z.boolean(),z.lazy(() => WhatsAppActionFindManyArgsSchema)]).optional(),
-  slackActions: z.union([z.boolean(),z.lazy(() => SlackActionFindManyArgsSchema)]).optional(),
-  calendarActions: z.union([z.boolean(),z.lazy(() => CalendarActionFindManyArgsSchema)]).optional(),
+  sourceConnections: z.union([z.boolean(),z.lazy(() => WorkflowConnectionFindManyArgsSchema)]).optional(),
+  targetConnections: z.union([z.boolean(),z.lazy(() => WorkflowConnectionFindManyArgsSchema)]).optional(),
+  emailAction: z.union([z.boolean(),z.lazy(() => EmailActionArgsSchema)]).optional(),
+  smsAction: z.union([z.boolean(),z.lazy(() => SmsActionArgsSchema)]).optional(),
+  whatsAppAction: z.union([z.boolean(),z.lazy(() => WhatsAppActionArgsSchema)]).optional(),
+  slackAction: z.union([z.boolean(),z.lazy(() => SlackActionArgsSchema)]).optional(),
+  calendarAction: z.union([z.boolean(),z.lazy(() => CalendarActionArgsSchema)]).optional(),
+  trigger: z.union([z.boolean(),z.lazy(() => WorkflowTriggerArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => WorkflowNodeCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -3289,6 +3296,8 @@ export const WorkflowNodeSelectSchema: z.ZodType<Prisma.WorkflowNodeSelect> = z.
 
 export const WorkflowConnectionIncludeSchema: z.ZodType<Prisma.WorkflowConnectionInclude> = z.object({
   workflow: z.union([z.boolean(),z.lazy(() => WorkflowArgsSchema)]).optional(),
+  sourceNode: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  targetNode: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 export const WorkflowConnectionArgsSchema: z.ZodType<Prisma.WorkflowConnectionDefaultArgs> = z.object({
@@ -3299,18 +3308,21 @@ export const WorkflowConnectionArgsSchema: z.ZodType<Prisma.WorkflowConnectionDe
 export const WorkflowConnectionSelectSchema: z.ZodType<Prisma.WorkflowConnectionSelect> = z.object({
   id: z.boolean().optional(),
   workflowId: z.boolean().optional(),
-  edgeId: z.boolean().optional(),
   sourceNodeId: z.boolean().optional(),
   targetNodeId: z.boolean().optional(),
-  sourceHandle: z.boolean().optional(),
-  targetHandle: z.boolean().optional(),
+  executionOrder: z.boolean().optional(),
   label: z.boolean().optional(),
   conditions: z.boolean().optional(),
+  edgeId: z.boolean().optional(),
+  sourceHandle: z.boolean().optional(),
+  targetHandle: z.boolean().optional(),
   style: z.boolean().optional(),
   animated: z.boolean().optional(),
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
   workflow: z.union([z.boolean(),z.lazy(() => WorkflowArgsSchema)]).optional(),
+  sourceNode: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  targetNode: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 // NODE DEPENDENCY
@@ -3372,6 +3384,7 @@ export const ActionTemplateSelectSchema: z.ZodType<Prisma.ActionTemplateSelect> 
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.boolean().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.boolean().optional(),
   optionalVariables: z.boolean().optional(),
   createdById: z.boolean().optional(),
@@ -3665,7 +3678,7 @@ export const IntegrationConfigSelectSchema: z.ZodType<Prisma.IntegrationConfigSe
 //------------------------------------------------------
 
 export const EmailActionIncludeSchema: z.ZodType<Prisma.EmailActionInclude> = z.object({
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 export const EmailActionArgsSchema: z.ZodType<Prisma.EmailActionDefaultArgs> = z.object({
@@ -3675,12 +3688,11 @@ export const EmailActionArgsSchema: z.ZodType<Prisma.EmailActionDefaultArgs> = z
 
 export const EmailActionSelectSchema: z.ZodType<Prisma.EmailActionSelect> = z.object({
   id: z.boolean().optional(),
-  nodeId: z.boolean().optional(),
+  actionId: z.boolean().optional(),
   integrationId: z.boolean().optional(),
   fromName: z.boolean().optional(),
   fromEmail: z.boolean().optional(),
   replyTo: z.boolean().optional(),
-  toEmails: z.boolean().optional(),
   ccEmails: z.boolean().optional(),
   bccEmails: z.boolean().optional(),
   subject: z.boolean().optional(),
@@ -3693,14 +3705,14 @@ export const EmailActionSelectSchema: z.ZodType<Prisma.EmailActionSelect> = z.ob
   variables: z.boolean().optional(),
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 // SMS ACTION
 //------------------------------------------------------
 
 export const SmsActionIncludeSchema: z.ZodType<Prisma.SmsActionInclude> = z.object({
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 export const SmsActionArgsSchema: z.ZodType<Prisma.SmsActionDefaultArgs> = z.object({
@@ -3710,10 +3722,9 @@ export const SmsActionArgsSchema: z.ZodType<Prisma.SmsActionDefaultArgs> = z.obj
 
 export const SmsActionSelectSchema: z.ZodType<Prisma.SmsActionSelect> = z.object({
   id: z.boolean().optional(),
-  nodeId: z.boolean().optional(),
+  actionId: z.boolean().optional(),
   integrationId: z.boolean().optional(),
   fromNumber: z.boolean().optional(),
-  toNumbers: z.boolean().optional(),
   message: z.boolean().optional(),
   templateId: z.boolean().optional(),
   maxLength: z.boolean().optional(),
@@ -3721,14 +3732,14 @@ export const SmsActionSelectSchema: z.ZodType<Prisma.SmsActionSelect> = z.object
   variables: z.boolean().optional(),
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 // WHATS APP ACTION
 //------------------------------------------------------
 
 export const WhatsAppActionIncludeSchema: z.ZodType<Prisma.WhatsAppActionInclude> = z.object({
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 export const WhatsAppActionArgsSchema: z.ZodType<Prisma.WhatsAppActionDefaultArgs> = z.object({
@@ -3738,7 +3749,7 @@ export const WhatsAppActionArgsSchema: z.ZodType<Prisma.WhatsAppActionDefaultArg
 
 export const WhatsAppActionSelectSchema: z.ZodType<Prisma.WhatsAppActionSelect> = z.object({
   id: z.boolean().optional(),
-  nodeId: z.boolean().optional(),
+  actionId: z.boolean().optional(),
   integrationId: z.boolean().optional(),
   businessAccountId: z.boolean().optional(),
   toNumbers: z.boolean().optional(),
@@ -3753,14 +3764,14 @@ export const WhatsAppActionSelectSchema: z.ZodType<Prisma.WhatsAppActionSelect> 
   variables: z.boolean().optional(),
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 // SLACK ACTION
 //------------------------------------------------------
 
 export const SlackActionIncludeSchema: z.ZodType<Prisma.SlackActionInclude> = z.object({
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 export const SlackActionArgsSchema: z.ZodType<Prisma.SlackActionDefaultArgs> = z.object({
@@ -3770,7 +3781,7 @@ export const SlackActionArgsSchema: z.ZodType<Prisma.SlackActionDefaultArgs> = z
 
 export const SlackActionSelectSchema: z.ZodType<Prisma.SlackActionSelect> = z.object({
   id: z.boolean().optional(),
-  nodeId: z.boolean().optional(),
+  actionId: z.boolean().optional(),
   integrationId: z.boolean().optional(),
   workspaceId: z.boolean().optional(),
   channel: z.boolean().optional(),
@@ -3787,14 +3798,14 @@ export const SlackActionSelectSchema: z.ZodType<Prisma.SlackActionSelect> = z.ob
   variables: z.boolean().optional(),
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 // CALENDAR ACTION
 //------------------------------------------------------
 
 export const CalendarActionIncludeSchema: z.ZodType<Prisma.CalendarActionInclude> = z.object({
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 export const CalendarActionArgsSchema: z.ZodType<Prisma.CalendarActionDefaultArgs> = z.object({
@@ -3804,7 +3815,7 @@ export const CalendarActionArgsSchema: z.ZodType<Prisma.CalendarActionDefaultArg
 
 export const CalendarActionSelectSchema: z.ZodType<Prisma.CalendarActionSelect> = z.object({
   id: z.boolean().optional(),
-  nodeId: z.boolean().optional(),
+  actionId: z.boolean().optional(),
   integrationId: z.boolean().optional(),
   calendarId: z.boolean().optional(),
   title: z.boolean().optional(),
@@ -3821,7 +3832,7 @@ export const CalendarActionSelectSchema: z.ZodType<Prisma.CalendarActionSelect> 
   variables: z.boolean().optional(),
   createdAt: z.boolean().optional(),
   updatedAt: z.boolean().optional(),
-  node: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
+  action: z.union([z.boolean(),z.lazy(() => WorkflowNodeArgsSchema)]).optional(),
 }).strict()
 
 // WORKFLOW ANALYTICS
@@ -8044,6 +8055,7 @@ export const WorkflowTriggerWhereInputSchema: z.ZodType<Prisma.WorkflowTriggerWh
   NOT: z.union([ z.lazy(() => WorkflowTriggerWhereInputSchema),z.lazy(() => WorkflowTriggerWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  nodeId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   type: z.union([ z.lazy(() => EnumWorkflowTriggerTypeFilterSchema),z.lazy(() => WorkflowTriggerTypeSchema) ]).optional(),
@@ -8059,12 +8071,14 @@ export const WorkflowTriggerWhereInputSchema: z.ZodType<Prisma.WorkflowTriggerWh
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   workflow: z.union([ z.lazy(() => WorkflowRelationFilterSchema),z.lazy(() => WorkflowWhereInputSchema) ]).optional(),
   executions: z.lazy(() => WorkflowExecutionListRelationFilterSchema).optional(),
-  variables: z.lazy(() => TriggerVariableListRelationFilterSchema).optional()
+  variables: z.lazy(() => TriggerVariableListRelationFilterSchema).optional(),
+  node: z.union([ z.lazy(() => WorkflowNodeNullableRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional().nullable(),
 }).strict();
 
 export const WorkflowTriggerOrderByWithRelationInputSchema: z.ZodType<Prisma.WorkflowTriggerOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
+  nodeId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   name: z.lazy(() => SortOrderSchema).optional(),
   description: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   type: z.lazy(() => SortOrderSchema).optional(),
@@ -8080,18 +8094,30 @@ export const WorkflowTriggerOrderByWithRelationInputSchema: z.ZodType<Prisma.Wor
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
   workflow: z.lazy(() => WorkflowOrderByWithRelationInputSchema).optional(),
   executions: z.lazy(() => WorkflowExecutionOrderByRelationAggregateInputSchema).optional(),
-  variables: z.lazy(() => TriggerVariableOrderByRelationAggregateInputSchema).optional()
+  variables: z.lazy(() => TriggerVariableOrderByRelationAggregateInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
 }).strict();
 
-export const WorkflowTriggerWhereUniqueInputSchema: z.ZodType<Prisma.WorkflowTriggerWhereUniqueInput> = z.object({
-  id: z.string().cuid()
-})
+export const WorkflowTriggerWhereUniqueInputSchema: z.ZodType<Prisma.WorkflowTriggerWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    nodeId_workflowId: z.lazy(() => WorkflowTriggerNodeIdWorkflowIdCompoundUniqueInputSchema)
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    nodeId_workflowId: z.lazy(() => WorkflowTriggerNodeIdWorkflowIdCompoundUniqueInputSchema),
+  }),
+])
 .and(z.object({
   id: z.string().cuid().optional(),
+  nodeId_workflowId: z.lazy(() => WorkflowTriggerNodeIdWorkflowIdCompoundUniqueInputSchema).optional(),
   AND: z.union([ z.lazy(() => WorkflowTriggerWhereInputSchema),z.lazy(() => WorkflowTriggerWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => WorkflowTriggerWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => WorkflowTriggerWhereInputSchema),z.lazy(() => WorkflowTriggerWhereInputSchema).array() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  nodeId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   type: z.union([ z.lazy(() => EnumWorkflowTriggerTypeFilterSchema),z.lazy(() => WorkflowTriggerTypeSchema) ]).optional(),
@@ -8107,12 +8133,14 @@ export const WorkflowTriggerWhereUniqueInputSchema: z.ZodType<Prisma.WorkflowTri
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   workflow: z.union([ z.lazy(() => WorkflowRelationFilterSchema),z.lazy(() => WorkflowWhereInputSchema) ]).optional(),
   executions: z.lazy(() => WorkflowExecutionListRelationFilterSchema).optional(),
-  variables: z.lazy(() => TriggerVariableListRelationFilterSchema).optional()
+  variables: z.lazy(() => TriggerVariableListRelationFilterSchema).optional(),
+  node: z.union([ z.lazy(() => WorkflowNodeNullableRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional().nullable(),
 }).strict());
 
 export const WorkflowTriggerOrderByWithAggregationInputSchema: z.ZodType<Prisma.WorkflowTriggerOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
+  nodeId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   name: z.lazy(() => SortOrderSchema).optional(),
   description: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   type: z.lazy(() => SortOrderSchema).optional(),
@@ -8139,6 +8167,7 @@ export const WorkflowTriggerScalarWhereWithAggregatesInputSchema: z.ZodType<Pris
   NOT: z.union([ z.lazy(() => WorkflowTriggerScalarWhereWithAggregatesInputSchema),z.lazy(() => WorkflowTriggerScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  nodeId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   name: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   description: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   type: z.union([ z.lazy(() => EnumWorkflowTriggerTypeWithAggregatesFilterSchema),z.lazy(() => WorkflowTriggerTypeSchema) ]).optional(),
@@ -8178,11 +8207,14 @@ export const WorkflowNodeWhereInputSchema: z.ZodType<Prisma.WorkflowNodeWhereInp
   executions: z.lazy(() => NodeExecutionListRelationFilterSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyListRelationFilterSchema).optional(),
   dependents: z.lazy(() => NodeDependencyListRelationFilterSchema).optional(),
-  emailActions: z.lazy(() => EmailActionListRelationFilterSchema).optional(),
-  smsActions: z.lazy(() => SmsActionListRelationFilterSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionListRelationFilterSchema).optional(),
-  slackActions: z.lazy(() => SlackActionListRelationFilterSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionListRelationFilterSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionListRelationFilterSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionListRelationFilterSchema).optional(),
+  emailAction: z.union([ z.lazy(() => EmailActionNullableRelationFilterSchema),z.lazy(() => EmailActionWhereInputSchema) ]).optional().nullable(),
+  smsAction: z.union([ z.lazy(() => SmsActionNullableRelationFilterSchema),z.lazy(() => SmsActionWhereInputSchema) ]).optional().nullable(),
+  whatsAppAction: z.union([ z.lazy(() => WhatsAppActionNullableRelationFilterSchema),z.lazy(() => WhatsAppActionWhereInputSchema) ]).optional().nullable(),
+  slackAction: z.union([ z.lazy(() => SlackActionNullableRelationFilterSchema),z.lazy(() => SlackActionWhereInputSchema) ]).optional().nullable(),
+  calendarAction: z.union([ z.lazy(() => CalendarActionNullableRelationFilterSchema),z.lazy(() => CalendarActionWhereInputSchema) ]).optional().nullable(),
+  trigger: z.union([ z.lazy(() => WorkflowTriggerNullableRelationFilterSchema),z.lazy(() => WorkflowTriggerWhereInputSchema) ]).optional().nullable(),
 }).strict();
 
 export const WorkflowNodeOrderByWithRelationInputSchema: z.ZodType<Prisma.WorkflowNodeOrderByWithRelationInput> = z.object({
@@ -8206,11 +8238,14 @@ export const WorkflowNodeOrderByWithRelationInputSchema: z.ZodType<Prisma.Workfl
   executions: z.lazy(() => NodeExecutionOrderByRelationAggregateInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyOrderByRelationAggregateInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyOrderByRelationAggregateInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionOrderByRelationAggregateInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionOrderByRelationAggregateInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionOrderByRelationAggregateInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionOrderByRelationAggregateInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionOrderByRelationAggregateInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionOrderByRelationAggregateInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionOrderByRelationAggregateInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionOrderByWithRelationInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionOrderByWithRelationInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionOrderByWithRelationInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionOrderByWithRelationInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionOrderByWithRelationInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerOrderByWithRelationInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeWhereUniqueInputSchema: z.ZodType<Prisma.WorkflowNodeWhereUniqueInput> = z.union([
@@ -8250,11 +8285,14 @@ export const WorkflowNodeWhereUniqueInputSchema: z.ZodType<Prisma.WorkflowNodeWh
   executions: z.lazy(() => NodeExecutionListRelationFilterSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyListRelationFilterSchema).optional(),
   dependents: z.lazy(() => NodeDependencyListRelationFilterSchema).optional(),
-  emailActions: z.lazy(() => EmailActionListRelationFilterSchema).optional(),
-  smsActions: z.lazy(() => SmsActionListRelationFilterSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionListRelationFilterSchema).optional(),
-  slackActions: z.lazy(() => SlackActionListRelationFilterSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionListRelationFilterSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionListRelationFilterSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionListRelationFilterSchema).optional(),
+  emailAction: z.union([ z.lazy(() => EmailActionNullableRelationFilterSchema),z.lazy(() => EmailActionWhereInputSchema) ]).optional().nullable(),
+  smsAction: z.union([ z.lazy(() => SmsActionNullableRelationFilterSchema),z.lazy(() => SmsActionWhereInputSchema) ]).optional().nullable(),
+  whatsAppAction: z.union([ z.lazy(() => WhatsAppActionNullableRelationFilterSchema),z.lazy(() => WhatsAppActionWhereInputSchema) ]).optional().nullable(),
+  slackAction: z.union([ z.lazy(() => SlackActionNullableRelationFilterSchema),z.lazy(() => SlackActionWhereInputSchema) ]).optional().nullable(),
+  calendarAction: z.union([ z.lazy(() => CalendarActionNullableRelationFilterSchema),z.lazy(() => CalendarActionWhereInputSchema) ]).optional().nullable(),
+  trigger: z.union([ z.lazy(() => WorkflowTriggerNullableRelationFilterSchema),z.lazy(() => WorkflowTriggerWhereInputSchema) ]).optional().nullable(),
 }).strict());
 
 export const WorkflowNodeOrderByWithAggregationInputSchema: z.ZodType<Prisma.WorkflowNodeOrderByWithAggregationInput> = z.object({
@@ -8309,44 +8347,66 @@ export const WorkflowConnectionWhereInputSchema: z.ZodType<Prisma.WorkflowConnec
   NOT: z.union([ z.lazy(() => WorkflowConnectionWhereInputSchema),z.lazy(() => WorkflowConnectionWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  edgeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   sourceNodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   targetNodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  sourceHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  targetHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  executionOrder: z.union([ z.lazy(() => IntFilterSchema),z.number() ]).optional(),
   label: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   conditions: z.lazy(() => JsonNullableFilterSchema).optional(),
+  edgeId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  sourceHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  targetHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   style: z.lazy(() => JsonNullableFilterSchema).optional(),
   animated: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   workflow: z.union([ z.lazy(() => WorkflowRelationFilterSchema),z.lazy(() => WorkflowWhereInputSchema) ]).optional(),
+  sourceNode: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  targetNode: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict();
 
 export const WorkflowConnectionOrderByWithRelationInputSchema: z.ZodType<Prisma.WorkflowConnectionOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
-  edgeId: z.lazy(() => SortOrderSchema).optional(),
   sourceNodeId: z.lazy(() => SortOrderSchema).optional(),
   targetNodeId: z.lazy(() => SortOrderSchema).optional(),
-  sourceHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  targetHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  executionOrder: z.lazy(() => SortOrderSchema).optional(),
   label: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   conditions: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  edgeId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  sourceHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  targetHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   style: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   animated: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
-  workflow: z.lazy(() => WorkflowOrderByWithRelationInputSchema).optional()
+  workflow: z.lazy(() => WorkflowOrderByWithRelationInputSchema).optional(),
+  sourceNode: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional(),
+  targetNode: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
 }).strict();
 
 export const WorkflowConnectionWhereUniqueInputSchema: z.ZodType<Prisma.WorkflowConnectionWhereUniqueInput> = z.union([
   z.object({
     id: z.string().cuid(),
+    sourceNodeId_targetNodeId: z.lazy(() => WorkflowConnectionSourceNodeIdTargetNodeIdCompoundUniqueInputSchema),
     workflowId_edgeId: z.lazy(() => WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInputSchema)
   }),
   z.object({
     id: z.string().cuid(),
+    sourceNodeId_targetNodeId: z.lazy(() => WorkflowConnectionSourceNodeIdTargetNodeIdCompoundUniqueInputSchema),
+  }),
+  z.object({
+    id: z.string().cuid(),
+    workflowId_edgeId: z.lazy(() => WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInputSchema),
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    sourceNodeId_targetNodeId: z.lazy(() => WorkflowConnectionSourceNodeIdTargetNodeIdCompoundUniqueInputSchema),
+    workflowId_edgeId: z.lazy(() => WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInputSchema),
+  }),
+  z.object({
+    sourceNodeId_targetNodeId: z.lazy(() => WorkflowConnectionSourceNodeIdTargetNodeIdCompoundUniqueInputSchema),
   }),
   z.object({
     workflowId_edgeId: z.lazy(() => WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInputSchema),
@@ -8354,42 +8414,49 @@ export const WorkflowConnectionWhereUniqueInputSchema: z.ZodType<Prisma.Workflow
 ])
 .and(z.object({
   id: z.string().cuid().optional(),
+  sourceNodeId_targetNodeId: z.lazy(() => WorkflowConnectionSourceNodeIdTargetNodeIdCompoundUniqueInputSchema).optional(),
   workflowId_edgeId: z.lazy(() => WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInputSchema).optional(),
   AND: z.union([ z.lazy(() => WorkflowConnectionWhereInputSchema),z.lazy(() => WorkflowConnectionWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => WorkflowConnectionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => WorkflowConnectionWhereInputSchema),z.lazy(() => WorkflowConnectionWhereInputSchema).array() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  edgeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   sourceNodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   targetNodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  sourceHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  targetHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  executionOrder: z.union([ z.lazy(() => IntFilterSchema),z.number().int() ]).optional(),
   label: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   conditions: z.lazy(() => JsonNullableFilterSchema).optional(),
+  edgeId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  sourceHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  targetHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   style: z.lazy(() => JsonNullableFilterSchema).optional(),
   animated: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   workflow: z.union([ z.lazy(() => WorkflowRelationFilterSchema),z.lazy(() => WorkflowWhereInputSchema) ]).optional(),
+  sourceNode: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  targetNode: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict());
 
 export const WorkflowConnectionOrderByWithAggregationInputSchema: z.ZodType<Prisma.WorkflowConnectionOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
-  edgeId: z.lazy(() => SortOrderSchema).optional(),
   sourceNodeId: z.lazy(() => SortOrderSchema).optional(),
   targetNodeId: z.lazy(() => SortOrderSchema).optional(),
-  sourceHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  targetHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  executionOrder: z.lazy(() => SortOrderSchema).optional(),
   label: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   conditions: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  edgeId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  sourceHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  targetHandle: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   style: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   animated: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
   _count: z.lazy(() => WorkflowConnectionCountOrderByAggregateInputSchema).optional(),
+  _avg: z.lazy(() => WorkflowConnectionAvgOrderByAggregateInputSchema).optional(),
   _max: z.lazy(() => WorkflowConnectionMaxOrderByAggregateInputSchema).optional(),
-  _min: z.lazy(() => WorkflowConnectionMinOrderByAggregateInputSchema).optional()
+  _min: z.lazy(() => WorkflowConnectionMinOrderByAggregateInputSchema).optional(),
+  _sum: z.lazy(() => WorkflowConnectionSumOrderByAggregateInputSchema).optional()
 }).strict();
 
 export const WorkflowConnectionScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.WorkflowConnectionScalarWhereWithAggregatesInput> = z.object({
@@ -8398,13 +8465,14 @@ export const WorkflowConnectionScalarWhereWithAggregatesInputSchema: z.ZodType<P
   NOT: z.union([ z.lazy(() => WorkflowConnectionScalarWhereWithAggregatesInputSchema),z.lazy(() => WorkflowConnectionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  edgeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   sourceNodeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   targetNodeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  sourceHandle: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
-  targetHandle: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  executionOrder: z.union([ z.lazy(() => IntWithAggregatesFilterSchema),z.number() ]).optional(),
   label: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   conditions: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
+  edgeId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  sourceHandle: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  targetHandle: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   style: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
   animated: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
@@ -8499,6 +8567,7 @@ export const ActionTemplateWhereInputSchema: z.ZodType<Prisma.ActionTemplateWher
   isPublic: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   usageCount: z.union([ z.lazy(() => IntFilterSchema),z.number() ]).optional(),
+  isLocked: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   requiredVariables: z.lazy(() => JsonNullableFilterSchema).optional(),
   optionalVariables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdById: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -8522,6 +8591,7 @@ export const ActionTemplateOrderByWithRelationInputSchema: z.ZodType<Prisma.Acti
   isPublic: z.lazy(() => SortOrderSchema).optional(),
   isActive: z.lazy(() => SortOrderSchema).optional(),
   usageCount: z.lazy(() => SortOrderSchema).optional(),
+  isLocked: z.lazy(() => SortOrderSchema).optional(),
   requiredVariables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   optionalVariables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   createdById: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -8551,6 +8621,7 @@ export const ActionTemplateWhereUniqueInputSchema: z.ZodType<Prisma.ActionTempla
   isPublic: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   usageCount: z.union([ z.lazy(() => IntFilterSchema),z.number().int() ]).optional(),
+  isLocked: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   requiredVariables: z.lazy(() => JsonNullableFilterSchema).optional(),
   optionalVariables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdById: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -8574,6 +8645,7 @@ export const ActionTemplateOrderByWithAggregationInputSchema: z.ZodType<Prisma.A
   isPublic: z.lazy(() => SortOrderSchema).optional(),
   isActive: z.lazy(() => SortOrderSchema).optional(),
   usageCount: z.lazy(() => SortOrderSchema).optional(),
+  isLocked: z.lazy(() => SortOrderSchema).optional(),
   requiredVariables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   optionalVariables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   createdById: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -8603,6 +8675,7 @@ export const ActionTemplateScalarWhereWithAggregatesInputSchema: z.ZodType<Prism
   isPublic: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
   isActive: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
   usageCount: z.union([ z.lazy(() => IntWithAggregatesFilterSchema),z.number() ]).optional(),
+  isLocked: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
   requiredVariables: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
   optionalVariables: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
   createdById: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
@@ -9511,12 +9584,11 @@ export const EmailActionWhereInputSchema: z.ZodType<Prisma.EmailActionWhereInput
   OR: z.lazy(() => EmailActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => EmailActionWhereInputSchema),z.lazy(() => EmailActionWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   fromName: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   fromEmail: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   replyTo: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  toEmails: z.lazy(() => JsonFilterSchema).optional(),
   ccEmails: z.lazy(() => JsonNullableFilterSchema).optional(),
   bccEmails: z.lazy(() => JsonNullableFilterSchema).optional(),
   subject: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
@@ -9529,17 +9601,16 @@ export const EmailActionWhereInputSchema: z.ZodType<Prisma.EmailActionWhereInput
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict();
 
 export const EmailActionOrderByWithRelationInputSchema: z.ZodType<Prisma.EmailActionOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   fromName: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   fromEmail: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   replyTo: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  toEmails: z.lazy(() => SortOrderSchema).optional(),
   ccEmails: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   bccEmails: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   subject: z.lazy(() => SortOrderSchema).optional(),
@@ -9552,23 +9623,31 @@ export const EmailActionOrderByWithRelationInputSchema: z.ZodType<Prisma.EmailAc
   variables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
-  node: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
 }).strict();
 
-export const EmailActionWhereUniqueInputSchema: z.ZodType<Prisma.EmailActionWhereUniqueInput> = z.object({
-  id: z.string().cuid()
-})
+export const EmailActionWhereUniqueInputSchema: z.ZodType<Prisma.EmailActionWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    actionId: z.string()
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    actionId: z.string(),
+  }),
+])
 .and(z.object({
   id: z.string().cuid().optional(),
+  actionId: z.string().optional(),
   AND: z.union([ z.lazy(() => EmailActionWhereInputSchema),z.lazy(() => EmailActionWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => EmailActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => EmailActionWhereInputSchema),z.lazy(() => EmailActionWhereInputSchema).array() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   fromName: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   fromEmail: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   replyTo: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  toEmails: z.lazy(() => JsonFilterSchema).optional(),
   ccEmails: z.lazy(() => JsonNullableFilterSchema).optional(),
   bccEmails: z.lazy(() => JsonNullableFilterSchema).optional(),
   subject: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
@@ -9581,17 +9660,16 @@ export const EmailActionWhereUniqueInputSchema: z.ZodType<Prisma.EmailActionWher
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict());
 
 export const EmailActionOrderByWithAggregationInputSchema: z.ZodType<Prisma.EmailActionOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   fromName: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   fromEmail: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   replyTo: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  toEmails: z.lazy(() => SortOrderSchema).optional(),
   ccEmails: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   bccEmails: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   subject: z.lazy(() => SortOrderSchema).optional(),
@@ -9614,12 +9692,11 @@ export const EmailActionScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.E
   OR: z.lazy(() => EmailActionScalarWhereWithAggregatesInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => EmailActionScalarWhereWithAggregatesInputSchema),z.lazy(() => EmailActionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   fromName: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   fromEmail: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   replyTo: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
-  toEmails: z.lazy(() => JsonWithAggregatesFilterSchema).optional(),
   ccEmails: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
   bccEmails: z.lazy(() => JsonNullableWithAggregatesFilterSchema).optional(),
   subject: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
@@ -9639,10 +9716,9 @@ export const SmsActionWhereInputSchema: z.ZodType<Prisma.SmsActionWhereInput> = 
   OR: z.lazy(() => SmsActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => SmsActionWhereInputSchema),z.lazy(() => SmsActionWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   fromNumber: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  toNumbers: z.lazy(() => JsonFilterSchema).optional(),
   message: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   templateId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   maxLength: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
@@ -9650,15 +9726,14 @@ export const SmsActionWhereInputSchema: z.ZodType<Prisma.SmsActionWhereInput> = 
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict();
 
 export const SmsActionOrderByWithRelationInputSchema: z.ZodType<Prisma.SmsActionOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   fromNumber: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  toNumbers: z.lazy(() => SortOrderSchema).optional(),
   message: z.lazy(() => SortOrderSchema).optional(),
   templateId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   maxLength: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -9666,21 +9741,29 @@ export const SmsActionOrderByWithRelationInputSchema: z.ZodType<Prisma.SmsAction
   variables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
-  node: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
 }).strict();
 
-export const SmsActionWhereUniqueInputSchema: z.ZodType<Prisma.SmsActionWhereUniqueInput> = z.object({
-  id: z.string().cuid()
-})
+export const SmsActionWhereUniqueInputSchema: z.ZodType<Prisma.SmsActionWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    actionId: z.string()
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    actionId: z.string(),
+  }),
+])
 .and(z.object({
   id: z.string().cuid().optional(),
+  actionId: z.string().optional(),
   AND: z.union([ z.lazy(() => SmsActionWhereInputSchema),z.lazy(() => SmsActionWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => SmsActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => SmsActionWhereInputSchema),z.lazy(() => SmsActionWhereInputSchema).array() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   fromNumber: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  toNumbers: z.lazy(() => JsonFilterSchema).optional(),
   message: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   templateId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   maxLength: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
@@ -9688,15 +9771,14 @@ export const SmsActionWhereUniqueInputSchema: z.ZodType<Prisma.SmsActionWhereUni
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict());
 
 export const SmsActionOrderByWithAggregationInputSchema: z.ZodType<Prisma.SmsActionOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   fromNumber: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  toNumbers: z.lazy(() => SortOrderSchema).optional(),
   message: z.lazy(() => SortOrderSchema).optional(),
   templateId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   maxLength: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -9716,10 +9798,9 @@ export const SmsActionScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.Sms
   OR: z.lazy(() => SmsActionScalarWhereWithAggregatesInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => SmsActionScalarWhereWithAggregatesInputSchema),z.lazy(() => SmsActionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   fromNumber: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
-  toNumbers: z.lazy(() => JsonWithAggregatesFilterSchema).optional(),
   message: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   templateId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   maxLength: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
@@ -9734,7 +9815,7 @@ export const WhatsAppActionWhereInputSchema: z.ZodType<Prisma.WhatsAppActionWher
   OR: z.lazy(() => WhatsAppActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => WhatsAppActionWhereInputSchema),z.lazy(() => WhatsAppActionWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   businessAccountId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   toNumbers: z.lazy(() => JsonFilterSchema).optional(),
@@ -9749,12 +9830,12 @@ export const WhatsAppActionWhereInputSchema: z.ZodType<Prisma.WhatsAppActionWher
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict();
 
 export const WhatsAppActionOrderByWithRelationInputSchema: z.ZodType<Prisma.WhatsAppActionOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   businessAccountId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   toNumbers: z.lazy(() => SortOrderSchema).optional(),
@@ -9769,18 +9850,27 @@ export const WhatsAppActionOrderByWithRelationInputSchema: z.ZodType<Prisma.What
   variables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
-  node: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
 }).strict();
 
-export const WhatsAppActionWhereUniqueInputSchema: z.ZodType<Prisma.WhatsAppActionWhereUniqueInput> = z.object({
-  id: z.string().cuid()
-})
+export const WhatsAppActionWhereUniqueInputSchema: z.ZodType<Prisma.WhatsAppActionWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    actionId: z.string()
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    actionId: z.string(),
+  }),
+])
 .and(z.object({
   id: z.string().cuid().optional(),
+  actionId: z.string().optional(),
   AND: z.union([ z.lazy(() => WhatsAppActionWhereInputSchema),z.lazy(() => WhatsAppActionWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => WhatsAppActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => WhatsAppActionWhereInputSchema),z.lazy(() => WhatsAppActionWhereInputSchema).array() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   businessAccountId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   toNumbers: z.lazy(() => JsonFilterSchema).optional(),
@@ -9795,12 +9885,12 @@ export const WhatsAppActionWhereUniqueInputSchema: z.ZodType<Prisma.WhatsAppActi
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict());
 
 export const WhatsAppActionOrderByWithAggregationInputSchema: z.ZodType<Prisma.WhatsAppActionOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   businessAccountId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   toNumbers: z.lazy(() => SortOrderSchema).optional(),
@@ -9825,7 +9915,7 @@ export const WhatsAppActionScalarWhereWithAggregatesInputSchema: z.ZodType<Prism
   OR: z.lazy(() => WhatsAppActionScalarWhereWithAggregatesInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => WhatsAppActionScalarWhereWithAggregatesInputSchema),z.lazy(() => WhatsAppActionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   businessAccountId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   toNumbers: z.lazy(() => JsonWithAggregatesFilterSchema).optional(),
@@ -9847,7 +9937,7 @@ export const SlackActionWhereInputSchema: z.ZodType<Prisma.SlackActionWhereInput
   OR: z.lazy(() => SlackActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => SlackActionWhereInputSchema),z.lazy(() => SlackActionWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   workspaceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   channel: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -9864,12 +9954,12 @@ export const SlackActionWhereInputSchema: z.ZodType<Prisma.SlackActionWhereInput
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict();
 
 export const SlackActionOrderByWithRelationInputSchema: z.ZodType<Prisma.SlackActionOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   workspaceId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   channel: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -9886,18 +9976,27 @@ export const SlackActionOrderByWithRelationInputSchema: z.ZodType<Prisma.SlackAc
   variables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
-  node: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
 }).strict();
 
-export const SlackActionWhereUniqueInputSchema: z.ZodType<Prisma.SlackActionWhereUniqueInput> = z.object({
-  id: z.string().cuid()
-})
+export const SlackActionWhereUniqueInputSchema: z.ZodType<Prisma.SlackActionWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    actionId: z.string()
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    actionId: z.string(),
+  }),
+])
 .and(z.object({
   id: z.string().cuid().optional(),
+  actionId: z.string().optional(),
   AND: z.union([ z.lazy(() => SlackActionWhereInputSchema),z.lazy(() => SlackActionWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => SlackActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => SlackActionWhereInputSchema),z.lazy(() => SlackActionWhereInputSchema).array() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   workspaceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   channel: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -9914,12 +10013,12 @@ export const SlackActionWhereUniqueInputSchema: z.ZodType<Prisma.SlackActionWher
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict());
 
 export const SlackActionOrderByWithAggregationInputSchema: z.ZodType<Prisma.SlackActionOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   workspaceId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   channel: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
@@ -9946,7 +10045,7 @@ export const SlackActionScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.S
   OR: z.lazy(() => SlackActionScalarWhereWithAggregatesInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => SlackActionScalarWhereWithAggregatesInputSchema),z.lazy(() => SlackActionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   workspaceId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   channel: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
@@ -9970,7 +10069,7 @@ export const CalendarActionWhereInputSchema: z.ZodType<Prisma.CalendarActionWher
   OR: z.lazy(() => CalendarActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => CalendarActionWhereInputSchema),z.lazy(() => CalendarActionWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   calendarId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   title: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
@@ -9987,12 +10086,12 @@ export const CalendarActionWhereInputSchema: z.ZodType<Prisma.CalendarActionWher
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict();
 
 export const CalendarActionOrderByWithRelationInputSchema: z.ZodType<Prisma.CalendarActionOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   calendarId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   title: z.lazy(() => SortOrderSchema).optional(),
@@ -10009,18 +10108,27 @@ export const CalendarActionOrderByWithRelationInputSchema: z.ZodType<Prisma.Cale
   variables: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional(),
-  node: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeOrderByWithRelationInputSchema).optional()
 }).strict();
 
-export const CalendarActionWhereUniqueInputSchema: z.ZodType<Prisma.CalendarActionWhereUniqueInput> = z.object({
-  id: z.string().cuid()
-})
+export const CalendarActionWhereUniqueInputSchema: z.ZodType<Prisma.CalendarActionWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().cuid(),
+    actionId: z.string()
+  }),
+  z.object({
+    id: z.string().cuid(),
+  }),
+  z.object({
+    actionId: z.string(),
+  }),
+])
 .and(z.object({
   id: z.string().cuid().optional(),
+  actionId: z.string().optional(),
   AND: z.union([ z.lazy(() => CalendarActionWhereInputSchema),z.lazy(() => CalendarActionWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => CalendarActionWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => CalendarActionWhereInputSchema),z.lazy(() => CalendarActionWhereInputSchema).array() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   calendarId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   title: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
@@ -10037,12 +10145,12 @@ export const CalendarActionWhereUniqueInputSchema: z.ZodType<Prisma.CalendarActi
   variables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  node: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  action: z.union([ z.lazy(() => WorkflowNodeRelationFilterSchema),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
 }).strict());
 
 export const CalendarActionOrderByWithAggregationInputSchema: z.ZodType<Prisma.CalendarActionOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   calendarId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   title: z.lazy(() => SortOrderSchema).optional(),
@@ -10069,7 +10177,7 @@ export const CalendarActionScalarWhereWithAggregatesInputSchema: z.ZodType<Prism
   OR: z.lazy(() => CalendarActionScalarWhereWithAggregatesInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => CalendarActionScalarWhereWithAggregatesInputSchema),z.lazy(() => CalendarActionScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  actionId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   integrationId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   calendarId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   title: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
@@ -14722,12 +14830,14 @@ export const WorkflowTriggerCreateInputSchema: z.ZodType<Prisma.WorkflowTriggerC
   updatedAt: z.coerce.date().optional(),
   workflow: z.lazy(() => WorkflowCreateNestedOneWithoutTriggersInputSchema),
   executions: z.lazy(() => WorkflowExecutionCreateNestedManyWithoutTriggerInputSchema).optional(),
-  variables: z.lazy(() => TriggerVariableCreateNestedManyWithoutTriggerInputSchema).optional()
+  variables: z.lazy(() => TriggerVariableCreateNestedManyWithoutTriggerInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutTriggerInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedCreateInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedCreateInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
+  nodeId: z.string().optional().nullable(),
   name: z.string(),
   description: z.string().optional().nullable(),
   type: z.lazy(() => WorkflowTriggerTypeSchema),
@@ -14762,12 +14872,14 @@ export const WorkflowTriggerUpdateInputSchema: z.ZodType<Prisma.WorkflowTriggerU
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutTriggersNestedInputSchema).optional(),
   executions: z.lazy(() => WorkflowExecutionUpdateManyWithoutTriggerNestedInputSchema).optional(),
-  variables: z.lazy(() => TriggerVariableUpdateManyWithoutTriggerNestedInputSchema).optional()
+  variables: z.lazy(() => TriggerVariableUpdateManyWithoutTriggerNestedInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeUpdateOneWithoutTriggerNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedUpdateInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -14788,6 +14900,7 @@ export const WorkflowTriggerUncheckedUpdateInputSchema: z.ZodType<Prisma.Workflo
 export const WorkflowTriggerCreateManyInputSchema: z.ZodType<Prisma.WorkflowTriggerCreateManyInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
+  nodeId: z.string().optional().nullable(),
   name: z.string(),
   description: z.string().optional().nullable(),
   type: z.lazy(() => WorkflowTriggerTypeSchema),
@@ -14823,6 +14936,7 @@ export const WorkflowTriggerUpdateManyMutationInputSchema: z.ZodType<Prisma.Work
 export const WorkflowTriggerUncheckedUpdateManyInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -14858,11 +14972,14 @@ export const WorkflowNodeCreateInputSchema: z.ZodType<Prisma.WorkflowNodeCreateI
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedCreateInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateInput> = z.object({
@@ -14885,11 +15002,14 @@ export const WorkflowNodeUncheckedCreateInputSchema: z.ZodType<Prisma.WorkflowNo
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUpdateInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateInput> = z.object({
@@ -14912,11 +15032,14 @@ export const WorkflowNodeUpdateInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateI
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedUpdateInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateInput> = z.object({
@@ -14939,11 +15062,14 @@ export const WorkflowNodeUncheckedUpdateInputSchema: z.ZodType<Prisma.WorkflowNo
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeCreateManyInputSchema: z.ZodType<Prisma.WorkflowNodeCreateManyInput> = z.object({
@@ -15004,30 +15130,32 @@ export const WorkflowNodeUncheckedUpdateManyInputSchema: z.ZodType<Prisma.Workfl
 
 export const WorkflowConnectionCreateInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateInput> = z.object({
   id: z.string().cuid().optional(),
-  edgeId: z.string(),
-  sourceNodeId: z.string(),
-  targetNodeId: z.string(),
-  sourceHandle: z.string().optional().nullable(),
-  targetHandle: z.string().optional().nullable(),
+  executionOrder: z.number().int().optional(),
   label: z.string().optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutConnectionsInputSchema)
+  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutConnectionsInputSchema),
+  sourceNode: z.lazy(() => WorkflowNodeCreateNestedOneWithoutSourceConnectionsInputSchema),
+  targetNode: z.lazy(() => WorkflowNodeCreateNestedOneWithoutTargetConnectionsInputSchema)
 }).strict();
 
 export const WorkflowConnectionUncheckedCreateInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedCreateInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
-  edgeId: z.string(),
   sourceNodeId: z.string(),
   targetNodeId: z.string(),
-  sourceHandle: z.string().optional().nullable(),
-  targetHandle: z.string().optional().nullable(),
+  executionOrder: z.number().int().optional(),
   label: z.string().optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
@@ -15036,30 +15164,32 @@ export const WorkflowConnectionUncheckedCreateInputSchema: z.ZodType<Prisma.Work
 
 export const WorkflowConnectionUpdateInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  edgeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutConnectionsNestedInputSchema).optional()
+  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutConnectionsNestedInputSchema).optional(),
+  sourceNode: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutSourceConnectionsNestedInputSchema).optional(),
+  targetNode: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutTargetConnectionsNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowConnectionUncheckedUpdateInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  edgeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -15069,13 +15199,14 @@ export const WorkflowConnectionUncheckedUpdateInputSchema: z.ZodType<Prisma.Work
 export const WorkflowConnectionCreateManyInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateManyInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
-  edgeId: z.string(),
   sourceNodeId: z.string(),
   targetNodeId: z.string(),
-  sourceHandle: z.string().optional().nullable(),
-  targetHandle: z.string().optional().nullable(),
+  executionOrder: z.number().int().optional(),
   label: z.string().optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
@@ -15084,13 +15215,12 @@ export const WorkflowConnectionCreateManyInputSchema: z.ZodType<Prisma.WorkflowC
 
 export const WorkflowConnectionUpdateManyMutationInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateManyMutationInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  edgeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -15100,13 +15230,14 @@ export const WorkflowConnectionUpdateManyMutationInputSchema: z.ZodType<Prisma.W
 export const WorkflowConnectionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  edgeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -15180,6 +15311,7 @@ export const ActionTemplateCreateInputSchema: z.ZodType<Prisma.ActionTemplateCre
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -15203,6 +15335,7 @@ export const ActionTemplateUncheckedCreateInputSchema: z.ZodType<Prisma.ActionTe
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -15224,6 +15357,7 @@ export const ActionTemplateUpdateInputSchema: z.ZodType<Prisma.ActionTemplateUpd
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -15247,6 +15381,7 @@ export const ActionTemplateUncheckedUpdateInputSchema: z.ZodType<Prisma.ActionTe
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -15269,6 +15404,7 @@ export const ActionTemplateCreateManyInputSchema: z.ZodType<Prisma.ActionTemplat
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -15289,6 +15425,7 @@ export const ActionTemplateUpdateManyMutationInputSchema: z.ZodType<Prisma.Actio
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -15310,6 +15447,7 @@ export const ActionTemplateUncheckedUpdateManyInputSchema: z.ZodType<Prisma.Acti
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -16269,7 +16407,6 @@ export const EmailActionCreateInputSchema: z.ZodType<Prisma.EmailActionCreateInp
   fromName: z.string().optional().nullable(),
   fromEmail: z.string().optional().nullable(),
   replyTo: z.string().optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.string(),
@@ -16282,17 +16419,16 @@ export const EmailActionCreateInputSchema: z.ZodType<Prisma.EmailActionCreateInp
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutEmailActionsInputSchema)
+  action: z.lazy(() => WorkflowNodeCreateNestedOneWithoutEmailActionInputSchema)
 }).strict();
 
 export const EmailActionUncheckedCreateInputSchema: z.ZodType<Prisma.EmailActionUncheckedCreateInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   fromName: z.string().optional().nullable(),
   fromEmail: z.string().optional().nullable(),
   replyTo: z.string().optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.string(),
@@ -16313,7 +16449,6 @@ export const EmailActionUpdateInputSchema: z.ZodType<Prisma.EmailActionUpdateInp
   fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -16326,17 +16461,16 @@ export const EmailActionUpdateInputSchema: z.ZodType<Prisma.EmailActionUpdateInp
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  node: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutEmailActionsNestedInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutEmailActionNestedInputSchema).optional()
 }).strict();
 
 export const EmailActionUncheckedUpdateInputSchema: z.ZodType<Prisma.EmailActionUncheckedUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -16353,12 +16487,11 @@ export const EmailActionUncheckedUpdateInputSchema: z.ZodType<Prisma.EmailAction
 
 export const EmailActionCreateManyInputSchema: z.ZodType<Prisma.EmailActionCreateManyInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   fromName: z.string().optional().nullable(),
   fromEmail: z.string().optional().nullable(),
   replyTo: z.string().optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.string(),
@@ -16379,7 +16512,6 @@ export const EmailActionUpdateManyMutationInputSchema: z.ZodType<Prisma.EmailAct
   fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -16396,12 +16528,11 @@ export const EmailActionUpdateManyMutationInputSchema: z.ZodType<Prisma.EmailAct
 
 export const EmailActionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.EmailActionUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -16420,7 +16551,6 @@ export const SmsActionCreateInputSchema: z.ZodType<Prisma.SmsActionCreateInput> 
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   fromNumber: z.string().optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   message: z.string(),
   templateId: z.string().optional().nullable(),
   maxLength: z.number().int().optional().nullable(),
@@ -16428,15 +16558,14 @@ export const SmsActionCreateInputSchema: z.ZodType<Prisma.SmsActionCreateInput> 
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutSmsActionsInputSchema)
+  action: z.lazy(() => WorkflowNodeCreateNestedOneWithoutSmsActionInputSchema)
 }).strict();
 
 export const SmsActionUncheckedCreateInputSchema: z.ZodType<Prisma.SmsActionUncheckedCreateInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   fromNumber: z.string().optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   message: z.string(),
   templateId: z.string().optional().nullable(),
   maxLength: z.number().int().optional().nullable(),
@@ -16450,7 +16579,6 @@ export const SmsActionUpdateInputSchema: z.ZodType<Prisma.SmsActionUpdateInput> 
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -16458,15 +16586,14 @@ export const SmsActionUpdateInputSchema: z.ZodType<Prisma.SmsActionUpdateInput> 
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  node: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutSmsActionsNestedInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutSmsActionNestedInputSchema).optional()
 }).strict();
 
 export const SmsActionUncheckedUpdateInputSchema: z.ZodType<Prisma.SmsActionUncheckedUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -16478,10 +16605,9 @@ export const SmsActionUncheckedUpdateInputSchema: z.ZodType<Prisma.SmsActionUnch
 
 export const SmsActionCreateManyInputSchema: z.ZodType<Prisma.SmsActionCreateManyInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   fromNumber: z.string().optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   message: z.string(),
   templateId: z.string().optional().nullable(),
   maxLength: z.number().int().optional().nullable(),
@@ -16495,7 +16621,6 @@ export const SmsActionUpdateManyMutationInputSchema: z.ZodType<Prisma.SmsActionU
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -16507,10 +16632,9 @@ export const SmsActionUpdateManyMutationInputSchema: z.ZodType<Prisma.SmsActionU
 
 export const SmsActionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.SmsActionUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -16536,12 +16660,12 @@ export const WhatsAppActionCreateInputSchema: z.ZodType<Prisma.WhatsAppActionCre
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutWhatsAppActionsInputSchema)
+  action: z.lazy(() => WorkflowNodeCreateNestedOneWithoutWhatsAppActionInputSchema)
 }).strict();
 
 export const WhatsAppActionUncheckedCreateInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedCreateInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   businessAccountId: z.string().optional().nullable(),
   toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
@@ -16574,12 +16698,12 @@ export const WhatsAppActionUpdateInputSchema: z.ZodType<Prisma.WhatsAppActionUpd
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  node: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutWhatsAppActionsNestedInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutWhatsAppActionNestedInputSchema).optional()
 }).strict();
 
 export const WhatsAppActionUncheckedUpdateInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   businessAccountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
@@ -16598,7 +16722,7 @@ export const WhatsAppActionUncheckedUpdateInputSchema: z.ZodType<Prisma.WhatsApp
 
 export const WhatsAppActionCreateManyInputSchema: z.ZodType<Prisma.WhatsAppActionCreateManyInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   businessAccountId: z.string().optional().nullable(),
   toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
@@ -16635,7 +16759,7 @@ export const WhatsAppActionUpdateManyMutationInputSchema: z.ZodType<Prisma.Whats
 
 export const WhatsAppActionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   businessAccountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
@@ -16670,12 +16794,12 @@ export const SlackActionCreateInputSchema: z.ZodType<Prisma.SlackActionCreateInp
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutSlackActionsInputSchema)
+  action: z.lazy(() => WorkflowNodeCreateNestedOneWithoutSlackActionInputSchema)
 }).strict();
 
 export const SlackActionUncheckedCreateInputSchema: z.ZodType<Prisma.SlackActionUncheckedCreateInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   workspaceId: z.string().optional().nullable(),
   channel: z.string().optional().nullable(),
@@ -16712,12 +16836,12 @@ export const SlackActionUpdateInputSchema: z.ZodType<Prisma.SlackActionUpdateInp
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  node: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutSlackActionsNestedInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutSlackActionNestedInputSchema).optional()
 }).strict();
 
 export const SlackActionUncheckedUpdateInputSchema: z.ZodType<Prisma.SlackActionUncheckedUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   workspaceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   channel: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -16738,7 +16862,7 @@ export const SlackActionUncheckedUpdateInputSchema: z.ZodType<Prisma.SlackAction
 
 export const SlackActionCreateManyInputSchema: z.ZodType<Prisma.SlackActionCreateManyInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   workspaceId: z.string().optional().nullable(),
   channel: z.string().optional().nullable(),
@@ -16779,7 +16903,7 @@ export const SlackActionUpdateManyMutationInputSchema: z.ZodType<Prisma.SlackAct
 
 export const SlackActionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.SlackActionUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   workspaceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   channel: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -16816,12 +16940,12 @@ export const CalendarActionCreateInputSchema: z.ZodType<Prisma.CalendarActionCre
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutCalendarActionsInputSchema)
+  action: z.lazy(() => WorkflowNodeCreateNestedOneWithoutCalendarActionInputSchema)
 }).strict();
 
 export const CalendarActionUncheckedCreateInputSchema: z.ZodType<Prisma.CalendarActionUncheckedCreateInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   calendarId: z.string().optional().nullable(),
   title: z.string(),
@@ -16858,12 +16982,12 @@ export const CalendarActionUpdateInputSchema: z.ZodType<Prisma.CalendarActionUpd
   variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  node: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutCalendarActionsNestedInputSchema).optional()
+  action: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutCalendarActionNestedInputSchema).optional()
 }).strict();
 
 export const CalendarActionUncheckedUpdateInputSchema: z.ZodType<Prisma.CalendarActionUncheckedUpdateInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   calendarId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   title: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -16884,7 +17008,7 @@ export const CalendarActionUncheckedUpdateInputSchema: z.ZodType<Prisma.Calendar
 
 export const CalendarActionCreateManyInputSchema: z.ZodType<Prisma.CalendarActionCreateManyInput> = z.object({
   id: z.string().cuid().optional(),
-  nodeId: z.string(),
+  actionId: z.string(),
   integrationId: z.string().optional().nullable(),
   calendarId: z.string().optional().nullable(),
   title: z.string(),
@@ -16925,7 +17049,7 @@ export const CalendarActionUpdateManyMutationInputSchema: z.ZodType<Prisma.Calen
 
 export const CalendarActionUncheckedUpdateManyInputSchema: z.ZodType<Prisma.CalendarActionUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  actionId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   calendarId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   title: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -20654,13 +20778,24 @@ export const TriggerVariableListRelationFilterSchema: z.ZodType<Prisma.TriggerVa
   none: z.lazy(() => TriggerVariableWhereInputSchema).optional()
 }).strict();
 
+export const WorkflowNodeNullableRelationFilterSchema: z.ZodType<Prisma.WorkflowNodeNullableRelationFilter> = z.object({
+  is: z.lazy(() => WorkflowNodeWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => WorkflowNodeWhereInputSchema).optional().nullable()
+}).strict();
+
 export const TriggerVariableOrderByRelationAggregateInputSchema: z.ZodType<Prisma.TriggerVariableOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const WorkflowTriggerNodeIdWorkflowIdCompoundUniqueInputSchema: z.ZodType<Prisma.WorkflowTriggerNodeIdWorkflowIdCompoundUniqueInput> = z.object({
+  nodeId: z.string(),
+  workflowId: z.string()
 }).strict();
 
 export const WorkflowTriggerCountOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowTriggerCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
+  nodeId: z.lazy(() => SortOrderSchema).optional(),
   name: z.lazy(() => SortOrderSchema).optional(),
   description: z.lazy(() => SortOrderSchema).optional(),
   type: z.lazy(() => SortOrderSchema).optional(),
@@ -20684,6 +20819,7 @@ export const WorkflowTriggerAvgOrderByAggregateInputSchema: z.ZodType<Prisma.Wor
 export const WorkflowTriggerMaxOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowTriggerMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
+  nodeId: z.lazy(() => SortOrderSchema).optional(),
   name: z.lazy(() => SortOrderSchema).optional(),
   description: z.lazy(() => SortOrderSchema).optional(),
   type: z.lazy(() => SortOrderSchema).optional(),
@@ -20701,6 +20837,7 @@ export const WorkflowTriggerMaxOrderByAggregateInputSchema: z.ZodType<Prisma.Wor
 export const WorkflowTriggerMinOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowTriggerMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
+  nodeId: z.lazy(() => SortOrderSchema).optional(),
   name: z.lazy(() => SortOrderSchema).optional(),
   description: z.lazy(() => SortOrderSchema).optional(),
   type: z.lazy(() => SortOrderSchema).optional(),
@@ -20749,34 +20886,34 @@ export const NodeDependencyListRelationFilterSchema: z.ZodType<Prisma.NodeDepend
   none: z.lazy(() => NodeDependencyWhereInputSchema).optional()
 }).strict();
 
-export const EmailActionListRelationFilterSchema: z.ZodType<Prisma.EmailActionListRelationFilter> = z.object({
-  every: z.lazy(() => EmailActionWhereInputSchema).optional(),
-  some: z.lazy(() => EmailActionWhereInputSchema).optional(),
-  none: z.lazy(() => EmailActionWhereInputSchema).optional()
+export const EmailActionNullableRelationFilterSchema: z.ZodType<Prisma.EmailActionNullableRelationFilter> = z.object({
+  is: z.lazy(() => EmailActionWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => EmailActionWhereInputSchema).optional().nullable()
 }).strict();
 
-export const SmsActionListRelationFilterSchema: z.ZodType<Prisma.SmsActionListRelationFilter> = z.object({
-  every: z.lazy(() => SmsActionWhereInputSchema).optional(),
-  some: z.lazy(() => SmsActionWhereInputSchema).optional(),
-  none: z.lazy(() => SmsActionWhereInputSchema).optional()
+export const SmsActionNullableRelationFilterSchema: z.ZodType<Prisma.SmsActionNullableRelationFilter> = z.object({
+  is: z.lazy(() => SmsActionWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => SmsActionWhereInputSchema).optional().nullable()
 }).strict();
 
-export const WhatsAppActionListRelationFilterSchema: z.ZodType<Prisma.WhatsAppActionListRelationFilter> = z.object({
-  every: z.lazy(() => WhatsAppActionWhereInputSchema).optional(),
-  some: z.lazy(() => WhatsAppActionWhereInputSchema).optional(),
-  none: z.lazy(() => WhatsAppActionWhereInputSchema).optional()
+export const WhatsAppActionNullableRelationFilterSchema: z.ZodType<Prisma.WhatsAppActionNullableRelationFilter> = z.object({
+  is: z.lazy(() => WhatsAppActionWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => WhatsAppActionWhereInputSchema).optional().nullable()
 }).strict();
 
-export const SlackActionListRelationFilterSchema: z.ZodType<Prisma.SlackActionListRelationFilter> = z.object({
-  every: z.lazy(() => SlackActionWhereInputSchema).optional(),
-  some: z.lazy(() => SlackActionWhereInputSchema).optional(),
-  none: z.lazy(() => SlackActionWhereInputSchema).optional()
+export const SlackActionNullableRelationFilterSchema: z.ZodType<Prisma.SlackActionNullableRelationFilter> = z.object({
+  is: z.lazy(() => SlackActionWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => SlackActionWhereInputSchema).optional().nullable()
 }).strict();
 
-export const CalendarActionListRelationFilterSchema: z.ZodType<Prisma.CalendarActionListRelationFilter> = z.object({
-  every: z.lazy(() => CalendarActionWhereInputSchema).optional(),
-  some: z.lazy(() => CalendarActionWhereInputSchema).optional(),
-  none: z.lazy(() => CalendarActionWhereInputSchema).optional()
+export const CalendarActionNullableRelationFilterSchema: z.ZodType<Prisma.CalendarActionNullableRelationFilter> = z.object({
+  is: z.lazy(() => CalendarActionWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => CalendarActionWhereInputSchema).optional().nullable()
+}).strict();
+
+export const WorkflowTriggerNullableRelationFilterSchema: z.ZodType<Prisma.WorkflowTriggerNullableRelationFilter> = z.object({
+  is: z.lazy(() => WorkflowTriggerWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => WorkflowTriggerWhereInputSchema).optional().nullable()
 }).strict();
 
 export const NodeExecutionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.NodeExecutionOrderByRelationAggregateInput> = z.object({
@@ -20784,26 +20921,6 @@ export const NodeExecutionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.
 }).strict();
 
 export const NodeDependencyOrderByRelationAggregateInputSchema: z.ZodType<Prisma.NodeDependencyOrderByRelationAggregateInput> = z.object({
-  _count: z.lazy(() => SortOrderSchema).optional()
-}).strict();
-
-export const EmailActionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.EmailActionOrderByRelationAggregateInput> = z.object({
-  _count: z.lazy(() => SortOrderSchema).optional()
-}).strict();
-
-export const SmsActionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.SmsActionOrderByRelationAggregateInput> = z.object({
-  _count: z.lazy(() => SortOrderSchema).optional()
-}).strict();
-
-export const WhatsAppActionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.WhatsAppActionOrderByRelationAggregateInput> = z.object({
-  _count: z.lazy(() => SortOrderSchema).optional()
-}).strict();
-
-export const SlackActionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.SlackActionOrderByRelationAggregateInput> = z.object({
-  _count: z.lazy(() => SortOrderSchema).optional()
-}).strict();
-
-export const CalendarActionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.CalendarActionOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -20883,6 +21000,16 @@ export const EnumWorkflowNodeTypeWithAggregatesFilterSchema: z.ZodType<Prisma.En
   _max: z.lazy(() => NestedEnumWorkflowNodeTypeFilterSchema).optional()
 }).strict();
 
+export const WorkflowNodeRelationFilterSchema: z.ZodType<Prisma.WorkflowNodeRelationFilter> = z.object({
+  is: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
+  isNot: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
+}).strict();
+
+export const WorkflowConnectionSourceNodeIdTargetNodeIdCompoundUniqueInputSchema: z.ZodType<Prisma.WorkflowConnectionSourceNodeIdTargetNodeIdCompoundUniqueInput> = z.object({
+  sourceNodeId: z.string(),
+  targetNodeId: z.string()
+}).strict();
+
 export const WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInputSchema: z.ZodType<Prisma.WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInput> = z.object({
   workflowId: z.string(),
   edgeId: z.string()
@@ -20891,28 +21018,34 @@ export const WorkflowConnectionWorkflowIdEdgeIdCompoundUniqueInputSchema: z.ZodT
 export const WorkflowConnectionCountOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowConnectionCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
-  edgeId: z.lazy(() => SortOrderSchema).optional(),
   sourceNodeId: z.lazy(() => SortOrderSchema).optional(),
   targetNodeId: z.lazy(() => SortOrderSchema).optional(),
-  sourceHandle: z.lazy(() => SortOrderSchema).optional(),
-  targetHandle: z.lazy(() => SortOrderSchema).optional(),
+  executionOrder: z.lazy(() => SortOrderSchema).optional(),
   label: z.lazy(() => SortOrderSchema).optional(),
   conditions: z.lazy(() => SortOrderSchema).optional(),
+  edgeId: z.lazy(() => SortOrderSchema).optional(),
+  sourceHandle: z.lazy(() => SortOrderSchema).optional(),
+  targetHandle: z.lazy(() => SortOrderSchema).optional(),
   style: z.lazy(() => SortOrderSchema).optional(),
   animated: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
+export const WorkflowConnectionAvgOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowConnectionAvgOrderByAggregateInput> = z.object({
+  executionOrder: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
 export const WorkflowConnectionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowConnectionMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
-  edgeId: z.lazy(() => SortOrderSchema).optional(),
   sourceNodeId: z.lazy(() => SortOrderSchema).optional(),
   targetNodeId: z.lazy(() => SortOrderSchema).optional(),
+  executionOrder: z.lazy(() => SortOrderSchema).optional(),
+  label: z.lazy(() => SortOrderSchema).optional(),
+  edgeId: z.lazy(() => SortOrderSchema).optional(),
   sourceHandle: z.lazy(() => SortOrderSchema).optional(),
   targetHandle: z.lazy(() => SortOrderSchema).optional(),
-  label: z.lazy(() => SortOrderSchema).optional(),
   animated: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional()
@@ -20921,15 +21054,20 @@ export const WorkflowConnectionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.
 export const WorkflowConnectionMinOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowConnectionMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   workflowId: z.lazy(() => SortOrderSchema).optional(),
-  edgeId: z.lazy(() => SortOrderSchema).optional(),
   sourceNodeId: z.lazy(() => SortOrderSchema).optional(),
   targetNodeId: z.lazy(() => SortOrderSchema).optional(),
+  executionOrder: z.lazy(() => SortOrderSchema).optional(),
+  label: z.lazy(() => SortOrderSchema).optional(),
+  edgeId: z.lazy(() => SortOrderSchema).optional(),
   sourceHandle: z.lazy(() => SortOrderSchema).optional(),
   targetHandle: z.lazy(() => SortOrderSchema).optional(),
-  label: z.lazy(() => SortOrderSchema).optional(),
   animated: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const WorkflowConnectionSumOrderByAggregateInputSchema: z.ZodType<Prisma.WorkflowConnectionSumOrderByAggregateInput> = z.object({
+  executionOrder: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
 export const EnumDependencyTypeFilterSchema: z.ZodType<Prisma.EnumDependencyTypeFilter> = z.object({
@@ -20937,11 +21075,6 @@ export const EnumDependencyTypeFilterSchema: z.ZodType<Prisma.EnumDependencyType
   in: z.lazy(() => DependencyTypeSchema).array().optional(),
   notIn: z.lazy(() => DependencyTypeSchema).array().optional(),
   not: z.union([ z.lazy(() => DependencyTypeSchema),z.lazy(() => NestedEnumDependencyTypeFilterSchema) ]).optional(),
-}).strict();
-
-export const WorkflowNodeRelationFilterSchema: z.ZodType<Prisma.WorkflowNodeRelationFilter> = z.object({
-  is: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
-  isNot: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
 }).strict();
 
 export const NodeDependencyDependentNodeIdPrerequisiteNodeIdCompoundUniqueInputSchema: z.ZodType<Prisma.NodeDependencyDependentNodeIdPrerequisiteNodeIdCompoundUniqueInput> = z.object({
@@ -21019,6 +21152,7 @@ export const ActionTemplateCountOrderByAggregateInputSchema: z.ZodType<Prisma.Ac
   isPublic: z.lazy(() => SortOrderSchema).optional(),
   isActive: z.lazy(() => SortOrderSchema).optional(),
   usageCount: z.lazy(() => SortOrderSchema).optional(),
+  isLocked: z.lazy(() => SortOrderSchema).optional(),
   requiredVariables: z.lazy(() => SortOrderSchema).optional(),
   optionalVariables: z.lazy(() => SortOrderSchema).optional(),
   createdById: z.lazy(() => SortOrderSchema).optional(),
@@ -21041,6 +21175,7 @@ export const ActionTemplateMaxOrderByAggregateInputSchema: z.ZodType<Prisma.Acti
   isPublic: z.lazy(() => SortOrderSchema).optional(),
   isActive: z.lazy(() => SortOrderSchema).optional(),
   usageCount: z.lazy(() => SortOrderSchema).optional(),
+  isLocked: z.lazy(() => SortOrderSchema).optional(),
   createdById: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional()
@@ -21057,6 +21192,7 @@ export const ActionTemplateMinOrderByAggregateInputSchema: z.ZodType<Prisma.Acti
   isPublic: z.lazy(() => SortOrderSchema).optional(),
   isActive: z.lazy(() => SortOrderSchema).optional(),
   usageCount: z.lazy(() => SortOrderSchema).optional(),
+  isLocked: z.lazy(() => SortOrderSchema).optional(),
   createdById: z.lazy(() => SortOrderSchema).optional(),
   createdAt: z.lazy(() => SortOrderSchema).optional(),
   updatedAt: z.lazy(() => SortOrderSchema).optional()
@@ -21280,11 +21416,6 @@ export const EnumExecutionPriorityFilterSchema: z.ZodType<Prisma.EnumExecutionPr
   in: z.lazy(() => ExecutionPrioritySchema).array().optional(),
   notIn: z.lazy(() => ExecutionPrioritySchema).array().optional(),
   not: z.union([ z.lazy(() => ExecutionPrioritySchema),z.lazy(() => NestedEnumExecutionPriorityFilterSchema) ]).optional(),
-}).strict();
-
-export const WorkflowTriggerNullableRelationFilterSchema: z.ZodType<Prisma.WorkflowTriggerNullableRelationFilter> = z.object({
-  is: z.lazy(() => WorkflowTriggerWhereInputSchema).optional().nullable(),
-  isNot: z.lazy(() => WorkflowTriggerWhereInputSchema).optional().nullable()
 }).strict();
 
 export const ExecutionLogListRelationFilterSchema: z.ZodType<Prisma.ExecutionLogListRelationFilter> = z.object({
@@ -21675,12 +21806,11 @@ export const EnumIntegrationTypeWithAggregatesFilterSchema: z.ZodType<Prisma.Enu
 
 export const EmailActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.EmailActionCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   fromName: z.lazy(() => SortOrderSchema).optional(),
   fromEmail: z.lazy(() => SortOrderSchema).optional(),
   replyTo: z.lazy(() => SortOrderSchema).optional(),
-  toEmails: z.lazy(() => SortOrderSchema).optional(),
   ccEmails: z.lazy(() => SortOrderSchema).optional(),
   bccEmails: z.lazy(() => SortOrderSchema).optional(),
   subject: z.lazy(() => SortOrderSchema).optional(),
@@ -21697,7 +21827,7 @@ export const EmailActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.Email
 
 export const EmailActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.EmailActionMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   fromName: z.lazy(() => SortOrderSchema).optional(),
   fromEmail: z.lazy(() => SortOrderSchema).optional(),
@@ -21714,7 +21844,7 @@ export const EmailActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.EmailAc
 
 export const EmailActionMinOrderByAggregateInputSchema: z.ZodType<Prisma.EmailActionMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   fromName: z.lazy(() => SortOrderSchema).optional(),
   fromEmail: z.lazy(() => SortOrderSchema).optional(),
@@ -21731,10 +21861,9 @@ export const EmailActionMinOrderByAggregateInputSchema: z.ZodType<Prisma.EmailAc
 
 export const SmsActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.SmsActionCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   fromNumber: z.lazy(() => SortOrderSchema).optional(),
-  toNumbers: z.lazy(() => SortOrderSchema).optional(),
   message: z.lazy(() => SortOrderSchema).optional(),
   templateId: z.lazy(() => SortOrderSchema).optional(),
   maxLength: z.lazy(() => SortOrderSchema).optional(),
@@ -21750,7 +21879,7 @@ export const SmsActionAvgOrderByAggregateInputSchema: z.ZodType<Prisma.SmsAction
 
 export const SmsActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.SmsActionMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   fromNumber: z.lazy(() => SortOrderSchema).optional(),
   message: z.lazy(() => SortOrderSchema).optional(),
@@ -21763,7 +21892,7 @@ export const SmsActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.SmsAction
 
 export const SmsActionMinOrderByAggregateInputSchema: z.ZodType<Prisma.SmsActionMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   fromNumber: z.lazy(() => SortOrderSchema).optional(),
   message: z.lazy(() => SortOrderSchema).optional(),
@@ -21787,7 +21916,7 @@ export const EnumWhatsAppMessageTypeFilterSchema: z.ZodType<Prisma.EnumWhatsAppM
 
 export const WhatsAppActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.WhatsAppActionCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   businessAccountId: z.lazy(() => SortOrderSchema).optional(),
   toNumbers: z.lazy(() => SortOrderSchema).optional(),
@@ -21806,7 +21935,7 @@ export const WhatsAppActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.Wh
 
 export const WhatsAppActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.WhatsAppActionMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   businessAccountId: z.lazy(() => SortOrderSchema).optional(),
   messageType: z.lazy(() => SortOrderSchema).optional(),
@@ -21822,7 +21951,7 @@ export const WhatsAppActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.What
 
 export const WhatsAppActionMinOrderByAggregateInputSchema: z.ZodType<Prisma.WhatsAppActionMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   businessAccountId: z.lazy(() => SortOrderSchema).optional(),
   messageType: z.lazy(() => SortOrderSchema).optional(),
@@ -21848,7 +21977,7 @@ export const EnumWhatsAppMessageTypeWithAggregatesFilterSchema: z.ZodType<Prisma
 
 export const SlackActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.SlackActionCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   workspaceId: z.lazy(() => SortOrderSchema).optional(),
   channel: z.lazy(() => SortOrderSchema).optional(),
@@ -21869,7 +21998,7 @@ export const SlackActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.Slack
 
 export const SlackActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.SlackActionMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   workspaceId: z.lazy(() => SortOrderSchema).optional(),
   channel: z.lazy(() => SortOrderSchema).optional(),
@@ -21887,7 +22016,7 @@ export const SlackActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.SlackAc
 
 export const SlackActionMinOrderByAggregateInputSchema: z.ZodType<Prisma.SlackActionMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   workspaceId: z.lazy(() => SortOrderSchema).optional(),
   channel: z.lazy(() => SortOrderSchema).optional(),
@@ -21905,7 +22034,7 @@ export const SlackActionMinOrderByAggregateInputSchema: z.ZodType<Prisma.SlackAc
 
 export const CalendarActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.CalendarActionCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   calendarId: z.lazy(() => SortOrderSchema).optional(),
   title: z.lazy(() => SortOrderSchema).optional(),
@@ -21926,7 +22055,7 @@ export const CalendarActionCountOrderByAggregateInputSchema: z.ZodType<Prisma.Ca
 
 export const CalendarActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.CalendarActionMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   calendarId: z.lazy(() => SortOrderSchema).optional(),
   title: z.lazy(() => SortOrderSchema).optional(),
@@ -21943,7 +22072,7 @@ export const CalendarActionMaxOrderByAggregateInputSchema: z.ZodType<Prisma.Cale
 
 export const CalendarActionMinOrderByAggregateInputSchema: z.ZodType<Prisma.CalendarActionMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  nodeId: z.lazy(() => SortOrderSchema).optional(),
+  actionId: z.lazy(() => SortOrderSchema).optional(),
   integrationId: z.lazy(() => SortOrderSchema).optional(),
   calendarId: z.lazy(() => SortOrderSchema).optional(),
   title: z.lazy(() => SortOrderSchema).optional(),
@@ -25195,6 +25324,12 @@ export const TriggerVariableCreateNestedManyWithoutTriggerInputSchema: z.ZodType
   connect: z.union([ z.lazy(() => TriggerVariableWhereUniqueInputSchema),z.lazy(() => TriggerVariableWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
+export const WorkflowNodeCreateNestedOneWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutTriggerInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTriggerInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutTriggerInputSchema).optional(),
+  connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
+}).strict();
+
 export const WorkflowExecutionUncheckedCreateNestedManyWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowExecutionUncheckedCreateNestedManyWithoutTriggerInput> = z.object({
   create: z.union([ z.lazy(() => WorkflowExecutionCreateWithoutTriggerInputSchema),z.lazy(() => WorkflowExecutionCreateWithoutTriggerInputSchema).array(),z.lazy(() => WorkflowExecutionUncheckedCreateWithoutTriggerInputSchema),z.lazy(() => WorkflowExecutionUncheckedCreateWithoutTriggerInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => WorkflowExecutionCreateOrConnectWithoutTriggerInputSchema),z.lazy(() => WorkflowExecutionCreateOrConnectWithoutTriggerInputSchema).array() ]).optional(),
@@ -25247,6 +25382,16 @@ export const TriggerVariableUpdateManyWithoutTriggerNestedInputSchema: z.ZodType
   update: z.union([ z.lazy(() => TriggerVariableUpdateWithWhereUniqueWithoutTriggerInputSchema),z.lazy(() => TriggerVariableUpdateWithWhereUniqueWithoutTriggerInputSchema).array() ]).optional(),
   updateMany: z.union([ z.lazy(() => TriggerVariableUpdateManyWithWhereWithoutTriggerInputSchema),z.lazy(() => TriggerVariableUpdateManyWithWhereWithoutTriggerInputSchema).array() ]).optional(),
   deleteMany: z.union([ z.lazy(() => TriggerVariableScalarWhereInputSchema),z.lazy(() => TriggerVariableScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const WorkflowNodeUpdateOneWithoutTriggerNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneWithoutTriggerNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTriggerInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutTriggerInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutTriggerInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => WorkflowNodeWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutTriggerInputSchema) ]).optional(),
 }).strict();
 
 export const WorkflowExecutionUncheckedUpdateManyWithoutTriggerNestedInputSchema: z.ZodType<Prisma.WorkflowExecutionUncheckedUpdateManyWithoutTriggerNestedInput> = z.object({
@@ -25304,39 +25449,54 @@ export const NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema: z
   connect: z.union([ z.lazy(() => NodeDependencyWhereUniqueInputSchema),z.lazy(() => NodeDependencyWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
-export const EmailActionCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => EmailActionCreateWithoutNodeInputSchema),z.lazy(() => EmailActionCreateWithoutNodeInputSchema).array(),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => EmailActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
+export const WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateNestedManyWithoutSourceNodeInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManySourceNodeInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
-export const SmsActionCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => SmsActionCreateWithoutNodeInputSchema),z.lazy(() => SmsActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SmsActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
+export const WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateNestedManyWithoutTargetNodeInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManyTargetNodeInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
-export const WhatsAppActionCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema).array(),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => WhatsAppActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
+export const EmailActionCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.EmailActionCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => EmailActionCreateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => EmailActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => EmailActionWhereUniqueInputSchema).optional()
 }).strict();
 
-export const SlackActionCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => SlackActionCreateWithoutNodeInputSchema),z.lazy(() => SlackActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SlackActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
+export const SmsActionCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.SmsActionCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => SmsActionCreateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SmsActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => SmsActionWhereUniqueInputSchema).optional()
 }).strict();
 
-export const CalendarActionCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => CalendarActionCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateWithoutNodeInputSchema).array(),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => CalendarActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
+export const WhatsAppActionCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WhatsAppActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => WhatsAppActionWhereUniqueInputSchema).optional()
+}).strict();
+
+export const SlackActionCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.SlackActionCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => SlackActionCreateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SlackActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => SlackActionWhereUniqueInputSchema).optional()
+}).strict();
+
+export const CalendarActionCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => CalendarActionCreateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CalendarActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => CalendarActionWhereUniqueInputSchema).optional()
+}).strict();
+
+export const WorkflowTriggerCreateNestedOneWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerCreateNestedOneWithoutNodeInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowTriggerCreateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedCreateWithoutNodeInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowTriggerCreateOrConnectWithoutNodeInputSchema).optional(),
+  connect: z.lazy(() => WorkflowTriggerWhereUniqueInputSchema).optional()
 }).strict();
 
 export const NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.NodeExecutionUncheckedCreateNestedManyWithoutNodeInput> = z.object({
@@ -25360,39 +25520,54 @@ export const NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInput
   connect: z.union([ z.lazy(() => NodeDependencyWhereUniqueInputSchema),z.lazy(() => NodeDependencyWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
-export const EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUncheckedCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => EmailActionCreateWithoutNodeInputSchema),z.lazy(() => EmailActionCreateWithoutNodeInputSchema).array(),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => EmailActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
+export const WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManySourceNodeInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
-export const SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUncheckedCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => SmsActionCreateWithoutNodeInputSchema),z.lazy(() => SmsActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SmsActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
+export const WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManyTargetNodeInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
-export const WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema).array(),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => WhatsAppActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
+export const EmailActionUncheckedCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.EmailActionUncheckedCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => EmailActionCreateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => EmailActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => EmailActionWhereUniqueInputSchema).optional()
 }).strict();
 
-export const SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUncheckedCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => SlackActionCreateWithoutNodeInputSchema),z.lazy(() => SlackActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SlackActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
+export const SmsActionUncheckedCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.SmsActionUncheckedCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => SmsActionCreateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SmsActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => SmsActionWhereUniqueInputSchema).optional()
 }).strict();
 
-export const CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUncheckedCreateNestedManyWithoutNodeInput> = z.object({
-  create: z.union([ z.lazy(() => CalendarActionCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateWithoutNodeInputSchema).array(),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => CalendarActionCreateManyNodeInputEnvelopeSchema).optional(),
-  connect: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
+export const WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WhatsAppActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => WhatsAppActionWhereUniqueInputSchema).optional()
+}).strict();
+
+export const SlackActionUncheckedCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.SlackActionUncheckedCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => SlackActionCreateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SlackActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => SlackActionWhereUniqueInputSchema).optional()
+}).strict();
+
+export const CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionUncheckedCreateNestedOneWithoutActionInput> = z.object({
+  create: z.union([ z.lazy(() => CalendarActionCreateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CalendarActionCreateOrConnectWithoutActionInputSchema).optional(),
+  connect: z.lazy(() => CalendarActionWhereUniqueInputSchema).optional()
+}).strict();
+
+export const WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowTriggerCreateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedCreateWithoutNodeInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowTriggerCreateOrConnectWithoutNodeInputSchema).optional(),
+  connect: z.lazy(() => WorkflowTriggerWhereUniqueInputSchema).optional()
 }).strict();
 
 export const EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumWorkflowNodeTypeFieldUpdateOperationsInput> = z.object({
@@ -25449,74 +25624,92 @@ export const NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema: z
   deleteMany: z.union([ z.lazy(() => NodeDependencyScalarWhereInputSchema),z.lazy(() => NodeDependencyScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
-export const EmailActionUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.EmailActionUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => EmailActionCreateWithoutNodeInputSchema),z.lazy(() => EmailActionCreateWithoutNodeInputSchema).array(),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => EmailActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => EmailActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => EmailActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => EmailActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => EmailActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => EmailActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => EmailActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => EmailActionScalarWhereInputSchema),z.lazy(() => EmailActionScalarWhereInputSchema).array() ]).optional(),
+export const WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateManyWithoutSourceNodeNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutSourceNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManySourceNodeInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutSourceNodeInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutSourceNodeInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => WorkflowConnectionScalarWhereInputSchema),z.lazy(() => WorkflowConnectionScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
-export const SmsActionUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.SmsActionUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => SmsActionCreateWithoutNodeInputSchema),z.lazy(() => SmsActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => SmsActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SmsActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SmsActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => SmsActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SmsActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => SmsActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => SmsActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => SmsActionScalarWhereInputSchema),z.lazy(() => SmsActionScalarWhereInputSchema).array() ]).optional(),
+export const WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateManyWithoutTargetNodeNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutTargetNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManyTargetNodeInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutTargetNodeInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutTargetNodeInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => WorkflowConnectionScalarWhereInputSchema),z.lazy(() => WorkflowConnectionScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
-export const WhatsAppActionUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.WhatsAppActionUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema).array(),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => WhatsAppActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => WhatsAppActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => WhatsAppActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => WhatsAppActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => WhatsAppActionScalarWhereInputSchema),z.lazy(() => WhatsAppActionScalarWhereInputSchema).array() ]).optional(),
+export const EmailActionUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.EmailActionUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => EmailActionCreateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => EmailActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => EmailActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => EmailActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => EmailActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => EmailActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => EmailActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => EmailActionUpdateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
 }).strict();
 
-export const SlackActionUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.SlackActionUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => SlackActionCreateWithoutNodeInputSchema),z.lazy(() => SlackActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => SlackActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SlackActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SlackActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => SlackActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SlackActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => SlackActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => SlackActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => SlackActionScalarWhereInputSchema),z.lazy(() => SlackActionScalarWhereInputSchema).array() ]).optional(),
+export const SmsActionUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.SmsActionUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => SmsActionCreateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SmsActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => SmsActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => SmsActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => SmsActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => SmsActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => SmsActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => SmsActionUpdateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
 }).strict();
 
-export const CalendarActionUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.CalendarActionUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => CalendarActionCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateWithoutNodeInputSchema).array(),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => CalendarActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => CalendarActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => CalendarActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => CalendarActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => CalendarActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => CalendarActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => CalendarActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => CalendarActionScalarWhereInputSchema),z.lazy(() => CalendarActionScalarWhereInputSchema).array() ]).optional(),
+export const WhatsAppActionUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.WhatsAppActionUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WhatsAppActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => WhatsAppActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => WhatsAppActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => WhatsAppActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => WhatsAppActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => WhatsAppActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => WhatsAppActionUpdateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
+}).strict();
+
+export const SlackActionUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.SlackActionUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => SlackActionCreateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SlackActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => SlackActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => SlackActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => SlackActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => SlackActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => SlackActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => SlackActionUpdateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
+}).strict();
+
+export const CalendarActionUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.CalendarActionUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CalendarActionCreateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CalendarActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => CalendarActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => CalendarActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => CalendarActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => CalendarActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => CalendarActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => CalendarActionUpdateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
+}).strict();
+
+export const WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema: z.ZodType<Prisma.WorkflowTriggerUpdateOneWithoutNodeNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowTriggerCreateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedCreateWithoutNodeInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowTriggerCreateOrConnectWithoutNodeInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowTriggerUpsertWithoutNodeInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => WorkflowTriggerWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => WorkflowTriggerWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => WorkflowTriggerWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => WorkflowTriggerUpdateToOneWithWhereWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUpdateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedUpdateWithoutNodeInputSchema) ]).optional(),
 }).strict();
 
 export const NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.NodeExecutionUncheckedUpdateManyWithoutNodeNestedInput> = z.object({
@@ -25561,74 +25754,92 @@ export const NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInput
   deleteMany: z.union([ z.lazy(() => NodeDependencyScalarWhereInputSchema),z.lazy(() => NodeDependencyScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
-export const EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.EmailActionUncheckedUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => EmailActionCreateWithoutNodeInputSchema),z.lazy(() => EmailActionCreateWithoutNodeInputSchema).array(),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => EmailActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => EmailActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => EmailActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => EmailActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => EmailActionWhereUniqueInputSchema),z.lazy(() => EmailActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => EmailActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => EmailActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => EmailActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => EmailActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => EmailActionScalarWhereInputSchema),z.lazy(() => EmailActionScalarWhereInputSchema).array() ]).optional(),
+export const WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutSourceNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManySourceNodeInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutSourceNodeInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutSourceNodeInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => WorkflowConnectionScalarWhereInputSchema),z.lazy(() => WorkflowConnectionScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
-export const SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.SmsActionUncheckedUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => SmsActionCreateWithoutNodeInputSchema),z.lazy(() => SmsActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SmsActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => SmsActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SmsActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SmsActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => SmsActionWhereUniqueInputSchema),z.lazy(() => SmsActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => SmsActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SmsActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => SmsActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => SmsActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => SmsActionScalarWhereInputSchema),z.lazy(() => SmsActionScalarWhereInputSchema).array() ]).optional(),
+export const WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema).array(),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUpsertWithWhereUniqueWithoutTargetNodeInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => WorkflowConnectionCreateManyTargetNodeInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),z.lazy(() => WorkflowConnectionWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateWithWhereUniqueWithoutTargetNodeInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUpdateManyWithWhereWithoutTargetNodeInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => WorkflowConnectionScalarWhereInputSchema),z.lazy(() => WorkflowConnectionScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
-export const WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema).array(),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => WhatsAppActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => WhatsAppActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => WhatsAppActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => WhatsAppActionWhereUniqueInputSchema),z.lazy(() => WhatsAppActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => WhatsAppActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => WhatsAppActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => WhatsAppActionScalarWhereInputSchema),z.lazy(() => WhatsAppActionScalarWhereInputSchema).array() ]).optional(),
+export const EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.EmailActionUncheckedUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => EmailActionCreateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => EmailActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => EmailActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => EmailActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => EmailActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => EmailActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => EmailActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => EmailActionUpdateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
 }).strict();
 
-export const SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.SlackActionUncheckedUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => SlackActionCreateWithoutNodeInputSchema),z.lazy(() => SlackActionCreateWithoutNodeInputSchema).array(),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => SlackActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => SlackActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SlackActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => SlackActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => SlackActionWhereUniqueInputSchema),z.lazy(() => SlackActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => SlackActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => SlackActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => SlackActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => SlackActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => SlackActionScalarWhereInputSchema),z.lazy(() => SlackActionScalarWhereInputSchema).array() ]).optional(),
+export const SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.SmsActionUncheckedUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => SmsActionCreateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SmsActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => SmsActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => SmsActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => SmsActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => SmsActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => SmsActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => SmsActionUpdateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
 }).strict();
 
-export const CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema: z.ZodType<Prisma.CalendarActionUncheckedUpdateManyWithoutNodeNestedInput> = z.object({
-  create: z.union([ z.lazy(() => CalendarActionCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateWithoutNodeInputSchema).array(),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema).array() ]).optional(),
-  connectOrCreate: z.union([ z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema),z.lazy(() => CalendarActionCreateOrConnectWithoutNodeInputSchema).array() ]).optional(),
-  upsert: z.union([ z.lazy(() => CalendarActionUpsertWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => CalendarActionUpsertWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  createMany: z.lazy(() => CalendarActionCreateManyNodeInputEnvelopeSchema).optional(),
-  set: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  disconnect: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  delete: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  connect: z.union([ z.lazy(() => CalendarActionWhereUniqueInputSchema),z.lazy(() => CalendarActionWhereUniqueInputSchema).array() ]).optional(),
-  update: z.union([ z.lazy(() => CalendarActionUpdateWithWhereUniqueWithoutNodeInputSchema),z.lazy(() => CalendarActionUpdateWithWhereUniqueWithoutNodeInputSchema).array() ]).optional(),
-  updateMany: z.union([ z.lazy(() => CalendarActionUpdateManyWithWhereWithoutNodeInputSchema),z.lazy(() => CalendarActionUpdateManyWithWhereWithoutNodeInputSchema).array() ]).optional(),
-  deleteMany: z.union([ z.lazy(() => CalendarActionScalarWhereInputSchema),z.lazy(() => CalendarActionScalarWhereInputSchema).array() ]).optional(),
+export const WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WhatsAppActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => WhatsAppActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => WhatsAppActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => WhatsAppActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => WhatsAppActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => WhatsAppActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => WhatsAppActionUpdateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
+}).strict();
+
+export const SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.SlackActionUncheckedUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => SlackActionCreateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => SlackActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => SlackActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => SlackActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => SlackActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => SlackActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => SlackActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => SlackActionUpdateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
+}).strict();
+
+export const CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema: z.ZodType<Prisma.CalendarActionUncheckedUpdateOneWithoutActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CalendarActionCreateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CalendarActionCreateOrConnectWithoutActionInputSchema).optional(),
+  upsert: z.lazy(() => CalendarActionUpsertWithoutActionInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => CalendarActionWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => CalendarActionWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => CalendarActionWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => CalendarActionUpdateToOneWithWhereWithoutActionInputSchema),z.lazy(() => CalendarActionUpdateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedUpdateWithoutActionInputSchema) ]).optional(),
+}).strict();
+
+export const WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowTriggerCreateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedCreateWithoutNodeInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowTriggerCreateOrConnectWithoutNodeInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowTriggerUpsertWithoutNodeInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => WorkflowTriggerWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => WorkflowTriggerWhereInputSchema) ]).optional(),
+  connect: z.lazy(() => WorkflowTriggerWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => WorkflowTriggerUpdateToOneWithWhereWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUpdateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedUpdateWithoutNodeInputSchema) ]).optional(),
 }).strict();
 
 export const WorkflowCreateNestedOneWithoutConnectionsInputSchema: z.ZodType<Prisma.WorkflowCreateNestedOneWithoutConnectionsInput> = z.object({
@@ -25637,12 +25848,40 @@ export const WorkflowCreateNestedOneWithoutConnectionsInputSchema: z.ZodType<Pri
   connect: z.lazy(() => WorkflowWhereUniqueInputSchema).optional()
 }).strict();
 
+export const WorkflowNodeCreateNestedOneWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutSourceConnectionsInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSourceConnectionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSourceConnectionsInputSchema).optional(),
+  connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeCreateNestedOneWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutTargetConnectionsInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTargetConnectionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutTargetConnectionsInputSchema).optional(),
+  connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
+}).strict();
+
 export const WorkflowUpdateOneRequiredWithoutConnectionsNestedInputSchema: z.ZodType<Prisma.WorkflowUpdateOneRequiredWithoutConnectionsNestedInput> = z.object({
   create: z.union([ z.lazy(() => WorkflowCreateWithoutConnectionsInputSchema),z.lazy(() => WorkflowUncheckedCreateWithoutConnectionsInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => WorkflowCreateOrConnectWithoutConnectionsInputSchema).optional(),
   upsert: z.lazy(() => WorkflowUpsertWithoutConnectionsInputSchema).optional(),
   connect: z.lazy(() => WorkflowWhereUniqueInputSchema).optional(),
   update: z.union([ z.lazy(() => WorkflowUpdateToOneWithWhereWithoutConnectionsInputSchema),z.lazy(() => WorkflowUpdateWithoutConnectionsInputSchema),z.lazy(() => WorkflowUncheckedUpdateWithoutConnectionsInputSchema) ]).optional(),
+}).strict();
+
+export const WorkflowNodeUpdateOneRequiredWithoutSourceConnectionsNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutSourceConnectionsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSourceConnectionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSourceConnectionsInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutSourceConnectionsInputSchema).optional(),
+  connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSourceConnectionsInputSchema) ]).optional(),
+}).strict();
+
+export const WorkflowNodeUpdateOneRequiredWithoutTargetConnectionsNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutTargetConnectionsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTargetConnectionsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutTargetConnectionsInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutTargetConnectionsInputSchema).optional(),
+  connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutTargetConnectionsInputSchema) ]).optional(),
 }).strict();
 
 export const WorkflowNodeCreateNestedOneWithoutDependenciesInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutDependenciesInput> = z.object({
@@ -26151,37 +26390,37 @@ export const OrganizationUpdateOneRequiredWithoutIntegrationConfigsNestedInputSc
   update: z.union([ z.lazy(() => OrganizationUpdateToOneWithWhereWithoutIntegrationConfigsInputSchema),z.lazy(() => OrganizationUpdateWithoutIntegrationConfigsInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutIntegrationConfigsInputSchema) ]).optional(),
 }).strict();
 
-export const WorkflowNodeCreateNestedOneWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutEmailActionsInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutEmailActionsInputSchema).optional(),
+export const WorkflowNodeCreateNestedOneWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutEmailActionInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutEmailActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateOneRequiredWithoutEmailActionsNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutEmailActionsNestedInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutEmailActionsInputSchema).optional(),
-  upsert: z.lazy(() => WorkflowNodeUpsertWithoutEmailActionsInputSchema).optional(),
+export const WorkflowNodeUpdateOneRequiredWithoutEmailActionNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutEmailActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutEmailActionInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutEmailActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutEmailActionsInputSchema) ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutEmailActionInputSchema) ]).optional(),
 }).strict();
 
-export const WorkflowNodeCreateNestedOneWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutSmsActionsInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSmsActionsInputSchema).optional(),
+export const WorkflowNodeCreateNestedOneWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutSmsActionInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSmsActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateOneRequiredWithoutSmsActionsNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutSmsActionsNestedInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSmsActionsInputSchema).optional(),
-  upsert: z.lazy(() => WorkflowNodeUpsertWithoutSmsActionsInputSchema).optional(),
+export const WorkflowNodeUpdateOneRequiredWithoutSmsActionNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutSmsActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSmsActionInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutSmsActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSmsActionsInputSchema) ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSmsActionInputSchema) ]).optional(),
 }).strict();
 
-export const WorkflowNodeCreateNestedOneWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutWhatsAppActionsInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutWhatsAppActionsInputSchema).optional(),
+export const WorkflowNodeCreateNestedOneWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutWhatsAppActionInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutWhatsAppActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
 }).strict();
 
@@ -26189,40 +26428,40 @@ export const EnumWhatsAppMessageTypeFieldUpdateOperationsInputSchema: z.ZodType<
   set: z.lazy(() => WhatsAppMessageTypeSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateOneRequiredWithoutWhatsAppActionsNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutWhatsAppActionsNestedInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutWhatsAppActionsInputSchema).optional(),
-  upsert: z.lazy(() => WorkflowNodeUpsertWithoutWhatsAppActionsInputSchema).optional(),
+export const WorkflowNodeUpdateOneRequiredWithoutWhatsAppActionNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutWhatsAppActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutWhatsAppActionInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutWhatsAppActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutWhatsAppActionsInputSchema) ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutWhatsAppActionInputSchema) ]).optional(),
 }).strict();
 
-export const WorkflowNodeCreateNestedOneWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutSlackActionsInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSlackActionsInputSchema).optional(),
+export const WorkflowNodeCreateNestedOneWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutSlackActionInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSlackActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateOneRequiredWithoutSlackActionsNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutSlackActionsNestedInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSlackActionsInputSchema).optional(),
-  upsert: z.lazy(() => WorkflowNodeUpsertWithoutSlackActionsInputSchema).optional(),
+export const WorkflowNodeUpdateOneRequiredWithoutSlackActionNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutSlackActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutSlackActionInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutSlackActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSlackActionsInputSchema) ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSlackActionInputSchema) ]).optional(),
 }).strict();
 
-export const WorkflowNodeCreateNestedOneWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutCalendarActionsInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutCalendarActionsInputSchema).optional(),
+export const WorkflowNodeCreateNestedOneWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateNestedOneWithoutCalendarActionInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutCalendarActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateOneRequiredWithoutCalendarActionsNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutCalendarActionsNestedInput> = z.object({
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionsInputSchema) ]).optional(),
-  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutCalendarActionsInputSchema).optional(),
-  upsert: z.lazy(() => WorkflowNodeUpsertWithoutCalendarActionsInputSchema).optional(),
+export const WorkflowNodeUpdateOneRequiredWithoutCalendarActionNestedInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateOneRequiredWithoutCalendarActionNestedInput> = z.object({
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => WorkflowNodeCreateOrConnectWithoutCalendarActionInputSchema).optional(),
+  upsert: z.lazy(() => WorkflowNodeUpsertWithoutCalendarActionInputSchema).optional(),
   connect: z.lazy(() => WorkflowNodeWhereUniqueInputSchema).optional(),
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutCalendarActionsInputSchema) ]).optional(),
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateToOneWithWhereWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUpdateWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutCalendarActionInputSchema) ]).optional(),
 }).strict();
 
 export const WorkflowCreateNestedOneWithoutAnalyticsInputSchema: z.ZodType<Prisma.WorkflowCreateNestedOneWithoutAnalyticsInput> = z.object({
@@ -28514,6 +28753,7 @@ export const ActionTemplateCreateWithoutOrganizationInputSchema: z.ZodType<Prism
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -28535,6 +28775,7 @@ export const ActionTemplateUncheckedCreateWithoutOrganizationInputSchema: z.ZodT
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -29203,6 +29444,7 @@ export const ActionTemplateScalarWhereInputSchema: z.ZodType<Prisma.ActionTempla
   isPublic: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   usageCount: z.union([ z.lazy(() => IntFilterSchema),z.number() ]).optional(),
+  isLocked: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   requiredVariables: z.lazy(() => JsonNullableFilterSchema).optional(),
   optionalVariables: z.lazy(() => JsonNullableFilterSchema).optional(),
   createdById: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
@@ -35699,11 +35941,13 @@ export const WorkflowTriggerCreateWithoutWorkflowInputSchema: z.ZodType<Prisma.W
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   executions: z.lazy(() => WorkflowExecutionCreateNestedManyWithoutTriggerInputSchema).optional(),
-  variables: z.lazy(() => TriggerVariableCreateNestedManyWithoutTriggerInputSchema).optional()
+  variables: z.lazy(() => TriggerVariableCreateNestedManyWithoutTriggerInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutTriggerInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedCreateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedCreateWithoutWorkflowInput> = z.object({
   id: z.string().cuid().optional(),
+  nodeId: z.string().optional().nullable(),
   name: z.string(),
   description: z.string().optional().nullable(),
   type: z.lazy(() => WorkflowTriggerTypeSchema),
@@ -35750,11 +35994,14 @@ export const WorkflowNodeCreateWithoutWorkflowInputSchema: z.ZodType<Prisma.Work
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedCreateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutWorkflowInput> = z.object({
@@ -35776,11 +36023,14 @@ export const WorkflowNodeUncheckedCreateWithoutWorkflowInputSchema: z.ZodType<Pr
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeCreateOrConnectWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutWorkflowInput> = z.object({
@@ -35795,28 +36045,30 @@ export const WorkflowNodeCreateManyWorkflowInputEnvelopeSchema: z.ZodType<Prisma
 
 export const WorkflowConnectionCreateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateWithoutWorkflowInput> = z.object({
   id: z.string().cuid().optional(),
-  edgeId: z.string(),
-  sourceNodeId: z.string(),
-  targetNodeId: z.string(),
-  sourceHandle: z.string().optional().nullable(),
-  targetHandle: z.string().optional().nullable(),
+  executionOrder: z.number().int().optional(),
   label: z.string().optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
-  updatedAt: z.coerce.date().optional()
+  updatedAt: z.coerce.date().optional(),
+  sourceNode: z.lazy(() => WorkflowNodeCreateNestedOneWithoutSourceConnectionsInputSchema),
+  targetNode: z.lazy(() => WorkflowNodeCreateNestedOneWithoutTargetConnectionsInputSchema)
 }).strict();
 
 export const WorkflowConnectionUncheckedCreateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedCreateWithoutWorkflowInput> = z.object({
   id: z.string().cuid().optional(),
-  edgeId: z.string(),
   sourceNodeId: z.string(),
   targetNodeId: z.string(),
-  sourceHandle: z.string().optional().nullable(),
-  targetHandle: z.string().optional().nullable(),
+  executionOrder: z.number().int().optional(),
   label: z.string().optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
@@ -36034,6 +36286,7 @@ export const WorkflowTriggerScalarWhereInputSchema: z.ZodType<Prisma.WorkflowTri
   NOT: z.union([ z.lazy(() => WorkflowTriggerScalarWhereInputSchema),z.lazy(() => WorkflowTriggerScalarWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  nodeId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   name: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   type: z.union([ z.lazy(() => EnumWorkflowTriggerTypeFilterSchema),z.lazy(() => WorkflowTriggerTypeSchema) ]).optional(),
@@ -36109,13 +36362,14 @@ export const WorkflowConnectionScalarWhereInputSchema: z.ZodType<Prisma.Workflow
   NOT: z.union([ z.lazy(() => WorkflowConnectionScalarWhereInputSchema),z.lazy(() => WorkflowConnectionScalarWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   workflowId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  edgeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   sourceNodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   targetNodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  sourceHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  targetHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  executionOrder: z.union([ z.lazy(() => IntFilterSchema),z.number() ]).optional(),
   label: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   conditions: z.lazy(() => JsonNullableFilterSchema).optional(),
+  edgeId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  sourceHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  targetHandle: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   style: z.lazy(() => JsonNullableFilterSchema).optional(),
   animated: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
@@ -36363,6 +36617,69 @@ export const TriggerVariableCreateManyTriggerInputEnvelopeSchema: z.ZodType<Pris
   skipDuplicates: z.boolean().optional()
 }).strict();
 
+export const WorkflowNodeCreateWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutTriggerInput> = z.object({
+  id: z.string().cuid().optional(),
+  nodeId: z.string(),
+  type: z.lazy(() => WorkflowNodeTypeSchema),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.number().int().optional().nullable(),
+  isOptional: z.boolean().optional(),
+  retryLimit: z.number().int().optional(),
+  timeout: z.number().int().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutNodesInputSchema),
+  executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUncheckedCreateWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutTriggerInput> = z.object({
+  id: z.string().cuid().optional(),
+  workflowId: z.string(),
+  nodeId: z.string(),
+  type: z.lazy(() => WorkflowNodeTypeSchema),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.number().int().optional().nullable(),
+  isOptional: z.boolean().optional(),
+  retryLimit: z.number().int().optional(),
+  timeout: z.number().int().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeCreateOrConnectWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutTriggerInput> = z.object({
+  where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTriggerInputSchema) ]),
+}).strict();
+
 export const WorkflowUpsertWithoutTriggersInputSchema: z.ZodType<Prisma.WorkflowUpsertWithoutTriggersInput> = z.object({
   update: z.union([ z.lazy(() => WorkflowUpdateWithoutTriggersInputSchema),z.lazy(() => WorkflowUncheckedUpdateWithoutTriggersInputSchema) ]),
   create: z.union([ z.lazy(() => WorkflowCreateWithoutTriggersInputSchema),z.lazy(() => WorkflowUncheckedCreateWithoutTriggersInputSchema) ]),
@@ -36476,6 +36793,75 @@ export const TriggerVariableScalarWhereInputSchema: z.ZodType<Prisma.TriggerVari
   defaultValue: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const WorkflowNodeUpsertWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutTriggerInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutTriggerInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTriggerInputSchema) ]),
+  where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUpdateToOneWithWhereWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutTriggerInput> = z.object({
+  where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutTriggerInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutTriggerInputSchema) ]),
+}).strict();
+
+export const WorkflowNodeUpdateWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutTriggerInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isOptional: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  retryLimit: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  timeout: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutNodesNestedInputSchema).optional(),
+  executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUncheckedUpdateWithoutTriggerInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutTriggerInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isOptional: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  retryLimit: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  timeout: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowCreateWithoutNodesInputSchema: z.ZodType<Prisma.WorkflowCreateWithoutNodesInput> = z.object({
@@ -36637,13 +37023,96 @@ export const NodeDependencyCreateManyPrerequisiteNodeInputEnvelopeSchema: z.ZodT
   skipDuplicates: z.boolean().optional()
 }).strict();
 
-export const EmailActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionCreateWithoutNodeInput> = z.object({
+export const WorkflowConnectionCreateWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateWithoutSourceNodeInput> = z.object({
+  id: z.string().cuid().optional(),
+  executionOrder: z.number().int().optional(),
+  label: z.string().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.boolean().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutConnectionsInputSchema),
+  targetNode: z.lazy(() => WorkflowNodeCreateNestedOneWithoutTargetConnectionsInputSchema)
+}).strict();
+
+export const WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedCreateWithoutSourceNodeInput> = z.object({
+  id: z.string().cuid().optional(),
+  workflowId: z.string(),
+  targetNodeId: z.string(),
+  executionOrder: z.number().int().optional(),
+  label: z.string().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.boolean().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const WorkflowConnectionCreateOrConnectWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateOrConnectWithoutSourceNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema) ]),
+}).strict();
+
+export const WorkflowConnectionCreateManySourceNodeInputEnvelopeSchema: z.ZodType<Prisma.WorkflowConnectionCreateManySourceNodeInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => WorkflowConnectionCreateManySourceNodeInputSchema),z.lazy(() => WorkflowConnectionCreateManySourceNodeInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const WorkflowConnectionCreateWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateWithoutTargetNodeInput> = z.object({
+  id: z.string().cuid().optional(),
+  executionOrder: z.number().int().optional(),
+  label: z.string().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.boolean().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutConnectionsInputSchema),
+  sourceNode: z.lazy(() => WorkflowNodeCreateNestedOneWithoutSourceConnectionsInputSchema)
+}).strict();
+
+export const WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedCreateWithoutTargetNodeInput> = z.object({
+  id: z.string().cuid().optional(),
+  workflowId: z.string(),
+  sourceNodeId: z.string(),
+  executionOrder: z.number().int().optional(),
+  label: z.string().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.boolean().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const WorkflowConnectionCreateOrConnectWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateOrConnectWithoutTargetNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema) ]),
+}).strict();
+
+export const WorkflowConnectionCreateManyTargetNodeInputEnvelopeSchema: z.ZodType<Prisma.WorkflowConnectionCreateManyTargetNodeInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => WorkflowConnectionCreateManyTargetNodeInputSchema),z.lazy(() => WorkflowConnectionCreateManyTargetNodeInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const EmailActionCreateWithoutActionInputSchema: z.ZodType<Prisma.EmailActionCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   fromName: z.string().optional().nullable(),
   fromEmail: z.string().optional().nullable(),
   replyTo: z.string().optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.string(),
@@ -36658,13 +37127,12 @@ export const EmailActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.EmailActi
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const EmailActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUncheckedCreateWithoutNodeInput> = z.object({
+export const EmailActionUncheckedCreateWithoutActionInputSchema: z.ZodType<Prisma.EmailActionUncheckedCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   fromName: z.string().optional().nullable(),
   fromEmail: z.string().optional().nullable(),
   replyTo: z.string().optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   subject: z.string(),
@@ -36679,21 +37147,15 @@ export const EmailActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const EmailActionCreateOrConnectWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionCreateOrConnectWithoutNodeInput> = z.object({
+export const EmailActionCreateOrConnectWithoutActionInputSchema: z.ZodType<Prisma.EmailActionCreateOrConnectWithoutActionInput> = z.object({
   where: z.lazy(() => EmailActionWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => EmailActionCreateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => EmailActionCreateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutActionInputSchema) ]),
 }).strict();
 
-export const EmailActionCreateManyNodeInputEnvelopeSchema: z.ZodType<Prisma.EmailActionCreateManyNodeInputEnvelope> = z.object({
-  data: z.union([ z.lazy(() => EmailActionCreateManyNodeInputSchema),z.lazy(() => EmailActionCreateManyNodeInputSchema).array() ]),
-  skipDuplicates: z.boolean().optional()
-}).strict();
-
-export const SmsActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionCreateWithoutNodeInput> = z.object({
+export const SmsActionCreateWithoutActionInputSchema: z.ZodType<Prisma.SmsActionCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   fromNumber: z.string().optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   message: z.string(),
   templateId: z.string().optional().nullable(),
   maxLength: z.number().int().optional().nullable(),
@@ -36703,11 +37165,10 @@ export const SmsActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionCr
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const SmsActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUncheckedCreateWithoutNodeInput> = z.object({
+export const SmsActionUncheckedCreateWithoutActionInputSchema: z.ZodType<Prisma.SmsActionUncheckedCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   fromNumber: z.string().optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
   message: z.string(),
   templateId: z.string().optional().nullable(),
   maxLength: z.number().int().optional().nullable(),
@@ -36717,17 +37178,12 @@ export const SmsActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.Sm
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const SmsActionCreateOrConnectWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionCreateOrConnectWithoutNodeInput> = z.object({
+export const SmsActionCreateOrConnectWithoutActionInputSchema: z.ZodType<Prisma.SmsActionCreateOrConnectWithoutActionInput> = z.object({
   where: z.lazy(() => SmsActionWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => SmsActionCreateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => SmsActionCreateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutActionInputSchema) ]),
 }).strict();
 
-export const SmsActionCreateManyNodeInputEnvelopeSchema: z.ZodType<Prisma.SmsActionCreateManyNodeInputEnvelope> = z.object({
-  data: z.union([ z.lazy(() => SmsActionCreateManyNodeInputSchema),z.lazy(() => SmsActionCreateManyNodeInputSchema).array() ]),
-  skipDuplicates: z.boolean().optional()
-}).strict();
-
-export const WhatsAppActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionCreateWithoutNodeInput> = z.object({
+export const WhatsAppActionCreateWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   businessAccountId: z.string().optional().nullable(),
@@ -36745,7 +37201,7 @@ export const WhatsAppActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.WhatsA
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const WhatsAppActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedCreateWithoutNodeInput> = z.object({
+export const WhatsAppActionUncheckedCreateWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   businessAccountId: z.string().optional().nullable(),
@@ -36763,17 +37219,12 @@ export const WhatsAppActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Pris
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const WhatsAppActionCreateOrConnectWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionCreateOrConnectWithoutNodeInput> = z.object({
+export const WhatsAppActionCreateOrConnectWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionCreateOrConnectWithoutActionInput> = z.object({
   where: z.lazy(() => WhatsAppActionWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutActionInputSchema) ]),
 }).strict();
 
-export const WhatsAppActionCreateManyNodeInputEnvelopeSchema: z.ZodType<Prisma.WhatsAppActionCreateManyNodeInputEnvelope> = z.object({
-  data: z.union([ z.lazy(() => WhatsAppActionCreateManyNodeInputSchema),z.lazy(() => WhatsAppActionCreateManyNodeInputSchema).array() ]),
-  skipDuplicates: z.boolean().optional()
-}).strict();
-
-export const SlackActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionCreateWithoutNodeInput> = z.object({
+export const SlackActionCreateWithoutActionInputSchema: z.ZodType<Prisma.SlackActionCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   workspaceId: z.string().optional().nullable(),
@@ -36793,7 +37244,7 @@ export const SlackActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.SlackActi
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const SlackActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUncheckedCreateWithoutNodeInput> = z.object({
+export const SlackActionUncheckedCreateWithoutActionInputSchema: z.ZodType<Prisma.SlackActionUncheckedCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   workspaceId: z.string().optional().nullable(),
@@ -36813,17 +37264,12 @@ export const SlackActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const SlackActionCreateOrConnectWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionCreateOrConnectWithoutNodeInput> = z.object({
+export const SlackActionCreateOrConnectWithoutActionInputSchema: z.ZodType<Prisma.SlackActionCreateOrConnectWithoutActionInput> = z.object({
   where: z.lazy(() => SlackActionWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => SlackActionCreateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => SlackActionCreateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutActionInputSchema) ]),
 }).strict();
 
-export const SlackActionCreateManyNodeInputEnvelopeSchema: z.ZodType<Prisma.SlackActionCreateManyNodeInputEnvelope> = z.object({
-  data: z.union([ z.lazy(() => SlackActionCreateManyNodeInputSchema),z.lazy(() => SlackActionCreateManyNodeInputSchema).array() ]),
-  skipDuplicates: z.boolean().optional()
-}).strict();
-
-export const CalendarActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionCreateWithoutNodeInput> = z.object({
+export const CalendarActionCreateWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   calendarId: z.string().optional().nullable(),
@@ -36843,7 +37289,7 @@ export const CalendarActionCreateWithoutNodeInputSchema: z.ZodType<Prisma.Calend
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const CalendarActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUncheckedCreateWithoutNodeInput> = z.object({
+export const CalendarActionUncheckedCreateWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionUncheckedCreateWithoutActionInput> = z.object({
   id: z.string().cuid().optional(),
   integrationId: z.string().optional().nullable(),
   calendarId: z.string().optional().nullable(),
@@ -36863,14 +37309,53 @@ export const CalendarActionUncheckedCreateWithoutNodeInputSchema: z.ZodType<Pris
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const CalendarActionCreateOrConnectWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionCreateOrConnectWithoutNodeInput> = z.object({
+export const CalendarActionCreateOrConnectWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionCreateOrConnectWithoutActionInput> = z.object({
   where: z.lazy(() => CalendarActionWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => CalendarActionCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => CalendarActionCreateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutActionInputSchema) ]),
 }).strict();
 
-export const CalendarActionCreateManyNodeInputEnvelopeSchema: z.ZodType<Prisma.CalendarActionCreateManyNodeInputEnvelope> = z.object({
-  data: z.union([ z.lazy(() => CalendarActionCreateManyNodeInputSchema),z.lazy(() => CalendarActionCreateManyNodeInputSchema).array() ]),
-  skipDuplicates: z.boolean().optional()
+export const WorkflowTriggerCreateWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerCreateWithoutNodeInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => WorkflowTriggerTypeSchema),
+  module: z.string(),
+  entityType: z.string().optional().nullable(),
+  eventType: z.string(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  delay: z.number().int().optional().nullable(),
+  isActive: z.boolean().optional(),
+  lastTriggered: z.coerce.date().optional().nullable(),
+  triggerCount: z.number().int().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutTriggersInputSchema),
+  executions: z.lazy(() => WorkflowExecutionCreateNestedManyWithoutTriggerInputSchema).optional(),
+  variables: z.lazy(() => TriggerVariableCreateNestedManyWithoutTriggerInputSchema).optional()
+}).strict();
+
+export const WorkflowTriggerUncheckedCreateWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedCreateWithoutNodeInput> = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  type: z.lazy(() => WorkflowTriggerTypeSchema),
+  module: z.string(),
+  entityType: z.string().optional().nullable(),
+  eventType: z.string(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  delay: z.number().int().optional().nullable(),
+  isActive: z.boolean().optional(),
+  lastTriggered: z.coerce.date().optional().nullable(),
+  triggerCount: z.number().int().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  executions: z.lazy(() => WorkflowExecutionUncheckedCreateNestedManyWithoutTriggerInputSchema).optional(),
+  variables: z.lazy(() => TriggerVariableUncheckedCreateNestedManyWithoutTriggerInputSchema).optional()
+}).strict();
+
+export const WorkflowTriggerCreateOrConnectWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerCreateOrConnectWithoutNodeInput> = z.object({
+  where: z.lazy(() => WorkflowTriggerWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => WorkflowTriggerCreateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedCreateWithoutNodeInputSchema) ]),
 }).strict();
 
 export const WorkflowUpsertWithoutNodesInputSchema: z.ZodType<Prisma.WorkflowUpsertWithoutNodesInput> = z.object({
@@ -37024,197 +37509,323 @@ export const NodeDependencyUpdateManyWithWhereWithoutPrerequisiteNodeInputSchema
   data: z.union([ z.lazy(() => NodeDependencyUpdateManyMutationInputSchema),z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeInputSchema) ]),
 }).strict();
 
-export const EmailActionUpsertWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUpsertWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => EmailActionWhereUniqueInputSchema),
-  update: z.union([ z.lazy(() => EmailActionUpdateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedUpdateWithoutNodeInputSchema) ]),
-  create: z.union([ z.lazy(() => EmailActionCreateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutNodeInputSchema) ]),
+export const WorkflowConnectionUpsertWithWhereUniqueWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpsertWithWhereUniqueWithoutSourceNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => WorkflowConnectionUpdateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedUpdateWithoutSourceNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutSourceNodeInputSchema) ]),
 }).strict();
 
-export const EmailActionUpdateWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUpdateWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => EmailActionWhereUniqueInputSchema),
-  data: z.union([ z.lazy(() => EmailActionUpdateWithoutNodeInputSchema),z.lazy(() => EmailActionUncheckedUpdateWithoutNodeInputSchema) ]),
+export const WorkflowConnectionUpdateWithWhereUniqueWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateWithWhereUniqueWithoutSourceNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => WorkflowConnectionUpdateWithoutSourceNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedUpdateWithoutSourceNodeInputSchema) ]),
 }).strict();
 
-export const EmailActionUpdateManyWithWhereWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUpdateManyWithWhereWithoutNodeInput> = z.object({
-  where: z.lazy(() => EmailActionScalarWhereInputSchema),
-  data: z.union([ z.lazy(() => EmailActionUpdateManyMutationInputSchema),z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeInputSchema) ]),
+export const WorkflowConnectionUpdateManyWithWhereWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateManyWithWhereWithoutSourceNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => WorkflowConnectionUpdateManyMutationInputSchema),z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeInputSchema) ]),
 }).strict();
 
-export const EmailActionScalarWhereInputSchema: z.ZodType<Prisma.EmailActionScalarWhereInput> = z.object({
-  AND: z.union([ z.lazy(() => EmailActionScalarWhereInputSchema),z.lazy(() => EmailActionScalarWhereInputSchema).array() ]).optional(),
-  OR: z.lazy(() => EmailActionScalarWhereInputSchema).array().optional(),
-  NOT: z.union([ z.lazy(() => EmailActionScalarWhereInputSchema),z.lazy(() => EmailActionScalarWhereInputSchema).array() ]).optional(),
-  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  fromName: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  fromEmail: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  replyTo: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  toEmails: z.lazy(() => JsonFilterSchema).optional(),
-  ccEmails: z.lazy(() => JsonNullableFilterSchema).optional(),
-  bccEmails: z.lazy(() => JsonNullableFilterSchema).optional(),
-  subject: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  htmlBody: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  textBody: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  templateId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  attachments: z.lazy(() => JsonNullableFilterSchema).optional(),
-  trackOpens: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
-  trackClicks: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
-  variables: z.lazy(() => JsonNullableFilterSchema).optional(),
-  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+export const WorkflowConnectionUpsertWithWhereUniqueWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpsertWithWhereUniqueWithoutTargetNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => WorkflowConnectionUpdateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedUpdateWithoutTargetNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowConnectionCreateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedCreateWithoutTargetNodeInputSchema) ]),
 }).strict();
 
-export const SmsActionUpsertWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUpsertWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => SmsActionWhereUniqueInputSchema),
-  update: z.union([ z.lazy(() => SmsActionUpdateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedUpdateWithoutNodeInputSchema) ]),
-  create: z.union([ z.lazy(() => SmsActionCreateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutNodeInputSchema) ]),
+export const WorkflowConnectionUpdateWithWhereUniqueWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateWithWhereUniqueWithoutTargetNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => WorkflowConnectionUpdateWithoutTargetNodeInputSchema),z.lazy(() => WorkflowConnectionUncheckedUpdateWithoutTargetNodeInputSchema) ]),
 }).strict();
 
-export const SmsActionUpdateWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUpdateWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => SmsActionWhereUniqueInputSchema),
-  data: z.union([ z.lazy(() => SmsActionUpdateWithoutNodeInputSchema),z.lazy(() => SmsActionUncheckedUpdateWithoutNodeInputSchema) ]),
+export const WorkflowConnectionUpdateManyWithWhereWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateManyWithWhereWithoutTargetNodeInput> = z.object({
+  where: z.lazy(() => WorkflowConnectionScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => WorkflowConnectionUpdateManyMutationInputSchema),z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeInputSchema) ]),
 }).strict();
 
-export const SmsActionUpdateManyWithWhereWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUpdateManyWithWhereWithoutNodeInput> = z.object({
-  where: z.lazy(() => SmsActionScalarWhereInputSchema),
-  data: z.union([ z.lazy(() => SmsActionUpdateManyMutationInputSchema),z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeInputSchema) ]),
+export const EmailActionUpsertWithoutActionInputSchema: z.ZodType<Prisma.EmailActionUpsertWithoutActionInput> = z.object({
+  update: z.union([ z.lazy(() => EmailActionUpdateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedUpdateWithoutActionInputSchema) ]),
+  create: z.union([ z.lazy(() => EmailActionCreateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedCreateWithoutActionInputSchema) ]),
+  where: z.lazy(() => EmailActionWhereInputSchema).optional()
 }).strict();
 
-export const SmsActionScalarWhereInputSchema: z.ZodType<Prisma.SmsActionScalarWhereInput> = z.object({
-  AND: z.union([ z.lazy(() => SmsActionScalarWhereInputSchema),z.lazy(() => SmsActionScalarWhereInputSchema).array() ]).optional(),
-  OR: z.lazy(() => SmsActionScalarWhereInputSchema).array().optional(),
-  NOT: z.union([ z.lazy(() => SmsActionScalarWhereInputSchema),z.lazy(() => SmsActionScalarWhereInputSchema).array() ]).optional(),
-  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  fromNumber: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  toNumbers: z.lazy(() => JsonFilterSchema).optional(),
-  message: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  templateId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  maxLength: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
-  unicode: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
-  variables: z.lazy(() => JsonNullableFilterSchema).optional(),
-  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+export const EmailActionUpdateToOneWithWhereWithoutActionInputSchema: z.ZodType<Prisma.EmailActionUpdateToOneWithWhereWithoutActionInput> = z.object({
+  where: z.lazy(() => EmailActionWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => EmailActionUpdateWithoutActionInputSchema),z.lazy(() => EmailActionUncheckedUpdateWithoutActionInputSchema) ]),
 }).strict();
 
-export const WhatsAppActionUpsertWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUpsertWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => WhatsAppActionWhereUniqueInputSchema),
-  update: z.union([ z.lazy(() => WhatsAppActionUpdateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedUpdateWithoutNodeInputSchema) ]),
-  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutNodeInputSchema) ]),
+export const EmailActionUpdateWithoutActionInputSchema: z.ZodType<Prisma.EmailActionUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  htmlBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  textBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  trackOpens: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  trackClicks: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const WhatsAppActionUpdateWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUpdateWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => WhatsAppActionWhereUniqueInputSchema),
-  data: z.union([ z.lazy(() => WhatsAppActionUpdateWithoutNodeInputSchema),z.lazy(() => WhatsAppActionUncheckedUpdateWithoutNodeInputSchema) ]),
+export const EmailActionUncheckedUpdateWithoutActionInputSchema: z.ZodType<Prisma.EmailActionUncheckedUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  htmlBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  textBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  trackOpens: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  trackClicks: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const WhatsAppActionUpdateManyWithWhereWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUpdateManyWithWhereWithoutNodeInput> = z.object({
-  where: z.lazy(() => WhatsAppActionScalarWhereInputSchema),
-  data: z.union([ z.lazy(() => WhatsAppActionUpdateManyMutationInputSchema),z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeInputSchema) ]),
+export const SmsActionUpsertWithoutActionInputSchema: z.ZodType<Prisma.SmsActionUpsertWithoutActionInput> = z.object({
+  update: z.union([ z.lazy(() => SmsActionUpdateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedUpdateWithoutActionInputSchema) ]),
+  create: z.union([ z.lazy(() => SmsActionCreateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedCreateWithoutActionInputSchema) ]),
+  where: z.lazy(() => SmsActionWhereInputSchema).optional()
 }).strict();
 
-export const WhatsAppActionScalarWhereInputSchema: z.ZodType<Prisma.WhatsAppActionScalarWhereInput> = z.object({
-  AND: z.union([ z.lazy(() => WhatsAppActionScalarWhereInputSchema),z.lazy(() => WhatsAppActionScalarWhereInputSchema).array() ]).optional(),
-  OR: z.lazy(() => WhatsAppActionScalarWhereInputSchema).array().optional(),
-  NOT: z.union([ z.lazy(() => WhatsAppActionScalarWhereInputSchema),z.lazy(() => WhatsAppActionScalarWhereInputSchema).array() ]).optional(),
-  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  businessAccountId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  toNumbers: z.lazy(() => JsonFilterSchema).optional(),
-  messageType: z.union([ z.lazy(() => EnumWhatsAppMessageTypeFilterSchema),z.lazy(() => WhatsAppMessageTypeSchema) ]).optional(),
-  textMessage: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  templateName: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  templateLanguage: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  mediaUrl: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  mediaType: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  caption: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  templateParams: z.lazy(() => JsonNullableFilterSchema).optional(),
-  variables: z.lazy(() => JsonNullableFilterSchema).optional(),
-  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+export const SmsActionUpdateToOneWithWhereWithoutActionInputSchema: z.ZodType<Prisma.SmsActionUpdateToOneWithWhereWithoutActionInput> = z.object({
+  where: z.lazy(() => SmsActionWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => SmsActionUpdateWithoutActionInputSchema),z.lazy(() => SmsActionUncheckedUpdateWithoutActionInputSchema) ]),
 }).strict();
 
-export const SlackActionUpsertWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUpsertWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => SlackActionWhereUniqueInputSchema),
-  update: z.union([ z.lazy(() => SlackActionUpdateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedUpdateWithoutNodeInputSchema) ]),
-  create: z.union([ z.lazy(() => SlackActionCreateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutNodeInputSchema) ]),
+export const SmsActionUpdateWithoutActionInputSchema: z.ZodType<Prisma.SmsActionUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  unicode: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const SlackActionUpdateWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUpdateWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => SlackActionWhereUniqueInputSchema),
-  data: z.union([ z.lazy(() => SlackActionUpdateWithoutNodeInputSchema),z.lazy(() => SlackActionUncheckedUpdateWithoutNodeInputSchema) ]),
+export const SmsActionUncheckedUpdateWithoutActionInputSchema: z.ZodType<Prisma.SmsActionUncheckedUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  unicode: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const SlackActionUpdateManyWithWhereWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUpdateManyWithWhereWithoutNodeInput> = z.object({
-  where: z.lazy(() => SlackActionScalarWhereInputSchema),
-  data: z.union([ z.lazy(() => SlackActionUpdateManyMutationInputSchema),z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeInputSchema) ]),
+export const WhatsAppActionUpsertWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionUpsertWithoutActionInput> = z.object({
+  update: z.union([ z.lazy(() => WhatsAppActionUpdateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedUpdateWithoutActionInputSchema) ]),
+  create: z.union([ z.lazy(() => WhatsAppActionCreateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedCreateWithoutActionInputSchema) ]),
+  where: z.lazy(() => WhatsAppActionWhereInputSchema).optional()
 }).strict();
 
-export const SlackActionScalarWhereInputSchema: z.ZodType<Prisma.SlackActionScalarWhereInput> = z.object({
-  AND: z.union([ z.lazy(() => SlackActionScalarWhereInputSchema),z.lazy(() => SlackActionScalarWhereInputSchema).array() ]).optional(),
-  OR: z.lazy(() => SlackActionScalarWhereInputSchema).array().optional(),
-  NOT: z.union([ z.lazy(() => SlackActionScalarWhereInputSchema),z.lazy(() => SlackActionScalarWhereInputSchema).array() ]).optional(),
-  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  workspaceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  channel: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  userId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  message: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  blocks: z.lazy(() => JsonNullableFilterSchema).optional(),
-  attachments: z.lazy(() => JsonNullableFilterSchema).optional(),
-  asUser: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
-  username: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  iconEmoji: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  iconUrl: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  threadTs: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  replyBroadcast: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
-  variables: z.lazy(() => JsonNullableFilterSchema).optional(),
-  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+export const WhatsAppActionUpdateToOneWithWhereWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionUpdateToOneWithWhereWithoutActionInput> = z.object({
+  where: z.lazy(() => WhatsAppActionWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => WhatsAppActionUpdateWithoutActionInputSchema),z.lazy(() => WhatsAppActionUncheckedUpdateWithoutActionInputSchema) ]),
 }).strict();
 
-export const CalendarActionUpsertWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUpsertWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => CalendarActionWhereUniqueInputSchema),
-  update: z.union([ z.lazy(() => CalendarActionUpdateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedUpdateWithoutNodeInputSchema) ]),
-  create: z.union([ z.lazy(() => CalendarActionCreateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutNodeInputSchema) ]),
+export const WhatsAppActionUpdateWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  businessAccountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  messageType: z.union([ z.lazy(() => WhatsAppMessageTypeSchema),z.lazy(() => EnumWhatsAppMessageTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  textMessage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateLanguage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mediaUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mediaType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  caption: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateParams: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const CalendarActionUpdateWithWhereUniqueWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUpdateWithWhereUniqueWithoutNodeInput> = z.object({
-  where: z.lazy(() => CalendarActionWhereUniqueInputSchema),
-  data: z.union([ z.lazy(() => CalendarActionUpdateWithoutNodeInputSchema),z.lazy(() => CalendarActionUncheckedUpdateWithoutNodeInputSchema) ]),
+export const WhatsAppActionUncheckedUpdateWithoutActionInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  businessAccountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  messageType: z.union([ z.lazy(() => WhatsAppMessageTypeSchema),z.lazy(() => EnumWhatsAppMessageTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  textMessage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateLanguage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mediaUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mediaType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  caption: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  templateParams: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const CalendarActionUpdateManyWithWhereWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUpdateManyWithWhereWithoutNodeInput> = z.object({
-  where: z.lazy(() => CalendarActionScalarWhereInputSchema),
-  data: z.union([ z.lazy(() => CalendarActionUpdateManyMutationInputSchema),z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeInputSchema) ]),
+export const SlackActionUpsertWithoutActionInputSchema: z.ZodType<Prisma.SlackActionUpsertWithoutActionInput> = z.object({
+  update: z.union([ z.lazy(() => SlackActionUpdateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedUpdateWithoutActionInputSchema) ]),
+  create: z.union([ z.lazy(() => SlackActionCreateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedCreateWithoutActionInputSchema) ]),
+  where: z.lazy(() => SlackActionWhereInputSchema).optional()
 }).strict();
 
-export const CalendarActionScalarWhereInputSchema: z.ZodType<Prisma.CalendarActionScalarWhereInput> = z.object({
-  AND: z.union([ z.lazy(() => CalendarActionScalarWhereInputSchema),z.lazy(() => CalendarActionScalarWhereInputSchema).array() ]).optional(),
-  OR: z.lazy(() => CalendarActionScalarWhereInputSchema).array().optional(),
-  NOT: z.union([ z.lazy(() => CalendarActionScalarWhereInputSchema),z.lazy(() => CalendarActionScalarWhereInputSchema).array() ]).optional(),
-  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  nodeId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  integrationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  calendarId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  title: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  description: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  location: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  startTime: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  endTime: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  isAllDay: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
-  timezone: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  attendees: z.lazy(() => JsonNullableFilterSchema).optional(),
-  organizer: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  reminders: z.lazy(() => JsonNullableFilterSchema).optional(),
-  recurrence: z.lazy(() => JsonNullableFilterSchema).optional(),
-  variables: z.lazy(() => JsonNullableFilterSchema).optional(),
-  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
-  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+export const SlackActionUpdateToOneWithWhereWithoutActionInputSchema: z.ZodType<Prisma.SlackActionUpdateToOneWithWhereWithoutActionInput> = z.object({
+  where: z.lazy(() => SlackActionWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => SlackActionUpdateWithoutActionInputSchema),z.lazy(() => SlackActionUncheckedUpdateWithoutActionInputSchema) ]),
+}).strict();
+
+export const SlackActionUpdateWithoutActionInputSchema: z.ZodType<Prisma.SlackActionUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  workspaceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  channel: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  blocks: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  asUser: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  username: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  iconEmoji: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  iconUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  threadTs: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  replyBroadcast: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const SlackActionUncheckedUpdateWithoutActionInputSchema: z.ZodType<Prisma.SlackActionUncheckedUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  workspaceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  channel: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  blocks: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  asUser: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  username: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  iconEmoji: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  iconUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  threadTs: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  replyBroadcast: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CalendarActionUpsertWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionUpsertWithoutActionInput> = z.object({
+  update: z.union([ z.lazy(() => CalendarActionUpdateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedUpdateWithoutActionInputSchema) ]),
+  create: z.union([ z.lazy(() => CalendarActionCreateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedCreateWithoutActionInputSchema) ]),
+  where: z.lazy(() => CalendarActionWhereInputSchema).optional()
+}).strict();
+
+export const CalendarActionUpdateToOneWithWhereWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionUpdateToOneWithWhereWithoutActionInput> = z.object({
+  where: z.lazy(() => CalendarActionWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => CalendarActionUpdateWithoutActionInputSchema),z.lazy(() => CalendarActionUncheckedUpdateWithoutActionInputSchema) ]),
+}).strict();
+
+export const CalendarActionUpdateWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  calendarId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  title: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  location: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  startTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  endTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isAllDay: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  attendees: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  organizer: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  reminders: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  recurrence: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const CalendarActionUncheckedUpdateWithoutActionInputSchema: z.ZodType<Prisma.CalendarActionUncheckedUpdateWithoutActionInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  calendarId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  title: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  location: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  startTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  endTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  isAllDay: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  attendees: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  organizer: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  reminders: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  recurrence: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const WorkflowTriggerUpsertWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerUpsertWithoutNodeInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowTriggerUpdateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedUpdateWithoutNodeInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowTriggerCreateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedCreateWithoutNodeInputSchema) ]),
+  where: z.lazy(() => WorkflowTriggerWhereInputSchema).optional()
+}).strict();
+
+export const WorkflowTriggerUpdateToOneWithWhereWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerUpdateToOneWithWhereWithoutNodeInput> = z.object({
+  where: z.lazy(() => WorkflowTriggerWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => WorkflowTriggerUpdateWithoutNodeInputSchema),z.lazy(() => WorkflowTriggerUncheckedUpdateWithoutNodeInputSchema) ]),
+}).strict();
+
+export const WorkflowTriggerUpdateWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerUpdateWithoutNodeInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  module: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  entityType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  eventType: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  delay: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastTriggered: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  triggerCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutTriggersNestedInputSchema).optional(),
+  executions: z.lazy(() => WorkflowExecutionUpdateManyWithoutTriggerNestedInputSchema).optional(),
+  variables: z.lazy(() => TriggerVariableUpdateManyWithoutTriggerNestedInputSchema).optional()
+}).strict();
+
+export const WorkflowTriggerUncheckedUpdateWithoutNodeInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateWithoutNodeInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  module: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  entityType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  eventType: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  delay: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  lastTriggered: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  triggerCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  executions: z.lazy(() => WorkflowExecutionUncheckedUpdateManyWithoutTriggerNestedInputSchema).optional(),
+  variables: z.lazy(() => TriggerVariableUncheckedUpdateManyWithoutTriggerNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowCreateWithoutConnectionsInputSchema: z.ZodType<Prisma.WorkflowCreateWithoutConnectionsInput> = z.object({
@@ -37278,6 +37889,132 @@ export const WorkflowUncheckedCreateWithoutConnectionsInputSchema: z.ZodType<Pri
 export const WorkflowCreateOrConnectWithoutConnectionsInputSchema: z.ZodType<Prisma.WorkflowCreateOrConnectWithoutConnectionsInput> = z.object({
   where: z.lazy(() => WorkflowWhereUniqueInputSchema),
   create: z.union([ z.lazy(() => WorkflowCreateWithoutConnectionsInputSchema),z.lazy(() => WorkflowUncheckedCreateWithoutConnectionsInputSchema) ]),
+}).strict();
+
+export const WorkflowNodeCreateWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutSourceConnectionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  nodeId: z.string(),
+  type: z.lazy(() => WorkflowNodeTypeSchema),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.number().int().optional().nullable(),
+  isOptional: z.boolean().optional(),
+  retryLimit: z.number().int().optional(),
+  timeout: z.number().int().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutNodesInputSchema),
+  executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUncheckedCreateWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutSourceConnectionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  workflowId: z.string(),
+  nodeId: z.string(),
+  type: z.lazy(() => WorkflowNodeTypeSchema),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.number().int().optional().nullable(),
+  isOptional: z.boolean().optional(),
+  retryLimit: z.number().int().optional(),
+  timeout: z.number().int().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeCreateOrConnectWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutSourceConnectionsInput> = z.object({
+  where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSourceConnectionsInputSchema) ]),
+}).strict();
+
+export const WorkflowNodeCreateWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutTargetConnectionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  nodeId: z.string(),
+  type: z.lazy(() => WorkflowNodeTypeSchema),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.number().int().optional().nullable(),
+  isOptional: z.boolean().optional(),
+  retryLimit: z.number().int().optional(),
+  timeout: z.number().int().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  workflow: z.lazy(() => WorkflowCreateNestedOneWithoutNodesInputSchema),
+  executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUncheckedCreateWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutTargetConnectionsInput> = z.object({
+  id: z.string().cuid().optional(),
+  workflowId: z.string(),
+  nodeId: z.string(),
+  type: z.lazy(() => WorkflowNodeTypeSchema),
+  name: z.string(),
+  description: z.string().optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.number().int().optional().nullable(),
+  isOptional: z.boolean().optional(),
+  retryLimit: z.number().int().optional(),
+  timeout: z.number().int().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeCreateOrConnectWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutTargetConnectionsInput> = z.object({
+  where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTargetConnectionsInputSchema) ]),
 }).strict();
 
 export const WorkflowUpsertWithoutConnectionsInputSchema: z.ZodType<Prisma.WorkflowUpsertWithoutConnectionsInput> = z.object({
@@ -37349,6 +38086,144 @@ export const WorkflowUncheckedUpdateWithoutConnectionsInputSchema: z.ZodType<Pri
   analytics: z.lazy(() => WorkflowAnalyticsUncheckedUpdateManyWithoutWorkflowNestedInputSchema).optional()
 }).strict();
 
+export const WorkflowNodeUpsertWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutSourceConnectionsInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSourceConnectionsInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSourceConnectionsInputSchema) ]),
+  where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUpdateToOneWithWhereWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutSourceConnectionsInput> = z.object({
+  where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSourceConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSourceConnectionsInputSchema) ]),
+}).strict();
+
+export const WorkflowNodeUpdateWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutSourceConnectionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isOptional: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  retryLimit: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  timeout: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutNodesNestedInputSchema).optional(),
+  executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUncheckedUpdateWithoutSourceConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutSourceConnectionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isOptional: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  retryLimit: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  timeout: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUpsertWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutTargetConnectionsInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutTargetConnectionsInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutTargetConnectionsInputSchema) ]),
+  where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUpdateToOneWithWhereWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutTargetConnectionsInput> = z.object({
+  where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutTargetConnectionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutTargetConnectionsInputSchema) ]),
+}).strict();
+
+export const WorkflowNodeUpdateWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutTargetConnectionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isOptional: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  retryLimit: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  timeout: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutNodesNestedInputSchema).optional(),
+  executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
+}).strict();
+
+export const WorkflowNodeUncheckedUpdateWithoutTargetConnectionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutTargetConnectionsInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  position: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  config: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  template: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isOptional: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  retryLimit: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  timeout: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
+  dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
+  dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
+}).strict();
+
 export const WorkflowNodeCreateWithoutDependenciesInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutDependenciesInput> = z.object({
   id: z.string().cuid().optional(),
   nodeId: z.string(),
@@ -37368,11 +38243,14 @@ export const WorkflowNodeCreateWithoutDependenciesInputSchema: z.ZodType<Prisma.
   workflow: z.lazy(() => WorkflowCreateNestedOneWithoutNodesInputSchema),
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedCreateWithoutDependenciesInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutDependenciesInput> = z.object({
@@ -37394,11 +38272,14 @@ export const WorkflowNodeUncheckedCreateWithoutDependenciesInputSchema: z.ZodTyp
   updatedAt: z.coerce.date().optional(),
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeCreateOrConnectWithoutDependenciesInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutDependenciesInput> = z.object({
@@ -37425,11 +38306,14 @@ export const WorkflowNodeCreateWithoutDependentsInputSchema: z.ZodType<Prisma.Wo
   workflow: z.lazy(() => WorkflowCreateNestedOneWithoutNodesInputSchema),
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedCreateWithoutDependentsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutDependentsInput> = z.object({
@@ -37451,11 +38335,14 @@ export const WorkflowNodeUncheckedCreateWithoutDependentsInputSchema: z.ZodType<
   updatedAt: z.coerce.date().optional(),
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeCreateOrConnectWithoutDependentsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutDependentsInput> = z.object({
@@ -37493,11 +38380,14 @@ export const WorkflowNodeUpdateWithoutDependenciesInputSchema: z.ZodType<Prisma.
   workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutNodesNestedInputSchema).optional(),
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedUpdateWithoutDependenciesInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutDependenciesInput> = z.object({
@@ -37519,11 +38409,14 @@ export const WorkflowNodeUncheckedUpdateWithoutDependenciesInputSchema: z.ZodTyp
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUpsertWithoutDependentsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutDependentsInput> = z.object({
@@ -37556,11 +38449,14 @@ export const WorkflowNodeUpdateWithoutDependentsInputSchema: z.ZodType<Prisma.Wo
   workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutNodesNestedInputSchema).optional(),
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedUpdateWithoutDependentsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutDependentsInput> = z.object({
@@ -37582,11 +38478,14 @@ export const WorkflowNodeUncheckedUpdateWithoutDependentsInputSchema: z.ZodType<
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateWithoutActionTemplatesInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutActionTemplatesInput> = z.object({
@@ -37786,6 +38685,7 @@ export const ActionTemplateCreateWithoutVersionsInputSchema: z.ZodType<Prisma.Ac
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -37808,6 +38708,7 @@ export const ActionTemplateUncheckedCreateWithoutVersionsInputSchema: z.ZodType<
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -37844,6 +38745,7 @@ export const ActionTemplateUpdateWithoutVersionsInputSchema: z.ZodType<Prisma.Ac
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -37866,6 +38768,7 @@ export const ActionTemplateUncheckedUpdateWithoutVersionsInputSchema: z.ZodType<
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -38128,12 +39031,14 @@ export const WorkflowTriggerCreateWithoutVariablesInputSchema: z.ZodType<Prisma.
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   workflow: z.lazy(() => WorkflowCreateNestedOneWithoutTriggersInputSchema),
-  executions: z.lazy(() => WorkflowExecutionCreateNestedManyWithoutTriggerInputSchema).optional()
+  executions: z.lazy(() => WorkflowExecutionCreateNestedManyWithoutTriggerInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutTriggerInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedCreateWithoutVariablesInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedCreateWithoutVariablesInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
+  nodeId: z.string().optional().nullable(),
   name: z.string(),
   description: z.string().optional().nullable(),
   type: z.lazy(() => WorkflowTriggerTypeSchema),
@@ -38229,12 +39134,14 @@ export const WorkflowTriggerUpdateWithoutVariablesInputSchema: z.ZodType<Prisma.
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutTriggersNestedInputSchema).optional(),
-  executions: z.lazy(() => WorkflowExecutionUpdateManyWithoutTriggerNestedInputSchema).optional()
+  executions: z.lazy(() => WorkflowExecutionUpdateManyWithoutTriggerNestedInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeUpdateOneWithoutTriggerNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedUpdateWithoutVariablesInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateWithoutVariablesInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -38383,12 +39290,14 @@ export const WorkflowTriggerCreateWithoutExecutionsInputSchema: z.ZodType<Prisma
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   workflow: z.lazy(() => WorkflowCreateNestedOneWithoutTriggersInputSchema),
-  variables: z.lazy(() => TriggerVariableCreateNestedManyWithoutTriggerInputSchema).optional()
+  variables: z.lazy(() => TriggerVariableCreateNestedManyWithoutTriggerInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeCreateNestedOneWithoutTriggerInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedCreateWithoutExecutionsInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedCreateWithoutExecutionsInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
+  nodeId: z.string().optional().nullable(),
   name: z.string(),
   description: z.string().optional().nullable(),
   type: z.lazy(() => WorkflowTriggerTypeSchema),
@@ -38624,12 +39533,14 @@ export const WorkflowTriggerUpdateWithoutExecutionsInputSchema: z.ZodType<Prisma
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutTriggersNestedInputSchema).optional(),
-  variables: z.lazy(() => TriggerVariableUpdateManyWithoutTriggerNestedInputSchema).optional()
+  variables: z.lazy(() => TriggerVariableUpdateManyWithoutTriggerNestedInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeUpdateOneWithoutTriggerNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedUpdateWithoutExecutionsInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateWithoutExecutionsInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -38788,11 +39699,14 @@ export const WorkflowNodeCreateWithoutExecutionsInputSchema: z.ZodType<Prisma.Wo
   workflow: z.lazy(() => WorkflowCreateNestedOneWithoutNodesInputSchema),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedCreateWithoutExecutionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutExecutionsInput> = z.object({
@@ -38814,11 +39728,14 @@ export const WorkflowNodeUncheckedCreateWithoutExecutionsInputSchema: z.ZodType<
   updatedAt: z.coerce.date().optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeCreateOrConnectWithoutExecutionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutExecutionsInput> = z.object({
@@ -38921,11 +39838,14 @@ export const WorkflowNodeUpdateWithoutExecutionsInputSchema: z.ZodType<Prisma.Wo
   workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutNodesNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedUpdateWithoutExecutionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutExecutionsInput> = z.object({
@@ -38947,11 +39867,14 @@ export const WorkflowNodeUncheckedUpdateWithoutExecutionsInputSchema: z.ZodType<
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowExecutionCreateWithoutVariablesInputSchema: z.ZodType<Prisma.WorkflowExecutionCreateWithoutVariablesInput> = z.object({
@@ -39426,7 +40349,7 @@ export const OrganizationUncheckedUpdateWithoutIntegrationConfigsInputSchema: z.
   variableDefinitions: z.lazy(() => VariableDefinitionUncheckedUpdateManyWithoutOrganizationNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutEmailActionsInput> = z.object({
+export const WorkflowNodeCreateWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutEmailActionInput> = z.object({
   id: z.string().cuid().optional(),
   nodeId: z.string(),
   type: z.lazy(() => WorkflowNodeTypeSchema),
@@ -39446,13 +40369,16 @@ export const WorkflowNodeCreateWithoutEmailActionsInputSchema: z.ZodType<Prisma.
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedCreateWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutEmailActionsInput> = z.object({
+export const WorkflowNodeUncheckedCreateWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutEmailActionInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
   nodeId: z.string(),
@@ -39472,29 +40398,32 @@ export const WorkflowNodeUncheckedCreateWithoutEmailActionsInputSchema: z.ZodTyp
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateOrConnectWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutEmailActionsInput> = z.object({
+export const WorkflowNodeCreateOrConnectWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutEmailActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionsInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpsertWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutEmailActionsInput> = z.object({
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutEmailActionsInputSchema) ]),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionsInputSchema) ]),
+export const WorkflowNodeUpsertWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutEmailActionInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutEmailActionInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutEmailActionInputSchema) ]),
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateToOneWithWhereWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutEmailActionsInput> = z.object({
+export const WorkflowNodeUpdateToOneWithWhereWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutEmailActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
-  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutEmailActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutEmailActionsInputSchema) ]),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutEmailActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutEmailActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpdateWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutEmailActionsInput> = z.object({
+export const WorkflowNodeUpdateWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutEmailActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39514,13 +40443,16 @@ export const WorkflowNodeUpdateWithoutEmailActionsInputSchema: z.ZodType<Prisma.
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedUpdateWithoutEmailActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutEmailActionsInput> = z.object({
+export const WorkflowNodeUncheckedUpdateWithoutEmailActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutEmailActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39540,13 +40472,16 @@ export const WorkflowNodeUncheckedUpdateWithoutEmailActionsInputSchema: z.ZodTyp
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutSmsActionsInput> = z.object({
+export const WorkflowNodeCreateWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutSmsActionInput> = z.object({
   id: z.string().cuid().optional(),
   nodeId: z.string(),
   type: z.lazy(() => WorkflowNodeTypeSchema),
@@ -39566,13 +40501,16 @@ export const WorkflowNodeCreateWithoutSmsActionsInputSchema: z.ZodType<Prisma.Wo
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedCreateWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutSmsActionsInput> = z.object({
+export const WorkflowNodeUncheckedCreateWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutSmsActionInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
   nodeId: z.string(),
@@ -39592,29 +40530,32 @@ export const WorkflowNodeUncheckedCreateWithoutSmsActionsInputSchema: z.ZodType<
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateOrConnectWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutSmsActionsInput> = z.object({
+export const WorkflowNodeCreateOrConnectWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutSmsActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionsInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpsertWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutSmsActionsInput> = z.object({
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSmsActionsInputSchema) ]),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionsInputSchema) ]),
+export const WorkflowNodeUpsertWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutSmsActionInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSmsActionInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSmsActionInputSchema) ]),
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateToOneWithWhereWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutSmsActionsInput> = z.object({
+export const WorkflowNodeUpdateToOneWithWhereWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutSmsActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
-  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSmsActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSmsActionsInputSchema) ]),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSmsActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSmsActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpdateWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutSmsActionsInput> = z.object({
+export const WorkflowNodeUpdateWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutSmsActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39634,13 +40575,16 @@ export const WorkflowNodeUpdateWithoutSmsActionsInputSchema: z.ZodType<Prisma.Wo
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedUpdateWithoutSmsActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutSmsActionsInput> = z.object({
+export const WorkflowNodeUncheckedUpdateWithoutSmsActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutSmsActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39660,13 +40604,16 @@ export const WorkflowNodeUncheckedUpdateWithoutSmsActionsInputSchema: z.ZodType<
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutWhatsAppActionsInput> = z.object({
+export const WorkflowNodeCreateWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutWhatsAppActionInput> = z.object({
   id: z.string().cuid().optional(),
   nodeId: z.string(),
   type: z.lazy(() => WorkflowNodeTypeSchema),
@@ -39686,13 +40633,16 @@ export const WorkflowNodeCreateWithoutWhatsAppActionsInputSchema: z.ZodType<Pris
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedCreateWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutWhatsAppActionsInput> = z.object({
+export const WorkflowNodeUncheckedCreateWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutWhatsAppActionInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
   nodeId: z.string(),
@@ -39712,29 +40662,32 @@ export const WorkflowNodeUncheckedCreateWithoutWhatsAppActionsInputSchema: z.Zod
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateOrConnectWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutWhatsAppActionsInput> = z.object({
+export const WorkflowNodeCreateOrConnectWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutWhatsAppActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionsInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpsertWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutWhatsAppActionsInput> = z.object({
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutWhatsAppActionsInputSchema) ]),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionsInputSchema) ]),
+export const WorkflowNodeUpsertWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutWhatsAppActionInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutWhatsAppActionInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutWhatsAppActionInputSchema) ]),
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateToOneWithWhereWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutWhatsAppActionsInput> = z.object({
+export const WorkflowNodeUpdateToOneWithWhereWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutWhatsAppActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
-  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutWhatsAppActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutWhatsAppActionsInputSchema) ]),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutWhatsAppActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutWhatsAppActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpdateWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutWhatsAppActionsInput> = z.object({
+export const WorkflowNodeUpdateWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutWhatsAppActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39754,13 +40707,16 @@ export const WorkflowNodeUpdateWithoutWhatsAppActionsInputSchema: z.ZodType<Pris
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedUpdateWithoutWhatsAppActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutWhatsAppActionsInput> = z.object({
+export const WorkflowNodeUncheckedUpdateWithoutWhatsAppActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutWhatsAppActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39780,13 +40736,16 @@ export const WorkflowNodeUncheckedUpdateWithoutWhatsAppActionsInputSchema: z.Zod
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutSlackActionsInput> = z.object({
+export const WorkflowNodeCreateWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutSlackActionInput> = z.object({
   id: z.string().cuid().optional(),
   nodeId: z.string(),
   type: z.lazy(() => WorkflowNodeTypeSchema),
@@ -39806,13 +40765,16 @@ export const WorkflowNodeCreateWithoutSlackActionsInputSchema: z.ZodType<Prisma.
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedCreateWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutSlackActionsInput> = z.object({
+export const WorkflowNodeUncheckedCreateWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutSlackActionInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
   nodeId: z.string(),
@@ -39832,29 +40794,32 @@ export const WorkflowNodeUncheckedCreateWithoutSlackActionsInputSchema: z.ZodTyp
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateOrConnectWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutSlackActionsInput> = z.object({
+export const WorkflowNodeCreateOrConnectWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutSlackActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionsInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpsertWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutSlackActionsInput> = z.object({
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSlackActionsInputSchema) ]),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionsInputSchema) ]),
+export const WorkflowNodeUpsertWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutSlackActionInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSlackActionInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutSlackActionInputSchema) ]),
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateToOneWithWhereWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutSlackActionsInput> = z.object({
+export const WorkflowNodeUpdateToOneWithWhereWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutSlackActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
-  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSlackActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSlackActionsInputSchema) ]),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutSlackActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutSlackActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpdateWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutSlackActionsInput> = z.object({
+export const WorkflowNodeUpdateWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutSlackActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39874,13 +40839,16 @@ export const WorkflowNodeUpdateWithoutSlackActionsInputSchema: z.ZodType<Prisma.
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedUpdateWithoutSlackActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutSlackActionsInput> = z.object({
+export const WorkflowNodeUncheckedUpdateWithoutSlackActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutSlackActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39900,13 +40868,16 @@ export const WorkflowNodeUncheckedUpdateWithoutSlackActionsInputSchema: z.ZodTyp
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutCalendarActionsInput> = z.object({
+export const WorkflowNodeCreateWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateWithoutCalendarActionInput> = z.object({
   id: z.string().cuid().optional(),
   nodeId: z.string(),
   type: z.lazy(() => WorkflowNodeTypeSchema),
@@ -39926,13 +40897,16 @@ export const WorkflowNodeCreateWithoutCalendarActionsInputSchema: z.ZodType<Pris
   executions: z.lazy(() => NodeExecutionCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedCreateWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutCalendarActionsInput> = z.object({
+export const WorkflowNodeUncheckedCreateWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedCreateWithoutCalendarActionInput> = z.object({
   id: z.string().cuid().optional(),
   workflowId: z.string(),
   nodeId: z.string(),
@@ -39952,29 +40926,32 @@ export const WorkflowNodeUncheckedCreateWithoutCalendarActionsInputSchema: z.Zod
   executions: z.lazy(() => NodeExecutionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutDependentNodeInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedCreateNestedManyWithoutPrerequisiteNodeInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedCreateNestedManyWithoutNodeInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutSourceNodeInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedCreateNestedManyWithoutTargetNodeInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedCreateNestedOneWithoutActionInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedCreateNestedOneWithoutNodeInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeCreateOrConnectWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutCalendarActionsInput> = z.object({
+export const WorkflowNodeCreateOrConnectWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeCreateOrConnectWithoutCalendarActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereUniqueInputSchema),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionsInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpsertWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutCalendarActionsInput> = z.object({
-  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutCalendarActionsInputSchema) ]),
-  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionsInputSchema) ]),
+export const WorkflowNodeUpsertWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpsertWithoutCalendarActionInput> = z.object({
+  update: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutCalendarActionInputSchema) ]),
+  create: z.union([ z.lazy(() => WorkflowNodeCreateWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUncheckedCreateWithoutCalendarActionInputSchema) ]),
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUpdateToOneWithWhereWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutCalendarActionsInput> = z.object({
+export const WorkflowNodeUpdateToOneWithWhereWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateToOneWithWhereWithoutCalendarActionInput> = z.object({
   where: z.lazy(() => WorkflowNodeWhereInputSchema).optional(),
-  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutCalendarActionsInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutCalendarActionsInputSchema) ]),
+  data: z.union([ z.lazy(() => WorkflowNodeUpdateWithoutCalendarActionInputSchema),z.lazy(() => WorkflowNodeUncheckedUpdateWithoutCalendarActionInputSchema) ]),
 }).strict();
 
-export const WorkflowNodeUpdateWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutCalendarActionsInput> = z.object({
+export const WorkflowNodeUpdateWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeUpdateWithoutCalendarActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   type: z.union([ z.lazy(() => WorkflowNodeTypeSchema),z.lazy(() => EnumWorkflowNodeTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -39994,13 +40971,16 @@ export const WorkflowNodeUpdateWithoutCalendarActionsInputSchema: z.ZodType<Pris
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
-export const WorkflowNodeUncheckedUpdateWithoutCalendarActionsInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutCalendarActionsInput> = z.object({
+export const WorkflowNodeUncheckedUpdateWithoutCalendarActionInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutCalendarActionInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   nodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -40020,10 +41000,13 @@ export const WorkflowNodeUncheckedUpdateWithoutCalendarActionsInputSchema: z.Zod
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowCreateWithoutAnalyticsInputSchema: z.ZodType<Prisma.WorkflowCreateWithoutAnalyticsInput> = z.object({
@@ -40519,6 +41502,7 @@ export const ActionTemplateCreateManyOrganizationInputSchema: z.ZodType<Prisma.A
   isPublic: z.boolean().optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().optional(),
+  isLocked: z.boolean().optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.string().optional().nullable(),
@@ -41383,6 +42367,7 @@ export const ActionTemplateUpdateWithoutOrganizationInputSchema: z.ZodType<Prism
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -41404,6 +42389,7 @@ export const ActionTemplateUncheckedUpdateWithoutOrganizationInputSchema: z.ZodT
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -41425,6 +42411,7 @@ export const ActionTemplateUncheckedUpdateManyWithoutOrganizationInputSchema: z.
   isPublic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   usageCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  isLocked: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   requiredVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   optionalVariables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   createdById: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -43286,6 +44273,7 @@ export const FinancialReportScheduleUncheckedUpdateManyWithoutReportInputSchema:
 
 export const WorkflowTriggerCreateManyWorkflowInputSchema: z.ZodType<Prisma.WorkflowTriggerCreateManyWorkflowInput> = z.object({
   id: z.string().cuid().optional(),
+  nodeId: z.string().optional().nullable(),
   name: z.string(),
   description: z.string().optional().nullable(),
   type: z.lazy(() => WorkflowTriggerTypeSchema),
@@ -43321,13 +44309,14 @@ export const WorkflowNodeCreateManyWorkflowInputSchema: z.ZodType<Prisma.Workflo
 
 export const WorkflowConnectionCreateManyWorkflowInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateManyWorkflowInput> = z.object({
   id: z.string().cuid().optional(),
-  edgeId: z.string(),
   sourceNodeId: z.string(),
   targetNodeId: z.string(),
-  sourceHandle: z.string().optional().nullable(),
-  targetHandle: z.string().optional().nullable(),
+  executionOrder: z.number().int().optional(),
   label: z.string().optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
@@ -43394,11 +44383,13 @@ export const WorkflowTriggerUpdateWithoutWorkflowInputSchema: z.ZodType<Prisma.W
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   executions: z.lazy(() => WorkflowExecutionUpdateManyWithoutTriggerNestedInputSchema).optional(),
-  variables: z.lazy(() => TriggerVariableUpdateManyWithoutTriggerNestedInputSchema).optional()
+  variables: z.lazy(() => TriggerVariableUpdateManyWithoutTriggerNestedInputSchema).optional(),
+  node: z.lazy(() => WorkflowNodeUpdateOneWithoutTriggerNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowTriggerUncheckedUpdateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateWithoutWorkflowInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -43418,6 +44409,7 @@ export const WorkflowTriggerUncheckedUpdateWithoutWorkflowInputSchema: z.ZodType
 
 export const WorkflowTriggerUncheckedUpdateManyWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowTriggerUncheckedUpdateManyWithoutWorkflowInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  nodeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   type: z.union([ z.lazy(() => WorkflowTriggerTypeSchema),z.lazy(() => EnumWorkflowTriggerTypeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -43452,11 +44444,14 @@ export const WorkflowNodeUpdateWithoutWorkflowInputSchema: z.ZodType<Prisma.Work
   executions: z.lazy(() => NodeExecutionUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedUpdateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateWithoutWorkflowInput> = z.object({
@@ -43478,11 +44473,14 @@ export const WorkflowNodeUncheckedUpdateWithoutWorkflowInputSchema: z.ZodType<Pr
   executions: z.lazy(() => NodeExecutionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
   dependencies: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutDependentNodeNestedInputSchema).optional(),
   dependents: z.lazy(() => NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeNestedInputSchema).optional(),
-  emailActions: z.lazy(() => EmailActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  smsActions: z.lazy(() => SmsActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  whatsAppActions: z.lazy(() => WhatsAppActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  slackActions: z.lazy(() => SlackActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional(),
-  calendarActions: z.lazy(() => CalendarActionUncheckedUpdateManyWithoutNodeNestedInputSchema).optional()
+  sourceConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeNestedInputSchema).optional(),
+  targetConnections: z.lazy(() => WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeNestedInputSchema).optional(),
+  emailAction: z.lazy(() => EmailActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  smsAction: z.lazy(() => SmsActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  whatsAppAction: z.lazy(() => WhatsAppActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  slackAction: z.lazy(() => SlackActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  calendarAction: z.lazy(() => CalendarActionUncheckedUpdateOneWithoutActionNestedInputSchema).optional(),
+  trigger: z.lazy(() => WorkflowTriggerUncheckedUpdateOneWithoutNodeNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowNodeUncheckedUpdateManyWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowNodeUncheckedUpdateManyWithoutWorkflowInput> = z.object({
@@ -43505,28 +44503,30 @@ export const WorkflowNodeUncheckedUpdateManyWithoutWorkflowInputSchema: z.ZodTyp
 
 export const WorkflowConnectionUpdateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateWithoutWorkflowInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  edgeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  sourceNode: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutSourceConnectionsNestedInputSchema).optional(),
+  targetNode: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutTargetConnectionsNestedInputSchema).optional()
 }).strict();
 
 export const WorkflowConnectionUncheckedUpdateWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateWithoutWorkflowInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  edgeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -43535,13 +44535,14 @@ export const WorkflowConnectionUncheckedUpdateWithoutWorkflowInputSchema: z.ZodT
 
 export const WorkflowConnectionUncheckedUpdateManyWithoutWorkflowInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateManyWithoutWorkflowInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  edgeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
   animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
@@ -43861,95 +44862,34 @@ export const NodeDependencyCreateManyPrerequisiteNodeInputSchema: z.ZodType<Pris
   createdAt: z.coerce.date().optional()
 }).strict();
 
-export const EmailActionCreateManyNodeInputSchema: z.ZodType<Prisma.EmailActionCreateManyNodeInput> = z.object({
+export const WorkflowConnectionCreateManySourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateManySourceNodeInput> = z.object({
   id: z.string().cuid().optional(),
-  integrationId: z.string().optional().nullable(),
-  fromName: z.string().optional().nullable(),
-  fromEmail: z.string().optional().nullable(),
-  replyTo: z.string().optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
-  ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  subject: z.string(),
-  htmlBody: z.string().optional().nullable(),
-  textBody: z.string().optional().nullable(),
-  templateId: z.string().optional().nullable(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  trackOpens: z.boolean().optional(),
-  trackClicks: z.boolean().optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  workflowId: z.string(),
+  targetNodeId: z.string(),
+  executionOrder: z.number().int().optional(),
+  label: z.string().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional()
 }).strict();
 
-export const SmsActionCreateManyNodeInputSchema: z.ZodType<Prisma.SmsActionCreateManyNodeInput> = z.object({
+export const WorkflowConnectionCreateManyTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionCreateManyTargetNodeInput> = z.object({
   id: z.string().cuid().optional(),
-  integrationId: z.string().optional().nullable(),
-  fromNumber: z.string().optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
-  message: z.string(),
-  templateId: z.string().optional().nullable(),
-  maxLength: z.number().int().optional().nullable(),
-  unicode: z.boolean().optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.coerce.date().optional(),
-  updatedAt: z.coerce.date().optional()
-}).strict();
-
-export const WhatsAppActionCreateManyNodeInputSchema: z.ZodType<Prisma.WhatsAppActionCreateManyNodeInput> = z.object({
-  id: z.string().cuid().optional(),
-  integrationId: z.string().optional().nullable(),
-  businessAccountId: z.string().optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]),
-  messageType: z.lazy(() => WhatsAppMessageTypeSchema).optional(),
-  textMessage: z.string().optional().nullable(),
-  templateName: z.string().optional().nullable(),
-  templateLanguage: z.string().optional().nullable(),
-  mediaUrl: z.string().optional().nullable(),
-  mediaType: z.string().optional().nullable(),
-  caption: z.string().optional().nullable(),
-  templateParams: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.coerce.date().optional(),
-  updatedAt: z.coerce.date().optional()
-}).strict();
-
-export const SlackActionCreateManyNodeInputSchema: z.ZodType<Prisma.SlackActionCreateManyNodeInput> = z.object({
-  id: z.string().cuid().optional(),
-  integrationId: z.string().optional().nullable(),
-  workspaceId: z.string().optional().nullable(),
-  channel: z.string().optional().nullable(),
-  userId: z.string().optional().nullable(),
-  message: z.string(),
-  blocks: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  asUser: z.boolean().optional(),
-  username: z.string().optional().nullable(),
-  iconEmoji: z.string().optional().nullable(),
-  iconUrl: z.string().optional().nullable(),
-  threadTs: z.string().optional().nullable(),
-  replyBroadcast: z.boolean().optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.coerce.date().optional(),
-  updatedAt: z.coerce.date().optional()
-}).strict();
-
-export const CalendarActionCreateManyNodeInputSchema: z.ZodType<Prisma.CalendarActionCreateManyNodeInput> = z.object({
-  id: z.string().cuid().optional(),
-  integrationId: z.string().optional().nullable(),
-  calendarId: z.string().optional().nullable(),
-  title: z.string(),
-  description: z.string().optional().nullable(),
-  location: z.string().optional().nullable(),
-  startTime: z.string(),
-  endTime: z.string(),
-  isAllDay: z.boolean().optional(),
-  timezone: z.string().optional(),
-  attendees: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  organizer: z.string().optional().nullable(),
-  reminders: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  recurrence: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  workflowId: z.string(),
+  sourceNodeId: z.string(),
+  executionOrder: z.number().int().optional(),
+  label: z.string().optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.string().optional().nullable(),
+  sourceHandle: z.string().optional().nullable(),
+  targetHandle: z.string().optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.boolean().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional()
 }).strict();
@@ -44053,281 +44993,98 @@ export const NodeDependencyUncheckedUpdateManyWithoutPrerequisiteNodeInputSchema
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const EmailActionUpdateWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUpdateWithoutNodeInput> = z.object({
+export const WorkflowConnectionUpdateWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateWithoutSourceNodeInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  htmlBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  textBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  trackOpens: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  trackClicks: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutConnectionsNestedInputSchema).optional(),
+  targetNode: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutTargetConnectionsNestedInputSchema).optional()
+}).strict();
+
+export const WorkflowConnectionUncheckedUpdateWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateWithoutSourceNodeInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const EmailActionUncheckedUpdateWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUncheckedUpdateWithoutNodeInput> = z.object({
+export const WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateManyWithoutSourceNodeInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  htmlBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  textBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  trackOpens: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  trackClicks: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  targetNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const EmailActionUncheckedUpdateManyWithoutNodeInputSchema: z.ZodType<Prisma.EmailActionUncheckedUpdateManyWithoutNodeInput> = z.object({
+export const WorkflowConnectionUpdateWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUpdateWithoutTargetNodeInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromEmail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  replyTo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toEmails: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  ccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  bccEmails: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  subject: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  htmlBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  textBody: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  trackOpens: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  trackClicks: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  workflow: z.lazy(() => WorkflowUpdateOneRequiredWithoutConnectionsNestedInputSchema).optional(),
+  sourceNode: z.lazy(() => WorkflowNodeUpdateOneRequiredWithoutSourceConnectionsNestedInputSchema).optional()
+}).strict();
+
+export const WorkflowConnectionUncheckedUpdateWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateWithoutTargetNodeInput> = z.object({
+  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
-export const SmsActionUpdateWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUpdateWithoutNodeInput> = z.object({
+export const WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeInputSchema: z.ZodType<Prisma.WorkflowConnectionUncheckedUpdateManyWithoutTargetNodeInput> = z.object({
   id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  unicode: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const SmsActionUncheckedUpdateWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUncheckedUpdateWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  unicode: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const SmsActionUncheckedUpdateManyWithoutNodeInputSchema: z.ZodType<Prisma.SmsActionUncheckedUpdateManyWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  fromNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  templateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  maxLength: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  unicode: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const WhatsAppActionUpdateWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUpdateWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  businessAccountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  messageType: z.union([ z.lazy(() => WhatsAppMessageTypeSchema),z.lazy(() => EnumWhatsAppMessageTypeFieldUpdateOperationsInputSchema) ]).optional(),
-  textMessage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateLanguage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  mediaUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  mediaType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  caption: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateParams: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const WhatsAppActionUncheckedUpdateWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedUpdateWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  businessAccountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  messageType: z.union([ z.lazy(() => WhatsAppMessageTypeSchema),z.lazy(() => EnumWhatsAppMessageTypeFieldUpdateOperationsInputSchema) ]).optional(),
-  textMessage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateLanguage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  mediaUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  mediaType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  caption: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateParams: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const WhatsAppActionUncheckedUpdateManyWithoutNodeInputSchema: z.ZodType<Prisma.WhatsAppActionUncheckedUpdateManyWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  businessAccountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  toNumbers: z.union([ z.lazy(() => JsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  messageType: z.union([ z.lazy(() => WhatsAppMessageTypeSchema),z.lazy(() => EnumWhatsAppMessageTypeFieldUpdateOperationsInputSchema) ]).optional(),
-  textMessage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateLanguage: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  mediaUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  mediaType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  caption: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  templateParams: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const SlackActionUpdateWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUpdateWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  workspaceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  channel: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  blocks: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  asUser: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  username: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  iconEmoji: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  iconUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  threadTs: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  replyBroadcast: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const SlackActionUncheckedUpdateWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUncheckedUpdateWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  workspaceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  channel: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  blocks: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  asUser: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  username: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  iconEmoji: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  iconUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  threadTs: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  replyBroadcast: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const SlackActionUncheckedUpdateManyWithoutNodeInputSchema: z.ZodType<Prisma.SlackActionUncheckedUpdateManyWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  workspaceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  channel: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  message: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  blocks: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  asUser: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  username: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  iconEmoji: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  iconUrl: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  threadTs: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  replyBroadcast: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const CalendarActionUpdateWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUpdateWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  calendarId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  title: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  location: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  startTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  endTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  isAllDay: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  attendees: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  organizer: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  reminders: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  recurrence: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const CalendarActionUncheckedUpdateWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUncheckedUpdateWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  calendarId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  title: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  location: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  startTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  endTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  isAllDay: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  attendees: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  organizer: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  reminders: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  recurrence: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
-}).strict();
-
-export const CalendarActionUncheckedUpdateManyWithoutNodeInputSchema: z.ZodType<Prisma.CalendarActionUncheckedUpdateManyWithoutNodeInput> = z.object({
-  id: z.union([ z.string().cuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  integrationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  calendarId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  title: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  description: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  location: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  startTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  endTime: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  isAllDay: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
-  timezone: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  attendees: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  organizer: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  reminders: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  recurrence: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
-  variables: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  workflowId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  sourceNodeId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  executionOrder: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  label: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  conditions: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  edgeId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  sourceHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  targetHandle: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  style: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  animated: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();

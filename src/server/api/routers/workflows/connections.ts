@@ -66,14 +66,15 @@ export const connectionsRouter = createTRPCRouter({
         workflowId: z.string().cuid(),
         organizationId: z.string().cuid(),
         edgeId: z.string(),
-        sourceNodeId: z.string(),
-        targetNodeId: z.string(),
+        sourceNodeId: z.string(), // React Flow source node ID (maps to triggerId)
+        targetNodeId: z.string(), // React Flow target node ID (maps to actionId)
         sourceHandle: z.string().optional(),
         targetHandle: z.string().optional(),
         label: z.string().optional(),
         conditions: z.record(z.unknown()).optional(),
         style: z.record(z.unknown()).optional(),
         animated: z.boolean().default(false),
+        executionOrder: z.number().int().default(1), // Added execution order
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -95,7 +96,52 @@ export const connectionsRouter = createTRPCRouter({
           });
         }
 
-        // Check if connection already exists
+        // Map React Flow node IDs to database WorkflowNode IDs
+        // Both source and target can be any node type (TRIGGER or ACTION)
+        const [sourceNode, targetNode] = await Promise.all([
+          db.workflowNode.findFirst({
+            where: {
+              nodeId: input.sourceNodeId, // React Flow node ID stored in WorkflowNode.nodeId
+              workflowId: input.workflowId,
+            },
+          }),
+          db.workflowNode.findFirst({
+            where: {
+              nodeId: input.targetNodeId, // React Flow node ID stored in WorkflowNode.nodeId
+              workflowId: input.workflowId,
+            },
+          }),
+        ]);
+
+        if (!sourceNode) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Source node not found",
+          });
+        }
+
+        if (!targetNode) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Target node not found",
+          });
+        }
+
+        // Validate connection rules (optional business logic)
+        // Allow: TRIGGER → ACTION, ACTION → ACTION
+        const validConnections = [
+          sourceNode.type === "TRIGGER" && targetNode.type === "ACTION",
+          sourceNode.type === "ACTION" && targetNode.type === "ACTION",
+        ];
+
+        if (!validConnections.some(v => v)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Invalid connection: ${sourceNode.type} → ${targetNode.type} is not allowed`,
+          });
+        }
+
+        // Check if connection already exists by edge ID
         const existingConnection = await db.workflowConnection.findFirst({
           where: {
             workflowId: input.workflowId,
@@ -114,8 +160,9 @@ export const connectionsRouter = createTRPCRouter({
           data: {
             workflowId: input.workflowId,
             edgeId: input.edgeId,
-            sourceNodeId: input.sourceNodeId,
-            targetNodeId: input.targetNodeId,
+            sourceNodeId: sourceNode.id, // Database WorkflowNode.id
+            targetNodeId: targetNode.id, // Database WorkflowNode.id
+            executionOrder: input.executionOrder,
             sourceHandle: input.sourceHandle,
             targetHandle: input.targetHandle,
             label: input.label,
@@ -299,14 +346,15 @@ export const connectionsRouter = createTRPCRouter({
         connections: z.array(
           z.object({
             edgeId: z.string(),
-            sourceNodeId: z.string(),
-            targetNodeId: z.string(),
+            sourceNodeId: z.string(), // React Flow source node ID
+            targetNodeId: z.string(), // React Flow target node ID
             sourceHandle: z.string().optional(),
             targetHandle: z.string().optional(),
             label: z.string().optional(),
             conditions: z.record(z.unknown()).optional(),
             style: z.record(z.unknown()).optional(),
             animated: z.boolean().default(false),
+            executionOrder: z.number().int().default(1), // Added execution order
           })
         ),
       })
@@ -339,15 +387,39 @@ export const connectionsRouter = createTRPCRouter({
             },
           });
 
-          // Create new connections
+          // Create new connections with proper ID mapping
           const createdConnections = await Promise.all(
-            input.connections.map(conn =>
-              tx.workflowConnection.create({
+            input.connections.map(async conn => {
+              // Map React Flow node IDs to database WorkflowNode IDs
+              const [sourceNode, targetNode] = await Promise.all([
+                tx.workflowNode.findFirst({
+                  where: {
+                    nodeId: conn.sourceNodeId, // React Flow node ID
+                    workflowId: input.workflowId,
+                  },
+                }),
+                tx.workflowNode.findFirst({
+                  where: {
+                    nodeId: conn.targetNodeId, // React Flow node ID
+                    workflowId: input.workflowId,
+                  },
+                }),
+              ]);
+
+              if (!sourceNode || !targetNode) {
+                throw new TRPCError({
+                  code: "NOT_FOUND",
+                  message: `Node not found for connection ${conn.edgeId}`,
+                });
+              }
+
+              return tx.workflowConnection.create({
                 data: {
                   workflowId: input.workflowId,
                   edgeId: conn.edgeId,
-                  sourceNodeId: conn.sourceNodeId,
-                  targetNodeId: conn.targetNodeId,
+                  sourceNodeId: sourceNode.id, // Database WorkflowNode.id
+                  targetNodeId: targetNode.id, // Database WorkflowNode.id
+                  executionOrder: conn.executionOrder,
                   sourceHandle: conn.sourceHandle,
                   targetHandle: conn.targetHandle,
                   label: conn.label,
@@ -355,8 +427,8 @@ export const connectionsRouter = createTRPCRouter({
                   style: conn.style as Prisma.InputJsonValue,
                   animated: conn.animated,
                 },
-              })
-            )
+              });
+            })
           );
 
           return createdConnections;

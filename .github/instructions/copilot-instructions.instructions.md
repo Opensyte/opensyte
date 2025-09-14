@@ -2,10 +2,6 @@
 applyTo: "**"
 ---
 
-# WARP.md
-
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
-
 ## Project Overview
 
 OpenSyte is an open-source all-in-one business management software built with the T3 stack (Next.js, TypeScript, tRPC, Prisma). It provides comprehensive modules for CRM, Project Management, Finance, HR, and Workflow Automation.
@@ -421,10 +417,3 @@ NEXTAUTH_SECRET="..."
 - Make the first denied permission message explain what access is needed
 - Always provide a way to navigate back or request access
 - **Never assume a user has permission** - always validate both frontend and backend
-
-<citations>
-<document>
-<document_type>WARP_DOCUMENTATION</document_type>
-<document_id>getting-started/quickstart-guide/coding-in-warp</document_id>
-</document>
-</citations>

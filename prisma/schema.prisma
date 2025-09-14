@@ -22,8 +22,8 @@ model Permission {
   id          String   @id @default(cuid())
   name        String   @unique // e.g., "crm:read", "finance:write", "hr:admin"
   description String?
-  module      String   // e.g., "CRM", "Finance", "HR", "Projects"
-  action      String   // e.g., "read", "write", "admin", "delete"
+  module      String // e.g., "CRM", "Finance", "HR", "Projects"
+  action      String // e.g., "read", "write", "admin", "delete"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -36,10 +36,10 @@ model Permission {
 }
 
 model RolePermission {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   role         UserRole
   permissionId String
-  createdAt    DateTime   @default(now())
+  createdAt    DateTime @default(now())
 
   // Relations
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
@@ -61,7 +61,7 @@ model CustomRole {
   updatedAt      DateTime @updatedAt
 
   // Relations
-  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   permissions     CustomRolePermission[]
   userAssignments UserOrganization[]
 
@@ -100,23 +100,23 @@ model Organization {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  users            UserOrganization[]
-  customers        Customer[]
-  projects         Project[]
-  tasks            Task[]
-  invoices         Invoice[]
-  expenses         Expense[]
-  expenseCategories ExpenseCategory[]
-  expenseTags      ExpenseTag[]
-  employees        Employee[]
-  campaigns        MarketingCampaign[]
-  invitations      Invitation[]
-  customRoles      CustomRole[]
-  financialReports FinancialReport[]
-  workflows        Workflow[]
-  actionTemplates  ActionTemplate[]
+  users               UserOrganization[]
+  customers           Customer[]
+  projects            Project[]
+  tasks               Task[]
+  invoices            Invoice[]
+  expenses            Expense[]
+  expenseCategories   ExpenseCategory[]
+  expenseTags         ExpenseTag[]
+  employees           Employee[]
+  campaigns           MarketingCampaign[]
+  invitations         Invitation[]
+  customRoles         CustomRole[]
+  financialReports    FinancialReport[]
+  workflows           Workflow[]
+  actionTemplates     ActionTemplate[]
   variableDefinitions VariableDefinition[]
-  integrationConfigs IntegrationConfig[]
+  integrationConfigs  IntegrationConfig[]
 }
 
 model UserOrganization {
@@ -124,11 +124,11 @@ model UserOrganization {
   organizationId String
   role           UserRole?
   customRoleId   String?
-  joinedAt       DateTime @default(now())
+  joinedAt       DateTime  @default(now())
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customRole   CustomRole? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+  customRole   CustomRole?  @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
 
   @@id([userId, organizationId])
   @@index([userId])
@@ -141,13 +141,13 @@ enum UserRole {
   ORGANIZATION_OWNER
   SUPER_ADMIN
   DEPARTMENT_MANAGER
-  
+
   // Departmental Roles
   HR_MANAGER
   SALES_MANAGER
   FINANCE_MANAGER
   PROJECT_MANAGER
-  
+
   // Standard User Roles
   EMPLOYEE
   CONTRACTOR
@@ -423,17 +423,17 @@ model TimeEntry {
 model Invoice {
   id                 String        @id @default(cuid())
   organizationId     String
-  customerId         String       
+  customerId         String
   customerEmail      String
-  customerName       String?       // Customer display name
-  customerAddress    String?       // Billing address
-  customerPhone      String?       // Customer phone
+  customerName       String? // Customer display name
+  customerAddress    String? // Billing address
+  customerPhone      String? // Customer phone
   invoiceNumber      String
   status             InvoiceStatus
   issueDate          DateTime
   dueDate            DateTime
   paymentTerms       String        @default("Net 30") // e.g., "Net 30", "Due on receipt"
-  poNumber           String?       // Purchase Order Number
+  poNumber           String? // Purchase Order Number
   subtotal           Decimal       @db.Decimal(12, 2)
   taxAmount          Decimal       @db.Decimal(12, 2)
   discountAmount     Decimal       @db.Decimal(12, 2)
@@ -442,13 +442,13 @@ model Invoice {
   paidAmount         Decimal       @default(0) @db.Decimal(12, 2)
   currency           String        @default("USD")
   notes              String?
-  internalNotes      String?       // Private notes not visible to customer
+  internalNotes      String? // Private notes not visible to customer
   termsAndConditions String?
-  footer             String?       // Footer text for invoice
-  logoUrl            String?       // Company logo URL
-  sentAt             DateTime?     // When invoice was sent
-  viewedAt           DateTime?     // When customer viewed invoice
-  lastReminder       DateTime?     // Last payment reminder sent
+  footer             String? // Footer text for invoice
+  logoUrl            String? // Company logo URL
+  sentAt             DateTime? // When invoice was sent
+  viewedAt           DateTime? // When customer viewed invoice
+  lastReminder       DateTime? // Last payment reminder sent
   createdById        String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -479,18 +479,18 @@ enum InvoiceStatus {
 }
 
 model InvoiceItem {
-  id          String   @id @default(cuid())
-  invoiceId   String
-  productId   String?  // Link to product/service if exists
-  description String
-  quantity    Decimal  @db.Decimal(10, 2)
-  unitPrice   Decimal  @db.Decimal(12, 2)
-  taxRate     Decimal  @default(0) @db.Decimal(5, 2)
-  discountRate Decimal @default(0) @db.Decimal(5, 2) // Item-level discount
-  subtotal    Decimal  @db.Decimal(12, 2)
-  sortOrder   Int      @default(0) // For maintaining item order
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  invoiceId    String
+  productId    String? // Link to product/service if exists
+  description  String
+  quantity     Decimal  @db.Decimal(10, 2)
+  unitPrice    Decimal  @db.Decimal(12, 2)
+  taxRate      Decimal  @default(0) @db.Decimal(5, 2)
+  discountRate Decimal  @default(0) @db.Decimal(5, 2) // Item-level discount
+  subtotal     Decimal  @db.Decimal(12, 2)
+  sortOrder    Int      @default(0) // For maintaining item order
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
@@ -505,12 +505,12 @@ model Payment {
   amount         Decimal       @db.Decimal(12, 2)
   currency       String        @default("USD")
   method         PaymentMethod
-  reference      String?       // Transaction reference/ID
+  reference      String? // Transaction reference/ID
   paymentDate    DateTime
   notes          String?
   feeAmount      Decimal       @default(0) @db.Decimal(12, 2) // Processing fees
   status         PaymentStatus @default(COMPLETED)
-  gatewayId      String?       // Payment gateway transaction ID
+  gatewayId      String? // Payment gateway transaction ID
   refundedAmount Decimal       @default(0) @db.Decimal(12, 2)
   createdById    String?
   createdAt      DateTime      @default(now())
@@ -543,36 +543,36 @@ enum PaymentStatus {
 }
 
 model Expense {
-  id             String        @id @default(cuid())
-  organizationId String
-  categoryId     String?
-  customCategory String?       // For ad-hoc categories
-  amount         Decimal       @db.Decimal(12, 2)
-  currency       String        @default("USD")
-  date           DateTime
-  description    String?
-  receipt        String?       // URL to receipt image
-  vendor         String?
-  paymentMethod  PaymentMethod @default(CREDIT_CARD)
-  projectId      String?       // Optional project association
-  status         ExpenseStatus @default(DRAFT)
-  reimbursable   Boolean       @default(false)
-  reimbursed     Boolean       @default(false)
-  reimbursedAt   DateTime?
-  submittedAt    DateTime?
-  createdById    String?
-  approvedById   String?
-  approvedAt     DateTime?
-  rejectedAt     DateTime?
+  id              String        @id @default(cuid())
+  organizationId  String
+  categoryId      String?
+  customCategory  String? // For ad-hoc categories
+  amount          Decimal       @db.Decimal(12, 2)
+  currency        String        @default("USD")
+  date            DateTime
+  description     String?
+  receipt         String? // URL to receipt image
+  vendor          String?
+  paymentMethod   PaymentMethod @default(CREDIT_CARD)
+  projectId       String? // Optional project association
+  status          ExpenseStatus @default(DRAFT)
+  reimbursable    Boolean       @default(false)
+  reimbursed      Boolean       @default(false)
+  reimbursedAt    DateTime?
+  submittedAt     DateTime?
+  createdById     String?
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
   rejectionReason String?
-  notes          String?       // Internal notes
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  notes           String? // Internal notes
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   // Relations
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   category     ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  project      Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project      Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   tags         ExpenseToTag[]
 
   @@index([organizationId])
@@ -593,14 +593,14 @@ enum ExpenseStatus {
 }
 
 model ExpenseCategory {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
   name           String
   description    String?
-  color          String    @default("bg-blue-100 text-blue-800")
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  color          String   @default("bg-blue-100 text-blue-800")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -611,14 +611,14 @@ model ExpenseCategory {
 }
 
 model ExpenseTag {
-  id             String        @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
   name           String
-  color          String        @default("bg-gray-100 text-gray-800")
-  createdAt      DateTime      @default(now())
+  color          String   @default("bg-gray-100 text-gray-800")
+  createdAt      DateTime @default(now())
 
   // Relations
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   expenses     ExpenseToTag[]
 
   @@unique([organizationId, name])
@@ -742,24 +742,24 @@ enum NotificationType {
 // ==============================
 
 model Invitation {
-  id             String     @id @default(cuid())
+  id             String           @id @default(cuid())
   organizationId String
   email          String
-  role           UserRole   @default(VIEWER)
+  role           UserRole         @default(VIEWER)
   inviterId      String
-  token          String     @unique
+  token          String           @unique
   status         InvitationStatus @default(PENDING)
   expiresAt      DateTime
   acceptedAt     DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@unique([organizationId, email])
   @@index([organizationId])
   @@index([email])
-  @@unique([organizationId, email])
 }
 
 enum InvitationStatus {
@@ -1087,24 +1087,24 @@ model FinancialReport {
   name           String
   description    String?
   type           FinancialReportType
-  template       Json                  // Store report template configuration
-  filters        Json?                 // Store filter configuration
-  dateRange      Json                  // Store date range configuration
+  template       Json // Store report template configuration
+  filters        Json? // Store filter configuration
+  dateRange      Json // Store date range configuration
   status         FinancialReportStatus @default(DRAFT)
   generatedAt    DateTime?
   generatedBy    String?
   isTemplate     Boolean               @default(false)
   isScheduled    Boolean               @default(false)
-  scheduleConfig Json?                 // Store scheduling configuration
+  scheduleConfig Json? // Store scheduling configuration
   createdById    String
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
   // Relations
-  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  reportData     FinancialReportData[]
-  exports        FinancialReportExport[]
-  schedules      FinancialReportSchedule[]
+  organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reportData   FinancialReportData[]
+  exports      FinancialReportExport[]
+  schedules    FinancialReportSchedule[]
 
   @@index([organizationId])
   @@index([type])
@@ -1132,8 +1132,8 @@ enum FinancialReportStatus {
 model FinancialReportData {
   id        String   @id @default(cuid())
   reportId  String
-  data      Json     // Store actual report data
-  metadata  Json?    // Store metadata about calculations
+  data      Json // Store actual report data
+  metadata  Json? // Store metadata about calculations
   createdAt DateTime @default(now())
 
   // Relations
@@ -1143,17 +1143,17 @@ model FinancialReportData {
 }
 
 model FinancialReportExport {
-  id         String                    @id @default(cuid())
-  reportId   String
-  format     FinancialReportExportFormat
-  fileName   String
-  fileUrl    String?
-  fileSize   Int?                      // Size in bytes
-  status     FinancialReportExportStatus @default(PENDING)
-  error      String?
+  id          String                      @id @default(cuid())
+  reportId    String
+  format      FinancialReportExportFormat
+  fileName    String
+  fileUrl     String?
+  fileSize    Int? // Size in bytes
+  status      FinancialReportExportStatus @default(PENDING)
+  error       String?
   createdById String
-  createdAt  DateTime                  @default(now())
-  updatedAt  DateTime                  @updatedAt
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
 
   // Relations
   report FinancialReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
@@ -1178,22 +1178,22 @@ enum FinancialReportExportStatus {
 }
 
 model FinancialReportSchedule {
-  id             String                        @id @default(cuid())
-  reportId       String
-  frequency      FinancialReportScheduleFrequency
-  dayOfWeek      Int?                          // 0-6 for weekly schedules
-  dayOfMonth     Int?                          // 1-31 for monthly schedules
-  time           String                        // HH:MM format
-  timezone       String                        @default("UTC")
-  isActive       Boolean                       @default(true)
-  lastRunAt      DateTime?
-  nextRunAt      DateTime
-  recipients     Json                          // Array of email addresses
-  emailSubject   String?
-  emailBody      String?
-  createdById    String
-  createdAt      DateTime                      @default(now())
-  updatedAt      DateTime                      @updatedAt
+  id           String                           @id @default(cuid())
+  reportId     String
+  frequency    FinancialReportScheduleFrequency
+  dayOfWeek    Int? // 0-6 for weekly schedules
+  dayOfMonth   Int? // 1-31 for monthly schedules
+  time         String // HH:MM format
+  timezone     String                           @default("UTC")
+  isActive     Boolean                          @default(true)
+  lastRunAt    DateTime?
+  nextRunAt    DateTime
+  recipients   Json // Array of email addresses
+  emailSubject String?
+  emailBody    String?
+  createdById  String
+  createdAt    DateTime                         @default(now())
+  updatedAt    DateTime                         @updatedAt
 
   // Relations
   report FinancialReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
@@ -1211,56 +1211,55 @@ enum FinancialReportScheduleFrequency {
   YEARLY
 }
 
-
 // ==============================
 // Workflow Management Models
 // ==============================
 
 model Workflow {
-  id             String        @id @default(cuid())
+  id             String         @id @default(cuid())
   organizationId String
   name           String
   description    String?
-  version        Int           @default(1)
+  version        Int            @default(1)
   status         WorkflowStatus @default(INACTIVE)
-  isTemplate     Boolean       @default(false)
-  category       String?       // e.g., "CRM", "HR", "Finance", "Projects"
-  
+  isTemplate     Boolean        @default(false)
+  category       String? // e.g., "CRM", "HR", "Finance", "Projects"
+
   // React Flow Canvas Data
-  canvasData     Json?         // Store React Flow nodes, edges, and viewport
-  
+  canvasData Json? // Store React Flow nodes, edges, and viewport
+
   // Execution Configuration
-  retryConfig    Json?         // Retry policies and limits
-  timeoutConfig  Json?         // Timeout settings
-  
+  retryConfig   Json? // Retry policies and limits
+  timeoutConfig Json? // Timeout settings
+
   // Analytics
-  totalExecutions Int          @default(0)
-  successfulExecutions Int     @default(0)
-  failedExecutions Int         @default(0)
-  lastExecutedAt DateTime?
-  
+  totalExecutions      Int       @default(0)
+  successfulExecutions Int       @default(0)
+  failedExecutions     Int       @default(0)
+  lastExecutedAt       DateTime?
+
   // Metadata
-  createdById    String
-  updatedById    String?
-  publishedAt    DateTime?
-  publishedById  String?
-  archivedAt     DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdById   String
+  updatedById   String?
+  publishedAt   DateTime?
+  publishedById String?
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Relations
-  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  triggers       WorkflowTrigger[]
-  nodes          WorkflowNode[]
-  connections    WorkflowConnection[]
-  executions     WorkflowExecution[]
-  analytics      WorkflowAnalytics[]
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  triggers     WorkflowTrigger[]
+  nodes        WorkflowNode[]
+  connections  WorkflowConnection[]
+  executions   WorkflowExecution[]
+  analytics    WorkflowAnalytics[]
 
+  @@unique([organizationId, name, version])
   @@index([organizationId])
   @@index([status])
   @@index([category])
   @@index([createdById])
-  @@unique([organizationId, name, version])
 }
 
 enum WorkflowStatus {
@@ -1273,96 +1272,126 @@ enum WorkflowStatus {
 }
 
 model WorkflowTrigger {
-  id             String            @id @default(cuid())
-  workflowId     String
-  name           String
-  description    String?
-  type           WorkflowTriggerType
-  module         String            // e.g., "CRM", "HR", "Finance", "System"
-  
+  id          String              @id @default(cuid())
+  workflowId  String
+  nodeId      String? // React Flow node ID (optional for backward compatibility)
+  name        String
+  description String?
+  type        WorkflowTriggerType
+  module      String // e.g., "CRM", "HR", "Finance"
+
   // Trigger Configuration
-  entityType     String?           // e.g., "customer", "deal", "employee", "invoice"
-  eventType      String            // e.g., "created", "updated", "deleted", "status_changed"
-  conditions     Json?             // Conditional logic for trigger activation
-  
+  entityType String? // e.g., "customer", "deal", "employee", "invoice"
+  eventType  String // e.g., "created", "updated", "deleted", "status_changed"
+  conditions Json? // Conditional logic for trigger activation
+
   // Timing Configuration
-  delay          Int?              // Delay in minutes before execution
-  
+  delay Int? // Delay in minutes before execution
+
   // State Management
-  isActive       Boolean           @default(true)
-  lastTriggered  DateTime?
-  triggerCount   Int               @default(0)
-  
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  isActive      Boolean   @default(true)
+  lastTriggered DateTime?
+  triggerCount  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workflow       Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  executions     WorkflowExecution[]
-  variables      TriggerVariable[]
+  workflow   Workflow            @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executions WorkflowExecution[]
+  variables  TriggerVariable[]
+  node       WorkflowNode?       @relation("NodeTrigger", fields: [nodeId, workflowId], references: [nodeId, workflowId])
 
+  @@unique([nodeId, workflowId])
   @@index([workflowId])
   @@index([type])
   @@index([module])
   @@index([entityType])
+  @@index([nodeId])
 }
 
 enum WorkflowTriggerType {
+  // CRM Triggers
+  CONTACT_CREATED
+  CONTACT_UPDATED
+  DEAL_CREATED
+  DEAL_STATUS_CHANGED
+
+  // HR Triggers
+  EMPLOYEE_CREATED
+  EMPLOYEE_UPDATED
+  EMPLOYEE_STATUS_CHANGED
+  TIME_OFF_REQUESTED
+
+  // Finance Triggers
+  INVOICE_CREATED
+  INVOICE_STATUS_CHANGED
+  EXPENSE_CREATED
+  PAYMENT_STATUS_CHANGED
+
+  // Project Management Triggers
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  TASK_CREATED
+  TASK_STATUS_CHANGED
+
+  // Generic Triggers
   RECORD_CREATED
-  RECORD_UPDATED  
+  RECORD_UPDATED
   RECORD_DELETED
   STATUS_CHANGED
   FORM_SUBMITTED
-  TIME_BASED
-  MANUAL
-  WEBHOOK
-  API_CALL
-  EMAIL_RECEIVED
-  FILE_UPLOADED
 }
 
 model WorkflowNode {
-  id             String           @id @default(cuid())
-  workflowId     String
-  nodeId         String           // React Flow node ID
-  type           WorkflowNodeType
-  name           String
-  description    String?
-  
+  id          String           @id @default(cuid())
+  workflowId  String
+  nodeId      String // React Flow node ID
+  type        WorkflowNodeType
+  name        String
+  description String?
+
   // React Flow Position
-  position       Json             // {x: number, y: number}
-  
+  position Json // {x: number, y: number}
+
   // Node Configuration
-  config         Json?            // Node-specific configuration
-  template       Json?            // Template configuration if applicable
-  
+  config   Json? // Node-specific configuration
+  template Json? // Template configuration if applicable
+
   // Execution Configuration  
-  executionOrder Int?             // For sequential execution
-  isOptional     Boolean          @default(false)
-  retryLimit     Int              @default(3)
-  timeout        Int?             // Timeout in seconds
-  
+  executionOrder Int? // For sequential execution
+  isOptional     Boolean @default(false)
+  retryLimit     Int     @default(3)
+  timeout        Int? // Timeout in seconds
+
   // Conditional Logic
-  conditions     Json?            // Conditions for node execution
-  
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  conditions Json? // Conditions for node execution
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workflow       Workflow            @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  executions     NodeExecution[]
-  dependencies   NodeDependency[]    @relation("DependentNode")
-  dependents     NodeDependency[]    @relation("PrerequisiteNode")
-  emailActions   EmailAction[]       @relation("EmailActions")
-  smsActions     SmsAction[]         @relation("SmsActions")
-  whatsAppActions WhatsAppAction[]   @relation("WhatsAppActions")
-  slackActions   SlackAction[]       @relation("SlackActions")
-  calendarActions CalendarAction[]   @relation("CalendarActions")
+  workflow          Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executions        NodeExecution[]
+  dependencies      NodeDependency[]     @relation("DependentNode")
+  dependents        NodeDependency[]     @relation("PrerequisiteNode")
+  sourceConnections WorkflowConnection[] @relation("SourceConnections")
+  targetConnections WorkflowConnection[] @relation("TargetConnections")
 
+  // Action Relations (one-to-one)
+  emailAction    EmailAction?    @relation("EmailAction")
+  smsAction      SmsAction?      @relation("SmsAction")
+  whatsAppAction WhatsAppAction? @relation("WhatsAppAction")
+  slackAction    SlackAction?    @relation("SlackAction")
+  calendarAction CalendarAction? @relation("CalendarAction")
+
+  // Trigger Relation (one-to-one)
+  trigger WorkflowTrigger? @relation("NodeTrigger")
+
+  @@unique([workflowId, nodeId])
   @@index([workflowId])
   @@index([type])
   @@index([nodeId])
-  @@unique([workflowId, nodeId])
 }
 
 enum WorkflowNodeType {
@@ -1385,45 +1414,55 @@ enum WorkflowNodeType {
 }
 
 model WorkflowConnection {
-  id             String   @id @default(cuid())
-  workflowId     String
-  edgeId         String   // React Flow edge ID
-  sourceNodeId   String   // React Flow source node ID
-  targetNodeId   String   // React Flow target node ID
-  sourceHandle   String?  // React Flow source handle
-  targetHandle   String?  // React Flow target handle
-  
+  id         String @id @default(cuid())
+  workflowId String
+
+  // Flexible connection structure: supports trigger→action and action→action
+  sourceNodeId String // Reference to source node (trigger or action)
+  targetNodeId String // Reference to target node (action)
+
+  // Execution order for sequential workflow execution
+  // Lower numbers execute first (1, 2, 3, etc.)
+  executionOrder Int @default(1)
+
   // Connection Configuration
-  label          String?
-  conditions     Json?    // Conditional logic for connection
-  
-  // Visual Configuration
-  style          Json?    // Edge styling
-  animated       Boolean  @default(false)
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  label      String?
+  conditions Json? // Conditional logic for connection
+
+  // Visual Configuration (for React Flow)
+  edgeId       String? // React Flow edge ID for UI synchronization
+  sourceHandle String? // React Flow source handle
+  targetHandle String? // React Flow target handle
+  style        Json? // React Flow edge styling
+  animated     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workflow       Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflow   Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  sourceNode WorkflowNode @relation("SourceConnections", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode WorkflowNode @relation("TargetConnections", fields: [targetNodeId], references: [id], onDelete: Cascade)
 
+  @@unique([sourceNodeId, targetNodeId]) // Each source-target pair is unique
+  @@unique([workflowId, edgeId]) // React Flow edge ID uniqueness within workflow
   @@index([workflowId])
   @@index([sourceNodeId])
   @@index([targetNodeId])
-  @@unique([workflowId, edgeId])
+  @@index([sourceNodeId, executionOrder]) // Optimize for execution order queries
 }
 
 model NodeDependency {
-  id                String       @id @default(cuid())
-  dependentNodeId   String       // Node that depends on another
-  prerequisiteNodeId String      // Node that must complete first
-  dependencyType    DependencyType @default(SUCCESS)
-  
-  createdAt         DateTime     @default(now())
+  id                 String         @id @default(cuid())
+  dependentNodeId    String // Node that depends on another
+  prerequisiteNodeId String // Node that must complete first
+  dependencyType     DependencyType @default(SUCCESS)
+
+  createdAt DateTime @default(now())
 
   // Relations
-  dependentNode     WorkflowNode @relation("DependentNode", fields: [dependentNodeId], references: [id], onDelete: Cascade)
-  prerequisiteNode  WorkflowNode @relation("PrerequisiteNode", fields: [prerequisiteNodeId], references: [id], onDelete: Cascade)
+  dependentNode    WorkflowNode @relation("DependentNode", fields: [dependentNodeId], references: [id], onDelete: Cascade)
+  prerequisiteNode WorkflowNode @relation("PrerequisiteNode", fields: [prerequisiteNodeId], references: [id], onDelete: Cascade)
 
   @@unique([dependentNodeId, prerequisiteNodeId])
   @@index([dependentNodeId])
@@ -1431,9 +1470,9 @@ model NodeDependency {
 }
 
 enum DependencyType {
-  SUCCESS       // Execute only if prerequisite succeeds
-  FAILURE       // Execute only if prerequisite fails
-  COMPLETION    // Execute when prerequisite completes (regardless of status)
+  SUCCESS // Execute only if prerequisite succeeds
+  FAILURE // Execute only if prerequisite fails
+  COMPLETION // Execute when prerequisite completes (regardless of status)
 }
 
 // ==============================
@@ -1441,35 +1480,36 @@ enum DependencyType {
 // ==============================
 
 model ActionTemplate {
-  id             String              @id @default(cuid())
-  organizationId String?             // Null for system templates
+  id             String                 @id @default(cuid())
+  organizationId String? // Null for system templates
   name           String
   description    String?
   category       ActionTemplateCategory
   type           WorkflowNodeType
-  
+
   // Template Configuration
-  template       Json                // Template structure and variables
-  defaultConfig  Json?               // Default configuration values
-  schema         Json?               // JSON schema for validation
-  
+  template      Json // Template structure and variables
+  defaultConfig Json? // Default configuration values
+  schema        Json? // JSON schema for validation
+
   // Template Metadata
-  version        String              @default("1.0.0")
-  isPublic       Boolean             @default(false)
-  isActive       Boolean             @default(true)
-  usageCount     Int                 @default(0)
-  
+  version    String  @default("1.0.0")
+  isPublic   Boolean @default(false)
+  isActive   Boolean @default(true)
+  usageCount Int     @default(0)
+  isLocked   Boolean @default(false)
+
   // Template Variables
-  requiredVariables Json?            // Required variables list
-  optionalVariables Json?            // Optional variables list
-  
-  createdById    String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  requiredVariables Json? // Required variables list
+  optionalVariables Json? // Optional variables list
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  versions       ActionTemplateVersion[]
+  organization Organization?           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions     ActionTemplateVersion[]
 
   @@index([organizationId])
   @@index([category])
@@ -1489,21 +1529,21 @@ enum ActionTemplateCategory {
 }
 
 model ActionTemplateVersion {
-  id           String   @id @default(cuid())
-  templateId   String
-  version      String
-  template     Json
-  changes      String?
-  isActive     Boolean  @default(false)
-  createdById  String?
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  templateId  String
+  version     String
+  template    Json
+  changes     String?
+  isActive    Boolean  @default(false)
+  createdById String?
+  createdAt   DateTime @default(now())
 
   // Relations
   actionTemplate ActionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
+  @@unique([templateId, version])
   @@index([templateId])
   @@index([version])
-  @@unique([templateId, version])
 }
 
 // ==============================
@@ -1511,39 +1551,39 @@ model ActionTemplateVersion {
 // ==============================
 
 model VariableDefinition {
-  id             String        @id @default(cuid())
-  organizationId String?       // Null for system variables
+  id             String           @id @default(cuid())
+  organizationId String? // Null for system variables
   name           String
   displayName    String
   description    String?
-  category       String        // e.g., "User", "CRM", "System", "Organization"
+  category       String // e.g., "User", "CRM", "System", "Organization"
   dataType       VariableDataType
-  
+
   // Variable Configuration
-  defaultValue   String?
-  validation     Json?         // Validation rules
-  formatting     Json?         // Formatting options
-  isRequired     Boolean       @default(false)
-  isCustom       Boolean       @default(false)
-  
+  defaultValue String?
+  validation   Json? // Validation rules
+  formatting   Json? // Formatting options
+  isRequired   Boolean @default(false)
+  isCustom     Boolean @default(false)
+
   // Scope Configuration
-  scope          VariableScope @default(ORGANIZATION)
-  moduleScope    String?       // Specific module if applicable
-  
-  createdById    String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  scope       VariableScope @default(ORGANIZATION)
+  moduleScope String? // Specific module if applicable
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  triggerVars    TriggerVariable[]
-  executionVars  ExecutionVariable[]
+  organization  Organization?       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  triggerVars   TriggerVariable[]
+  executionVars ExecutionVariable[]
 
+  @@unique([organizationId, name])
   @@index([organizationId])
   @@index([category])
   @@index([scope])
   @@index([moduleScope])
-  @@unique([organizationId, name])
 }
 
 enum VariableDataType {
@@ -1560,31 +1600,31 @@ enum VariableDataType {
 }
 
 enum VariableScope {
-  GLOBAL        // Available across all workflows
-  ORGANIZATION  // Available within organization
-  MODULE        // Available within specific module
-  WORKFLOW      // Available within specific workflow
-  TRIGGER       // Available within specific trigger context
+  GLOBAL // Available across all workflows
+  ORGANIZATION // Available within organization
+  MODULE // Available within specific module
+  WORKFLOW // Available within specific workflow
+  TRIGGER // Available within specific trigger context
 }
 
 model TriggerVariable {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   triggerId    String
   variableId   String
-  mapping      Json?    // How to extract/map this variable from trigger data
-  isRequired   Boolean  @default(false)
+  mapping      Json? // How to extract/map this variable from trigger data
+  isRequired   Boolean @default(false)
   defaultValue String?
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  trigger      WorkflowTrigger    @relation(fields: [triggerId], references: [id], onDelete: Cascade)
-  variable     VariableDefinition @relation(fields: [variableId], references: [id], onDelete: Cascade)
+  trigger  WorkflowTrigger    @relation(fields: [triggerId], references: [id], onDelete: Cascade)
+  variable VariableDefinition @relation(fields: [variableId], references: [id], onDelete: Cascade)
 
+  @@unique([triggerId, variableId])
   @@index([triggerId])
   @@index([variableId])
-  @@unique([triggerId, variableId])
 }
 
 // ==============================
@@ -1592,41 +1632,41 @@ model TriggerVariable {
 // ==============================
 
 model WorkflowExecution {
-  id             String              @id @default(cuid())
-  workflowId     String
-  triggerId      String?
-  
+  id         String  @id @default(cuid())
+  workflowId String
+  triggerId  String?
+
   // Execution Metadata
-  executionId    String              @unique // Unique execution identifier
-  status         WorkflowExecutionStatus @default(PENDING)
-  priority       ExecutionPriority   @default(NORMAL)
-  
+  executionId String                  @unique // Unique execution identifier
+  status      WorkflowExecutionStatus @default(PENDING)
+  priority    ExecutionPriority       @default(NORMAL)
+
   // Trigger Context
-  triggerData    Json?               // Original trigger data
-  triggerContext Json?               // Additional trigger context
-  
+  triggerData    Json? // Original trigger data
+  triggerContext Json? // Additional trigger context
+
   // Execution State
-  currentNodeId  String?             // Currently executing node
-  progress       Float               @default(0) // 0-100 percentage
-  
+  currentNodeId String? // Currently executing node
+  progress      Float   @default(0) // 0-100 percentage
+
   // Timing
-  startedAt      DateTime?
-  completedAt    DateTime?
-  failedAt       DateTime?
-  duration       Int?                // Duration in milliseconds
-  
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+  duration    Int? // Duration in milliseconds
+
   // Results
-  result         Json?               // Final execution result
-  error          String?             // Error message if failed
-  errorDetails   Json?               // Detailed error information
-  
+  result       Json? // Final execution result
+  error        String? // Error message if failed
+  errorDetails Json? // Detailed error information
+
   // Retry Configuration
-  retryCount     Int                 @default(0)
-  maxRetries     Int                 @default(3)
-  retryDelay     Int                 @default(60) // Delay in seconds
-  
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  retryCount Int @default(0)
+  maxRetries Int @default(3)
+  retryDelay Int @default(60) // Delay in seconds
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   workflow       Workflow            @relation(fields: [workflowId], references: [id], onDelete: Cascade)
@@ -1660,36 +1700,36 @@ enum ExecutionPriority {
 }
 
 model NodeExecution {
-  id                String               @id @default(cuid())
+  id                  String @id @default(cuid())
   workflowExecutionId String
-  nodeId            String
-  
+  nodeId              String
+
   // Execution Metadata
-  executionOrder    Int
-  status            NodeExecutionStatus  @default(PENDING)
-  
+  executionOrder Int
+  status         NodeExecutionStatus @default(PENDING)
+
   // Timing
-  startedAt         DateTime?
-  completedAt       DateTime?
-  duration          Int?                 // Duration in milliseconds
-  
+  startedAt   DateTime?
+  completedAt DateTime?
+  duration    Int? // Duration in milliseconds
+
   // Input/Output
-  input             Json?                // Input data for the node
-  output            Json?                // Output data from the node
-  transformedData   Json?                // Data after transformations
-  
+  input           Json? // Input data for the node
+  output          Json? // Output data from the node
+  transformedData Json? // Data after transformations
+
   // Error Handling
-  error             String?
-  errorDetails      Json?
-  retryCount        Int                  @default(0)
-  maxRetries        Int                  @default(3)
-  
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  error        String?
+  errorDetails Json?
+  retryCount   Int     @default(0)
+  maxRetries   Int     @default(3)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workflowExecution WorkflowExecution    @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
-  node              WorkflowNode         @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  workflowExecution WorkflowExecution @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+  node              WorkflowNode      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@index([workflowExecutionId])
   @@index([nodeId])
@@ -1708,26 +1748,26 @@ enum NodeExecutionStatus {
 }
 
 model ExecutionVariable {
-  id                  String             @id @default(cuid())
-  workflowExecutionId String
+  id                   String  @id @default(cuid())
+  workflowExecutionId  String
   variableDefinitionId String?
-  
+
   // Variable Data
-  name                String
-  value               String?
-  resolvedValue       String?            // Final resolved value after processing
-  dataType            VariableDataType
-  
+  name          String
+  value         String?
+  resolvedValue String? // Final resolved value after processing
+  dataType      VariableDataType
+
   // Context
-  source              String?            // Where this variable came from
-  nodeId              String?            // Node that generated this variable
-  
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  source String? // Where this variable came from
+  nodeId String? // Node that generated this variable
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workflowExecution   WorkflowExecution  @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
-  variableDefinition  VariableDefinition? @relation(fields: [variableDefinitionId], references: [id], onDelete: SetNull)
+  workflowExecution  WorkflowExecution   @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+  variableDefinition VariableDefinition? @relation(fields: [variableDefinitionId], references: [id], onDelete: SetNull)
 
   @@index([workflowExecutionId])
   @@index([variableDefinitionId])
@@ -1735,24 +1775,24 @@ model ExecutionVariable {
 }
 
 model ExecutionLog {
-  id                  String             @id @default(cuid())
+  id                  String  @id @default(cuid())
   workflowExecutionId String
   nodeId              String?
-  
+
   // Log Data
-  level               LogLevel
-  message             String
-  details             Json?
-  timestamp           DateTime           @default(now())
-  
+  level     LogLevel
+  message   String
+  details   Json?
+  timestamp DateTime @default(now())
+
   // Context
-  source              String?            // Component that generated the log
-  category            String?            // Log category
-  
-  createdAt           DateTime           @default(now())
+  source   String? // Component that generated the log
+  category String? // Log category
+
+  createdAt DateTime @default(now())
 
   // Relations
-  workflowExecution   WorkflowExecution  @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+  workflowExecution WorkflowExecution @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
 
   @@index([workflowExecutionId])
   @@index([nodeId])
@@ -1768,45 +1808,43 @@ enum LogLevel {
   FATAL
 }
 
-
-
 // ==============================
 // Integration and External Services
 // ==============================
 
 model IntegrationConfig {
-  id             String           @id @default(cuid())
+  id             String          @id @default(cuid())
   organizationId String
   name           String
   type           IntegrationType
-  
+
   // Configuration
-  config         Json             // Service-specific configuration
-  credentials    Json?            // Encrypted credentials
-  endpoints      Json?            // API endpoints and URLs
-  
+  config      Json // Service-specific configuration
+  credentials Json? // Encrypted credentials
+  endpoints   Json? // API endpoints and URLs
+
   // State Management
-  isActive       Boolean          @default(true)
-  isHealthy      Boolean          @default(true)
+  isActive        Boolean   @default(true)
+  isHealthy       Boolean   @default(true)
   lastHealthCheck DateTime?
-  healthDetails  Json?
-  
+  healthDetails   Json?
+
   // Usage Statistics
-  requestCount   Int              @default(0)
-  errorCount     Int              @default(0)
-  lastUsedAt     DateTime?
-  
-  createdById    String
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  requestCount Int       @default(0)
+  errorCount   Int       @default(0)
+  lastUsedAt   DateTime?
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@unique([organizationId, name])
   @@index([organizationId])
   @@index([type])
   @@index([isActive])
-  @@unique([organizationId, name])
 }
 
 // ==============================
@@ -1814,113 +1852,109 @@ model IntegrationConfig {
 // ==============================
 
 model EmailAction {
-  id               String   @id @default(cuid())
-  nodeId           String   // Reference to WorkflowNode
-  
+  id       String @id @default(cuid())
+  actionId String @unique // Reference to action WorkflowNode
+
   // Email Configuration
-  integrationId    String?  // Reference to IntegrationConfig
-  fromName         String?
-  fromEmail        String?
-  replyTo          String?
-  
-  // Recipients
-  toEmails         Json     // Array of email addresses or variables
-  ccEmails         Json?    // CC recipients
-  bccEmails        Json?    // BCC recipients
-  
+  integrationId String? // Reference to IntegrationConfig
+  fromName      String?
+  fromEmail     String?
+  replyTo       String?
+
+  // Recipients (cc/bcc retained; primary recipients removed for now)
+  ccEmails  Json? // CC recipients
+  bccEmails Json? // BCC recipients
+
   // Content
-  subject          String
-  htmlBody         String?
-  textBody         String?
-  templateId       String?  // Reference to email template
-  
+  subject    String
+  htmlBody   String?
+  textBody   String?
+  templateId String? // Reference to email template
+
   // Attachments
-  attachments      Json?    // Array of attachment configurations
-  
+  attachments Json? // Array of attachment configurations
+
   // Tracking
-  trackOpens       Boolean  @default(false)
-  trackClicks      Boolean  @default(false)
-  
+  trackOpens  Boolean @default(false)
+  trackClicks Boolean @default(false)
+
   // Variables
-  variables        Json?    // Variable mappings for personalization
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  variables Json? // Variable mappings for personalization
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  node             WorkflowNode @relation("EmailActions", fields: [nodeId], references: [id], onDelete: Cascade)
+  action WorkflowNode @relation("EmailAction", fields: [actionId], references: [id], onDelete: Cascade)
 
-  @@index([nodeId])
+  @@index([actionId])
   @@index([integrationId])
 }
 
 model SmsAction {
-  id               String   @id @default(cuid())
-  nodeId           String   // Reference to WorkflowNode
-  
+  id       String @id @default(cuid())
+  actionId String @unique // Reference to action WorkflowNode
+
   // SMS Configuration
-  integrationId    String?  // Reference to IntegrationConfig
-  fromNumber       String?
-  
-  // Recipients
-  toNumbers        Json     // Array of phone numbers or variables
-  
+  integrationId String? // Reference to IntegrationConfig
+  fromNumber    String?
+
   // Content
-  message          String
-  templateId       String?  // Reference to SMS template
-  
+  message    String
+  templateId String? // Reference to SMS template
+
   // Configuration
-  maxLength        Int?     @default(160)
-  unicode          Boolean  @default(false)
-  
+  maxLength Int?    @default(160)
+  unicode   Boolean @default(false)
+
   // Variables
-  variables        Json?    // Variable mappings for personalization
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  variables Json? // Variable mappings for personalization
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  node             WorkflowNode @relation("SmsActions", fields: [nodeId], references: [id], onDelete: Cascade)
+  action WorkflowNode @relation("SmsAction", fields: [actionId], references: [id], onDelete: Cascade)
 
-  @@index([nodeId])
+  @@index([actionId])
   @@index([integrationId])
 }
 
 model WhatsAppAction {
-  id               String   @id @default(cuid())
-  nodeId           String   // Reference to WorkflowNode
-  
+  id       String @id @default(cuid())
+  actionId String @unique // Reference to action WorkflowNode
+
   // WhatsApp Configuration
-  integrationId    String?  // Reference to IntegrationConfig
+  integrationId     String? // Reference to IntegrationConfig
   businessAccountId String?
-  
+
   // Recipients
-  toNumbers        Json     // Array of phone numbers or variables
-  
+  toNumbers Json // Array of phone numbers or variables
+
   // Content
   messageType      WhatsAppMessageType @default(TEXT)
   textMessage      String?
-  templateName     String?  // WhatsApp template name
-  templateLanguage String?  // Template language code
-  
+  templateName     String? // WhatsApp template name
+  templateLanguage String? // Template language code
+
   // Media (for media messages)
-  mediaUrl         String?
-  mediaType        String?  // image, video, audio, document
-  caption          String?
-  
+  mediaUrl  String?
+  mediaType String? // image, video, audio, document
+  caption   String?
+
   // Template Parameters
-  templateParams   Json?    // Parameters for template messages
-  
+  templateParams Json? // Parameters for template messages
+
   // Variables
-  variables        Json?    // Variable mappings for personalization
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  variables Json? // Variable mappings for personalization
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  node             WorkflowNode @relation("WhatsAppActions", fields: [nodeId], references: [id], onDelete: Cascade)
+  action WorkflowNode @relation("WhatsAppAction", fields: [actionId], references: [id], onDelete: Cascade)
 
-  @@index([nodeId])
+  @@index([actionId])
   @@index([integrationId])
 }
 
@@ -1936,94 +1970,86 @@ enum WhatsAppMessageType {
 }
 
 model SlackAction {
-  id               String   @id @default(cuid())
-  nodeId           String   // Reference to WorkflowNode
-  
+  id       String @id @default(cuid())
+  actionId String @unique // Reference to action WorkflowNode
+
   // Slack Configuration
-  integrationId    String?  // Reference to IntegrationConfig
-  workspaceId      String?
-  
+  integrationId String? // Reference to IntegrationConfig
+  workspaceId   String?
+
   // Target
-  channel          String?  // Channel ID or name
-  userId           String?  // User ID for DM
-  
+  channel String? // Channel ID or name
+  userId  String? // User ID for DM
+
   // Content
-  message          String
-  blocks           Json?    // Slack blocks for rich formatting
-  attachments      Json?    // Slack attachments
-  
+  message     String
+  blocks      Json? // Slack blocks for rich formatting
+  attachments Json? // Slack attachments
+
   // Options
-  asUser           Boolean  @default(false)
-  username         String?  // Bot username
-  iconEmoji        String?  // Bot icon emoji
-  iconUrl          String?  // Bot icon URL
-  
+  asUser    Boolean @default(false)
+  username  String? // Bot username
+  iconEmoji String? // Bot icon emoji
+  iconUrl   String? // Bot icon URL
+
   // Threading
-  threadTs         String?  // Thread timestamp for replies
-  replyBroadcast   Boolean  @default(false)
-  
+  threadTs       String? // Thread timestamp for replies
+  replyBroadcast Boolean @default(false)
+
   // Variables
-  variables        Json?    // Variable mappings for personalization
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  variables Json? // Variable mappings for personalization
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  node             WorkflowNode @relation("SlackActions", fields: [nodeId], references: [id], onDelete: Cascade)
+  action WorkflowNode @relation("SlackAction", fields: [actionId], references: [id], onDelete: Cascade)
 
-  @@index([nodeId])
+  @@index([actionId])
   @@index([integrationId])
 }
-
-
 
 model CalendarAction {
-  id               String   @id @default(cuid())
-  nodeId           String   // Reference to WorkflowNode
-  
+  id       String @id @default(cuid())
+  actionId String @unique // Reference to action WorkflowNode
+
   // Calendar Configuration
-  integrationId    String?  // Reference to IntegrationConfig
-  calendarId       String?  // Specific calendar ID
-  
+  integrationId String? // Reference to IntegrationConfig
+  calendarId    String? // Specific calendar ID
+
   // Event Details
-  title            String
-  description      String?
-  location         String?
-  
+  title       String
+  description String?
+  location    String?
+
   // Timing
-  startTime        String   // ISO datetime or variable
-  endTime          String   // ISO datetime or variable
-  isAllDay         Boolean  @default(false)
-  timezone         String   @default("UTC")
-  
+  startTime String // ISO datetime or variable
+  endTime   String // ISO datetime or variable
+  isAllDay  Boolean @default(false)
+  timezone  String  @default("UTC")
+
   // Attendees
-  attendees        Json?    // Array of email addresses
-  organizer        String?  // Organizer email
-  
+  attendees Json? // Array of email addresses
+  organizer String? // Organizer email
+
   // Reminders
-  reminders        Json?    // Reminder configurations
-  
+  reminders Json? // Reminder configurations
+
   // Recurrence
-  recurrence       Json?    // Recurrence rules
-  
+  recurrence Json? // Recurrence rules
+
   // Variables
-  variables        Json?    // Variable mappings for personalization
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  variables Json? // Variable mappings for personalization
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  node             WorkflowNode @relation("CalendarActions", fields: [nodeId], references: [id], onDelete: Cascade)
+  action WorkflowNode @relation("CalendarAction", fields: [actionId], references: [id], onDelete: Cascade)
 
-  @@index([nodeId])
+  @@index([actionId])
   @@index([integrationId])
 }
-
-
-
-
-
-
 
 enum IntegrationType {
   // Email Services
@@ -2032,20 +2058,20 @@ enum IntegrationType {
   EMAIL_MAILGUN
   EMAIL_RESEND
   EMAIL_POSTMARK
-  
+
   // SMS Gateways
   SMS_TWILIO
   SMS_AWS_SNS
   SMS_NEXMO
   SMS_MESSAGEBIRD
-  
+
   // WhatsApp Business
   WHATSAPP_BUSINESS
   WHATSAPP_TWILIO
-  
+
   // Workspace Communication
   SLACK
-  
+
   // Calendar Integration
   GOOGLE_CALENDAR
   OUTLOOK_CALENDAR
@@ -2057,41 +2083,41 @@ enum IntegrationType {
 // ==============================
 
 model WorkflowAnalytics {
-  id                    String   @id @default(cuid())
-  workflowId            String
-  
+  id         String @id @default(cuid())
+  workflowId String
+
   // Time Period
-  periodStart           DateTime
-  periodEnd             DateTime
-  granularity           String   @default("daily") // daily, weekly, monthly
-  
+  periodStart DateTime
+  periodEnd   DateTime
+  granularity String   @default("daily") // daily, weekly, monthly
+
   // Execution Metrics
-  totalExecutions       Int      @default(0)
-  successfulExecutions  Int      @default(0)
-  failedExecutions      Int      @default(0)
-  averageDuration       Float?   // Average duration in milliseconds
-  
+  totalExecutions      Int    @default(0)
+  successfulExecutions Int    @default(0)
+  failedExecutions     Int    @default(0)
+  averageDuration      Float? // Average duration in milliseconds
+
   // Performance Metrics
-  minDuration           Int?     // Minimum duration in milliseconds
-  maxDuration           Int?     // Maximum duration in milliseconds
-  p95Duration           Int?     // 95th percentile duration
-  
+  minDuration Int? // Minimum duration in milliseconds
+  maxDuration Int? // Maximum duration in milliseconds
+  p95Duration Int? // 95th percentile duration
+
   // Error Analysis
-  commonErrors          Json?    // Most common error types and counts
-  errorRate             Float?   // Error rate percentage
-  
+  commonErrors Json? // Most common error types and counts
+  errorRate    Float? // Error rate percentage
+
   // Resource Usage
-  avgCpuUsage           Float?
-  avgMemoryUsage        Float?
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  avgCpuUsage    Float?
+  avgMemoryUsage Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  workflow              Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
+  @@unique([workflowId, periodStart, granularity])
   @@index([workflowId])
   @@index([periodStart])
   @@index([granularity])
-  @@unique([workflowId, periodStart, granularity])
 }

@@ -29,7 +29,8 @@ export function TriggerNode({
   onDelete,
 }: TriggerNodeProps) {
   const nodeData = data as unknown as TriggerNodeData;
-  const IconComponent = nodeData.triggerType === "MANUAL" ? Zap : Clock;
+  const IconComponent =
+    nodeData.triggerType === "CONTACT_CREATED" ? Zap : Clock;
   const displayName = nodeData.name ?? nodeData.label ?? "Trigger";
 
   return (

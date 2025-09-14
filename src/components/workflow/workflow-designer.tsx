@@ -107,10 +107,10 @@ export function WorkflowDesigner({
           ...(node.type === "TRIGGER" && {
             triggerType:
               ((node.config as Record<string, unknown>)
-                ?.triggerType as string) ?? "MANUAL",
+                ?.triggerType as string) ?? "CONTACT_CREATED",
             module:
               ((node.config as Record<string, unknown>)?.module as string) ??
-              "System",
+              "CRM",
           }),
           ...(node.type === "ACTION" && {
             actionType:
@@ -124,21 +124,44 @@ export function WorkflowDesigner({
 
   // Convert workflow connections to React Flow edges
   const convertedEdges = useMemo(() => {
-    if (!workflow?.connections) return [];
+    if (!workflow?.connections || !workflowNodes) return [];
 
-    return workflow.connections.map(
-      (connection): Edge => ({
-        id: connection.id,
-        source: connection.sourceNodeId,
-        target: connection.targetNodeId,
-        type: "default",
-        data: {
-          conditions: connection.conditions,
-          config: {},
-        },
+    return workflow.connections
+      .map((connection): Edge | null => {
+        // Find the source and target nodes by their database IDs
+        const sourceNode = workflowNodes.find(
+          n => n.id === connection.sourceNodeId
+        );
+        const targetNode = workflowNodes.find(
+          n => n.id === connection.targetNodeId
+        );
+
+        if (!sourceNode || !targetNode) {
+          console.warn(
+            `Connection ${connection.id} has invalid node references`
+          );
+          return null;
+        }
+
+        return {
+          id: connection.edgeId ?? connection.id,
+          source: sourceNode.nodeId, // React Flow node ID
+          target: targetNode.nodeId, // React Flow node ID
+          sourceHandle: connection.sourceHandle ?? undefined,
+          targetHandle: connection.targetHandle ?? undefined,
+          type: "default",
+          label: connection.label ?? undefined,
+          animated: connection.animated ?? false,
+          style: (connection.style as Record<string, unknown>) ?? undefined,
+          data: {
+            conditions: connection.conditions,
+            executionOrder: connection.executionOrder,
+            connectionId: connection.id,
+          },
+        };
       })
-    );
-  }, [workflow?.connections]);
+      .filter((edge): edge is Edge => edge !== null);
+  }, [workflow?.connections, workflowNodes]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(convertedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(convertedEdges);
@@ -335,8 +358,8 @@ export function WorkflowDesigner({
           nodeId: newNodeId,
           type: type.toUpperCase(),
           ...(type === "trigger" && {
-            module: "System",
-            triggerType: "MANUAL", // Use valid enum value
+            module: "CRM",
+            triggerType: "CONTACT_CREATED", // Use valid enum value
           }),
           ...(type === "action" && {
             actionType: "email",
@@ -461,8 +484,84 @@ export function WorkflowDesigner({
       // Find the node and update it in the database
       const node = nodes.find(n => n.id === nodeId);
       if (node?.data?.nodeId && typeof node.data.nodeId === "string") {
+        const currentDataNodeId = node.data.nodeId;
+        const isValidCuid = /^[a-z0-9]{25}$/.test(currentDataNodeId);
+
+        // If this is a temporary node (non-CUID), persist it first, then update
+        if (!isValidCuid) {
+          void (async () => {
+            try {
+              const createdNode = await createNodeMutation.mutateAsync({
+                workflowId: _workflowId!,
+                organizationId,
+                nodeId: node.id, // React Flow node ID stored as nodeId in DB
+                type: (node.data.type as string).toUpperCase() as
+                  | "TRIGGER"
+                  | "ACTION",
+                name:
+                  (data.name as string) ??
+                  (data.label as string) ??
+                  (node.data.name as string) ??
+                  (node.data.label as string),
+                position: node.position,
+                config: {
+                  ...(node.data.type === "TRIGGER" && {
+                    triggerType: node.data.triggerType ?? "CONTACT_CREATED",
+                    module: node.data.module ?? "CRM",
+                  }),
+                  ...(node.data.type === "ACTION" && {
+                    actionType: node.data.actionType ?? "email",
+                  }),
+                },
+                template: {},
+              });
+
+              // Update local state with the new DB ID for subsequent operations
+              setNodes(currentNodes =>
+                currentNodes.map(n =>
+                  n.id === node.id
+                    ? {
+                        ...n,
+                        data: {
+                          ...n.data,
+                          nodeId: createdNode.id,
+                        },
+                      }
+                    : n
+                )
+              );
+
+              // Now perform the update using the new DB node ID
+              updateNodeMutation.mutate({
+                id: createdNode.id,
+                organizationId,
+                name: (data.label as string) ?? (node.data.label as string),
+                config:
+                  (data.config as Record<string, unknown>) ??
+                  (node.data.config as Record<string, unknown>) ??
+                  ({} as Record<string, unknown>),
+                template:
+                  (data.template as Record<string, unknown>) ??
+                  (node.data.template as Record<string, unknown>) ??
+                  ({} as Record<string, unknown>),
+                conditions:
+                  (data.conditions as Record<string, unknown>) ??
+                  (node.data.conditions as Record<string, unknown>) ??
+                  ({} as Record<string, unknown>),
+              });
+            } catch (err) {
+              toast.error("Failed to persist node before update", {
+                description:
+                  err instanceof Error ? err.message : "Unknown error",
+              });
+            }
+          })();
+          return;
+        }
+
+        // Node already persisted; perform direct update
         updateNodeMutation.mutate({
-          id: node.data.nodeId,
+          id: currentDataNodeId,
           organizationId,
           name: (data.label as string) ?? (node.data.label as string),
           config:
@@ -480,7 +579,14 @@ export function WorkflowDesigner({
         });
       }
     },
-    [setNodes, nodes, updateNodeMutation, organizationId]
+    [
+      setNodes,
+      nodes,
+      updateNodeMutation,
+      organizationId,
+      createNodeMutation,
+      _workflowId,
+    ]
   );
 
   const saveCanvasState = useCallback(async () => {
@@ -504,8 +610,8 @@ export function WorkflowDesigner({
             position: nodeData.position,
             config: {
               ...(nodeData.data.type === "TRIGGER" && {
-                triggerType: nodeData.data.triggerType ?? "MANUAL",
-                module: nodeData.data.module ?? "System",
+                triggerType: nodeData.data.triggerType ?? "CONTACT_CREATED",
+                module: nodeData.data.module ?? "CRM",
               }),
               ...(nodeData.data.type === "ACTION" && {
                 actionType: nodeData.data.actionType ?? "email",
@@ -581,16 +687,58 @@ export function WorkflowDesigner({
         }
       }
 
+      // Compute per-source execution order (deterministic ordering of sibling edges)
+      const nodePositionById = new Map<string, { x: number; y: number }>();
+      nodes.forEach(n => nodePositionById.set(n.id, n.position));
+
+      const edgesBySource = new Map<string, Edge[]>();
+      edges.forEach(e => {
+        const list = edgesBySource.get(e.source) ?? [];
+        list.push(e);
+        edgesBySource.set(e.source, list);
+      });
+
+      const edgeIdToOrder = new Map<string, number>();
+      edgesBySource.forEach(sourceEdges => {
+        const sorted = [...sourceEdges].sort((a, b) => {
+          const aPos = nodePositionById.get(a.target) ?? { x: 0, y: 0 };
+          const bPos = nodePositionById.get(b.target) ?? { x: 0, y: 0 };
+          // Primary by Y (top-to-bottom), secondary by X (left-to-right)
+          if (aPos.y !== bPos.y) return aPos.y - bPos.y;
+          return aPos.x - bPos.x;
+        });
+        sorted.forEach((e, idx) => edgeIdToOrder.set(e.id, idx + 1));
+      });
+
       // Sync connections in database
-      const connectionsToSync = edges.map(edge => ({
-        edgeId: edge.id,
-        sourceNodeId: edge.source,
-        targetNodeId: edge.target,
-        sourceHandle: edge.sourceHandle ?? undefined,
-        targetHandle: edge.targetHandle ?? undefined,
-        style: edge.style ? (edge.style as Record<string, unknown>) : undefined,
-        animated: edge.animated ?? false,
-      }));
+      const connectionsToSync = edges.map(edge => {
+        const existingOrderValue = (
+          edge.data as unknown as { executionOrder?: unknown }
+        )?.executionOrder;
+        const existingOrder =
+          typeof existingOrderValue === "number"
+            ? existingOrderValue
+            : Number(existingOrderValue);
+        const computedOrder = edgeIdToOrder.get(edge.id) ?? 1;
+        const executionOrder =
+          Number.isFinite(existingOrder) && existingOrder > 0
+            ? existingOrder
+            : computedOrder;
+
+        return {
+          edgeId: edge.id,
+          sourceNodeId: edge.source, // React Flow node ID (will be mapped to WorkflowNode.id in backend)
+          targetNodeId: edge.target, // React Flow node ID (will be mapped to WorkflowNode.id in backend)
+          sourceHandle: edge.sourceHandle ?? undefined,
+          targetHandle: edge.targetHandle ?? undefined,
+          label: typeof edge.label === "string" ? edge.label : undefined,
+          style: edge.style
+            ? (edge.style as Record<string, unknown>)
+            : undefined,
+          animated: edge.animated ?? false,
+          executionOrder,
+        };
+      });
 
       await syncConnectionsMutation.mutateAsync({
         workflowId: workflow.id,
@@ -815,7 +963,7 @@ export function WorkflowDesigner({
         workflow={
           workflow
             ? {
-                id: parseInt(workflow.id),
+                id: workflow.id,
                 name: workflow.name,
                 description: workflow.description ?? "",
                 status: workflow.status,
