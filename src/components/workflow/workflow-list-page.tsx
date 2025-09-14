@@ -656,14 +656,15 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
               No workflows yet
             </h3>
             <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-8">
-              Get started by creating your first automated workflow to streamline your business processes
+              Get started by creating your first automated workflow to
+              streamline your business processes
             </p>
             <ClientPermissionGuard
               requiredAnyPermissions={[
                 PERMISSIONS.WORKFLOWS_WRITE,
                 PERMISSIONS.WORKFLOWS_ADMIN,
               ]}
-              fallback={(
+              fallback={
                 <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-dashed">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -671,9 +672,9 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
                   </div>
                   You need workflow write permissions to create workflows.
                 </div>
-              )}
+              }
             >
-              <Button 
+              <Button
                 onClick={() => setIsCreateDialogOpen(true)}
                 size="lg"
                 className="gap-2"
