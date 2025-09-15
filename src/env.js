@@ -11,6 +11,7 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    // Resend Email Service
     RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
     RESEND_FROM_EMAIL: z
       .string()
@@ -18,6 +19,10 @@ export const env = createEnv({
       .optional()
       .default("no-reply@opensyte.org"),
     RESEND_FROM_NAME: z.string().min(1).optional().default("Opensyte"),
+    // Twilio SMS Service
+    TWILIO_ACCOUNT_SID: z.string().min(1, "TWILIO_ACCOUNT_SID is required"),
+    TWILIO_AUTH_TOKEN: z.string().min(1, "TWILIO_AUTH_TOKEN is required"),
+    TWILIO_PHONE_NUMBER: z.string().min(1, "TWILIO_PHONE_NUMBER is required"),
   },
 
   /**
@@ -36,9 +41,14 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    // Resend Email Service
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
     RESEND_FROM_NAME: process.env.RESEND_FROM_NAME,
+    // Twilio SMS Service
+    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+    TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

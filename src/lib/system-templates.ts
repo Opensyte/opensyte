@@ -32,12 +32,12 @@ export const SYSTEM_TEMPLATES: readonly SystemTemplate[] = [
     type: "EMAIL",
     isActive: true,
     isLocked: true,
-    requiredVariables: ["USER_NAME", "ORGANIZATION_NAME"],
+    requiredVariables: ["user_name", "organization_name"],
     optionalVariables: [],
     template: {
       email: {
-        subject: "Welcome to {ORGANIZATION_NAME}",
-        html: "<h2>Hi {USER_NAME},</h2><p>Welcome to {ORGANIZATION_NAME}! We're excited to have you.</p>",
+        subject: "Welcome to {organization_name}",
+        html: "<h2>Hi {user_name},</h2><p>Welcome to {organization_name}! We're excited to have you.</p>",
       },
     },
   },
@@ -49,12 +49,12 @@ export const SYSTEM_TEMPLATES: readonly SystemTemplate[] = [
     type: "EMAIL",
     isActive: true,
     isLocked: true,
-    requiredVariables: ["CUSTOMER_NAME", "INVOICE_NUMBER"],
+    requiredVariables: ["customer_name", "invoice_number"],
     optionalVariables: [],
     template: {
       email: {
-        subject: "Invoice Reminder #{INVOICE_NUMBER}",
-        html: "<p>Dear {CUSTOMER_NAME},</p><p>This is a friendly reminder for invoice #{INVOICE_NUMBER}.</p>",
+        subject: "Invoice Reminder #{invoice_number}",
+        html: "<p>Dear {customer_name},</p><p>This is a friendly reminder for invoice #{invoice_number}.</p>",
       },
     },
   },
@@ -66,12 +66,12 @@ export const SYSTEM_TEMPLATES: readonly SystemTemplate[] = [
     type: "SMS",
     isActive: true,
     isLocked: true,
-    requiredVariables: ["CUSTOMER_NAME", "INVOICE_NUMBER"],
+    requiredVariables: ["customer_name", "invoice_number"],
     optionalVariables: [],
     template: {
       sms: {
         message:
-          "Hi {CUSTOMER_NAME}, this is a reminder about invoice {INVOICE_NUMBER}.",
+          "Hi {customer_name}, this is a reminder about invoice {invoice_number}.",
       },
     },
   },
@@ -83,11 +83,11 @@ export const SYSTEM_TEMPLATES: readonly SystemTemplate[] = [
     type: "SMS",
     isActive: true,
     isLocked: true,
-    requiredVariables: ["USER_NAME", "ORGANIZATION_NAME"],
+    requiredVariables: ["user_name", "organization_name"],
     optionalVariables: [],
     template: {
       sms: {
-        message: "Hello {USER_NAME}, just checking in. – {ORGANIZATION_NAME}",
+        message: "Hello {user_name}, just checking in. – {organization_name}",
       },
     },
   },
@@ -198,7 +198,7 @@ export class SystemTemplateService {
    * Extract variables from template content
    */
   static extractVariablesFromContent(content: string): string[] {
-    const variableRegex = /\{([A-Z_]+)\}/g;
+    const variableRegex = /\{([A-Za-z0-9_.]+)\}/g;
     const variables: string[] = [];
     let match;
 

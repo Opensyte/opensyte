@@ -10,6 +10,7 @@ import {
 } from "prisma/generated/zod";
 import { db } from "~/server/db";
 import { PERMISSIONS } from "~/lib/rbac";
+import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
 export const contactsCrmRoutes = createTRPCRouter({
   // Create a new contact
@@ -31,6 +32,40 @@ export const contactsCrmRoutes = createTRPCRouter({
             },
           },
         });
+
+        // Trigger workflow events
+        try {
+          await WorkflowEvents.dispatchCrmEvent(
+            "created",
+            input.type === "CUSTOMER" ? "customer" : "contact",
+            input.organizationId,
+            {
+              id: contact.id,
+              firstName: contact.firstName,
+              lastName: contact.lastName,
+              email: contact.email,
+              phone: contact.phone,
+              company: contact.company,
+              position: contact.position,
+              status: contact.status,
+              type: contact.type,
+              address: contact.address,
+              city: contact.city,
+              state: contact.state,
+              country: contact.country,
+              postalCode: contact.postalCode,
+              source: contact.source,
+              notes: contact.notes,
+              createdAt: contact.createdAt,
+              updatedAt: contact.updatedAt,
+            },
+            ctx.user.id
+          );
+        } catch (workflowError) {
+          console.error("Workflow dispatch failed:", workflowError);
+          // Don't fail the main operation if workflow fails
+        }
+
         return contact;
       } catch (error) {
         console.error("Failed to create contact:", error);
@@ -122,6 +157,39 @@ export const contactsCrmRoutes = createTRPCRouter({
             },
           },
         });
+
+        // Trigger workflow events
+        try {
+          await WorkflowEvents.dispatchCrmEvent(
+            "updated",
+            contact.type === "CUSTOMER" ? "customer" : "contact",
+            input.organizationId,
+            {
+              id: contact.id,
+              firstName: contact.firstName,
+              lastName: contact.lastName,
+              email: contact.email,
+              phone: contact.phone,
+              company: contact.company,
+              position: contact.position,
+              status: contact.status,
+              type: contact.type,
+              address: contact.address,
+              city: contact.city,
+              state: contact.state,
+              country: contact.country,
+              postalCode: contact.postalCode,
+              source: contact.source,
+              notes: contact.notes,
+              createdAt: contact.createdAt,
+              updatedAt: contact.updatedAt,
+            },
+            ctx.user.id
+          );
+        } catch (workflowError) {
+          console.error("Workflow dispatch failed:", workflowError);
+          // Don't fail the main operation if workflow fails
+        }
 
         return contact;
       } catch (error) {
