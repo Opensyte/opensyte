@@ -24,12 +24,14 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
+import { ImageUpload } from "~/components/ui/image-upload";
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, "Organization name is required"),
   description: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
   industry: z.string().optional(),
+  logo: z.string().optional(),
 });
 
 export type OrganizationFormValues = z.infer<typeof organizationFormSchema>;
@@ -62,6 +64,7 @@ export function AddOrganizationDialog({
       description: "",
       website: "",
       industry: "",
+      logo: "",
     },
   });
 
@@ -102,6 +105,26 @@ export function AddOrganizationDialog({
                         placeholder="Enter organization name"
                         {...field}
                         disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="logo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                        label="Organization Logo"
+                        description="Upload a logo to represent your organization (optional)"
+                        type="organization-logo"
                       />
                     </FormControl>
                     <FormMessage />

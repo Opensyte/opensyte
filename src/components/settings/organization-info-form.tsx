@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Image from "next/image";
 import { api } from "~/trpc/react";
 import { authClient } from "~/lib/auth-client";
 import {
@@ -22,6 +23,7 @@ import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Save, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { ImageUpload } from "~/components/ui/image-upload";
 
 const organizationFormSchema = z.object({
   name: z
@@ -41,6 +43,7 @@ const organizationFormSchema = z.object({
     .string()
     .max(100, "Industry must be less than 100 characters")
     .optional(),
+  logo: z.string().optional(),
 });
 
 type OrganizationFormValues = z.infer<typeof organizationFormSchema>;
@@ -52,6 +55,7 @@ interface OrganizationInfoFormProps {
     description?: string | null;
     website?: string | null;
     industry?: string | null;
+    logo?: string | null;
   };
   canEdit: boolean;
 }
@@ -70,6 +74,7 @@ export function OrganizationInfoForm({
       description: organization.description ?? "",
       website: organization.website ?? "",
       industry: organization.industry ?? "",
+      logo: organization.logo ?? "",
     },
   });
 
@@ -118,6 +123,21 @@ export function OrganizationInfoForm({
               </Badge>
             </div>
           </div>
+
+          {organization.logo && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Logo</label>
+              <div className="w-16 h-16 rounded-lg overflow-hidden border bg-muted">
+                <Image
+                  src={organization.logo}
+                  alt={`${organization.name} logo`}
+                  width={64}
+                  height={64}
+                  className="object-cover w-full h-full"
+                />
+              </div>
+            </div>
+          )}
 
           {organization.description && (
             <div className="space-y-2">
@@ -186,6 +206,28 @@ export function OrganizationInfoForm({
                       placeholder="Enter organization name"
                       disabled={!isEditing || isPending}
                       className={!isEditing ? "bg-muted/50" : ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Logo Upload */}
+            <FormField
+              control={form.control}
+              name="logo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={!isEditing || isPending}
+                      label="Organization Logo"
+                      description="Upload a logo to represent your organization (optional)"
+                      type="organization-logo"
+                      organizationId={organization.id}
                     />
                   </FormControl>
                   <FormMessage />

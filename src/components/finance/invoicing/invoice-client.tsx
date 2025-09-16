@@ -22,10 +22,11 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Badge } from "~/components/ui/badge";
-import { MoreHorizontal, Edit, Trash2, Send, Shield } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Send, Shield, Eye } from "lucide-react";
 import { InvoiceCreateDialog } from "./invoice-create-dialog";
 import { InvoiceEditDialog } from "./invoice-edit-dialog";
 import { InvoiceDeleteDialog } from "./invoice-delete-dialog";
+import { InvoicePreviewDialog } from "./invoice-preview-dialog";
 import { InvoiceTableSkeleton } from "./invoice-skeletons";
 import { invoiceStatusColors, invoiceStatusLabels } from "~/types";
 import type { InvoiceClientProps } from "~/types";
@@ -67,6 +68,9 @@ export function InvoiceClient({ organizationId }: InvoiceClientProps) {
   const [openCreate, setOpenCreate] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<string | null>(null);
   const [deletingInvoice, setDeletingInvoice] = useState<string | null>(null);
+  const [previewingInvoice, setPreviewingInvoice] = useState<string | null>(
+    null
+  );
   const utils = api.useUtils();
   const { data: invoices = [], isLoading } = api.invoice.listInvoices.useQuery({
     organizationId,
@@ -180,6 +184,14 @@ export function InvoiceClient({ organizationId }: InvoiceClientProps) {
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={() => setPreviewingInvoice(inv.id)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Preview
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() =>
                           handleSendEmail(inv.id, inv.customerEmail)
                         }
@@ -270,6 +282,19 @@ export function InvoiceClient({ organizationId }: InvoiceClientProps) {
           onDeleted={() => void utils.invoice.listInvoices.invalidate()}
         />
       )}
+
+      <InvoicePreviewDialog
+        open={!!previewingInvoice}
+        onOpenChange={(open: boolean) => !open && setPreviewingInvoice(null)}
+        invoiceId={previewingInvoice}
+        organizationId={organizationId}
+        onSendEmail={(invoiceId: string) => {
+          const invoice = invoices.find(inv => inv.id === invoiceId);
+          if (invoice) {
+            handleSendEmail(invoiceId, invoice.customerEmail);
+          }
+        }}
+      />
     </div>
   );
 }

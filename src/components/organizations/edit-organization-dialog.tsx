@@ -23,12 +23,14 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
+import { ImageUpload } from "~/components/ui/image-upload";
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, "Organization name is required"),
   description: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
   industry: z.string().optional(),
+  logo: z.string().optional(),
 });
 
 export type EditOrganizationFormValues = z.infer<typeof organizationFormSchema>;
@@ -39,6 +41,7 @@ interface OrganizationData {
   description?: string | null;
   website?: string | null;
   industry?: string | null;
+  logo?: string | null;
 }
 
 interface EditOrganizationDialogProps {
@@ -63,6 +66,7 @@ export function EditOrganizationDialog({
       description: "",
       website: "",
       industry: "",
+      logo: "",
     },
   });
 
@@ -73,6 +77,7 @@ export function EditOrganizationDialog({
         description: organization.description ?? "",
         website: organization.website ?? "",
         industry: organization.industry ?? "",
+        logo: organization.logo ?? "",
       });
     }
   }, [organization, form]);
@@ -114,6 +119,27 @@ export function EditOrganizationDialog({
                         placeholder="Enter organization name"
                         {...field}
                         disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="logo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                        label="Organization Logo"
+                        description="Upload a logo to represent your organization (optional)"
+                        type="organization-logo"
+                        organizationId={organization?.id}
                       />
                     </FormControl>
                     <FormMessage />
