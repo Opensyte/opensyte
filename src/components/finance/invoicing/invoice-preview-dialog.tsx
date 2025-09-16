@@ -79,7 +79,7 @@ export function InvoicePreviewDialog({
 
   const formatAmount = (value: unknown, currency?: string): string => {
     let numericValue: number;
-    
+
     if (typeof value === "number") {
       numericValue = value;
     } else if (typeof value === "string") {
@@ -88,7 +88,8 @@ export function InvoicePreviewDialog({
     } else if (value && typeof value === "object" && "toString" in value) {
       try {
         numericValue = parseFloat((value as { toString(): string }).toString());
-        if (isNaN(numericValue)) return (value as { toString(): string }).toString();
+        if (isNaN(numericValue))
+          return (value as { toString(): string }).toString();
       } catch {
         return "0";
       }
@@ -98,12 +99,12 @@ export function InvoicePreviewDialog({
 
     // Format based on currency
     const currencyCode = currency ?? "USD";
-    
+
     // IDR doesn't use decimal places and uses thousands separators
     if (currencyCode === "IDR") {
       return new Intl.NumberFormat("id-ID").format(Math.round(numericValue));
     }
-    
+
     // For other currencies, use 2 decimal places with appropriate locale
     const locale = currencyCode === "USD" ? "en-US" : "en-US"; // Can be extended for other currencies
     return new Intl.NumberFormat(locale, {
@@ -385,7 +386,8 @@ export function InvoicePreviewDialog({
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Paid Amount:</span>
                   <span>
-                    {formatAmount(invoice.paidAmount, invoice.currency)} {invoice.currency}
+                    {formatAmount(invoice.paidAmount, invoice.currency)}{" "}
+                    {invoice.currency}
                   </span>
                 </div>
               </div>
@@ -457,7 +459,8 @@ export function InvoicePreviewDialog({
                           {formatAmount(item.quantity)}
                         </td>
                         <td className="border border-border p-3 text-right">
-                          {formatAmount(item.unitPrice, invoice.currency)} {invoice.currency}
+                          {formatAmount(item.unitPrice, invoice.currency)}{" "}
+                          {invoice.currency}
                         </td>
                         <td className="border border-border p-3 text-center">
                           {formatAmount(item.discountRate)}%
@@ -466,7 +469,10 @@ export function InvoicePreviewDialog({
                           {formatAmount(item.taxRate)}%
                         </td>
                         <td className="border border-border p-3 text-right font-medium">
-                          {formatAmount(calculateItemTotal(item), invoice.currency)}{" "}
+                          {formatAmount(
+                            calculateItemTotal(item),
+                            invoice.currency
+                          )}{" "}
                           {invoice.currency}
                         </td>
                       </tr>
@@ -481,7 +487,8 @@ export function InvoicePreviewDialog({
                         Total Amount:
                       </td>
                       <td className="border border-border p-3 text-right font-bold text-lg">
-                        {formatAmount(invoice.totalAmount, invoice.currency)} {invoice.currency}
+                        {formatAmount(invoice.totalAmount, invoice.currency)}{" "}
+                        {invoice.currency}
                       </td>
                     </tr>
                   </tfoot>

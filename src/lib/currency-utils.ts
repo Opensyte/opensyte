@@ -10,7 +10,7 @@ export function formatCurrency(
   currency = "USD"
 ): string {
   let numericValue: number;
-  
+
   if (typeof value === "number") {
     numericValue = value;
   } else if (typeof value === "string") {
@@ -34,7 +34,7 @@ export function formatCurrency(
       maximumFractionDigits: 0,
     }).format(Math.round(numericValue));
   }
-  
+
   // For other currencies, use 2 decimal places with appropriate locale
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
@@ -56,7 +56,7 @@ export function getCurrencySymbol(currency: string): string {
     AUD: "A$",
     CAD: "C$",
   };
-  
+
   return symbols[currency] ?? currency;
 }
 
@@ -69,12 +69,12 @@ export function formatCurrencyWithSymbol(
 ): string {
   const formattedAmount = formatCurrency(value, currency);
   const symbol = getCurrencySymbol(currency);
-  
+
   // For IDR, put symbol before the amount
   if (currency === "IDR") {
     return `${symbol} ${formattedAmount}`;
   }
-  
+
   // For most other currencies, put symbol after
   return `${formattedAmount} ${symbol}`;
 }

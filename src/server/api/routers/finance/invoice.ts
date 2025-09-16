@@ -419,8 +419,14 @@ export const invoiceRouter = createTRPCRouter({
           })),
           subtotal: formatCurrency(invoice.subtotal, invoice.currency),
           taxAmount: formatCurrency(invoice.taxAmount, invoice.currency),
-          discountAmount: formatCurrency(invoice.discountAmount, invoice.currency),
-          shippingAmount: formatCurrency(invoice.shippingAmount, invoice.currency),
+          discountAmount: formatCurrency(
+            invoice.discountAmount,
+            invoice.currency
+          ),
+          shippingAmount: formatCurrency(
+            invoice.shippingAmount,
+            invoice.currency
+          ),
           totalAmount: formatCurrency(invoice.totalAmount, invoice.currency),
           paidAmount: formatCurrency(invoice.paidAmount, invoice.currency),
           paymentTerms: invoice.paymentTerms,
