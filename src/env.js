@@ -16,13 +16,12 @@ export const env = createEnv({
     RESEND_FROM_EMAIL: z
       .string()
       .email("RESEND_FROM_EMAIL must be a valid email")
-      .optional()
-      .default("no-reply@opensyte.org"),
+      .min(1, "RESEND_FROM_EMAIL is required"),
     RESEND_FROM_NAME: z.string().min(1).optional().default("Opensyte"),
-    // Twilio SMS Service
-    TWILIO_ACCOUNT_SID: z.string().min(1, "TWILIO_ACCOUNT_SID is required"),
-    TWILIO_AUTH_TOKEN: z.string().min(1, "TWILIO_AUTH_TOKEN is required"),
-    TWILIO_PHONE_NUMBER: z.string().min(1, "TWILIO_PHONE_NUMBER is required"),
+    // Twilio SMS Service (optional)
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    TWILIO_PHONE_NUMBER: z.string().optional(),
   },
 
   /**

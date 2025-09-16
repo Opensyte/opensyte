@@ -18,13 +18,19 @@ export interface SmsResult {
   messageSid?: string;
   status?: string;
   error?: string;
+  skipped?: boolean;
 }
 
 export class SmsService {
-  private twilio: Twilio;
+  private twilio: Twilio | null;
 
   constructor() {
-    this.twilio = new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+    const hasTwilioAuth = Boolean(
+      env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN
+    );
+    this.twilio = hasTwilioAuth
+      ? new Twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+      : null;
   }
 
   /**
@@ -32,7 +38,23 @@ export class SmsService {
    */
   async sendSms(options: SmsOptions): Promise<SmsResult> {
     try {
+      // If Twilio is not configured, return early (no-op)
+      if (!this.twilio) {
+        return {
+          success: true,
+          status: "skipped",
+          skipped: true,
+        };
+      }
+
       const fromNumber = options.fromNumber ?? env.TWILIO_PHONE_NUMBER;
+      if (!fromNumber) {
+        return {
+          success: true,
+          status: "skipped",
+          skipped: true,
+        };
+      }
 
       // Validate phone number format
       const toNumber = this.formatPhoneNumber(options.to);
@@ -111,6 +133,7 @@ export class SmsService {
     errorMessage?: string;
   }> {
     try {
+      if (!this.twilio) return {};
       const message = await this.twilio.messages(messageSid).fetch();
 
       return {
@@ -156,6 +179,9 @@ export class SmsService {
    */
   async validateConfiguration(): Promise<{ valid: boolean; error?: string }> {
     try {
+      if (!this.twilio || !env.TWILIO_ACCOUNT_SID) {
+        return { valid: false, error: "Twilio SMS is not configured" };
+      }
       // Test by fetching account info
       const account = await this.twilio.api
         .accounts(env.TWILIO_ACCOUNT_SID)
@@ -169,21 +195,23 @@ export class SmsService {
       }
 
       // Validate phone number
-      try {
-        const phoneNumber = await this.twilio.incomingPhoneNumbers.list({
-          phoneNumber: env.TWILIO_PHONE_NUMBER,
-          limit: 1,
-        });
+      if (env.TWILIO_PHONE_NUMBER) {
+        try {
+          const phoneNumber = await this.twilio.incomingPhoneNumbers.list({
+            phoneNumber: env.TWILIO_PHONE_NUMBER,
+            limit: 1,
+          });
 
-        if (phoneNumber.length === 0) {
-          return {
-            valid: false,
-            error: "Configured Twilio phone number not found in account",
-          };
+          if (phoneNumber.length === 0) {
+            return {
+              valid: false,
+              error: "Configured Twilio phone number not found in account",
+            };
+          }
+        } catch (phoneError) {
+          console.warn("Could not validate phone number:", phoneError);
+          // Continue - phone number validation might fail for some account types
         }
-      } catch (phoneError) {
-        console.warn("Could not validate phone number:", phoneError);
-        // Continue - phone number validation might fail for some account types
       }
 
       return { valid: true };
@@ -201,6 +229,7 @@ export class SmsService {
    */
   async getAccountBalance(): Promise<{ balance?: string; currency?: string }> {
     try {
+      if (!this.twilio || !env.TWILIO_ACCOUNT_SID) return {};
       const balance = await this.twilio.api
         .accounts(env.TWILIO_ACCOUNT_SID)
         .balance.fetch();

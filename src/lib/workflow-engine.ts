@@ -700,6 +700,16 @@ export class WorkflowExecutionEngine {
       fromNumber: smsAction.fromNumber ?? undefined,
     });
 
+    if (result.skipped === true) {
+      return {
+        smsSent: false,
+        skipped: true,
+        reason: "SMS skipped due to missing Twilio configuration",
+        recipient: recipientPhone,
+        message: sanitizedMessage,
+      };
+    }
+
     if (!result.success) {
       return {
         smsSent: false,
