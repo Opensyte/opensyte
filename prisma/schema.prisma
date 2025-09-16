@@ -117,6 +117,8 @@ model Organization {
   actionTemplates     ActionTemplate[]
   variableDefinitions VariableDefinition[]
   integrationConfigs  IntegrationConfig[]
+  templatePackages    TemplatePackage[]
+  templateInstallations TemplateInstallation[]
 }
 
 model UserOrganization {
@@ -1209,6 +1211,149 @@ enum FinancialReportScheduleFrequency {
   MONTHLY
   QUARTERLY
   YEARLY
+}
+
+// ==============================
+// ERP Template Pack Models
+// ==============================
+
+model TemplatePackage {
+  id             String             @id @default(cuid())
+  organizationId String? // Null for public templates
+  name           String
+  description    String?
+  category       String? // e.g., "CRM", "HR", "Finance", "Complete Setup"
+  version        String // Semver string (e.g., "1.0.0")
+  visibility     TemplateVisibility @default(PRIVATE)
+  status         TemplateStatus     @default(DRAFT)
+  iconUrl        String?
+  tags           Json? // Array of tag strings for categorization
+  manifest       Json // Complete ERP configuration data
+  assetsCount    Int                @default(0) // Number of assets in template
+  sizeBytes      Int? // Template size in bytes
+  createdById    String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  // Relations
+  organization  Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions      TemplateVersion[]
+  installations TemplateInstallation[]
+
+  @@index([organizationId])
+  @@index([visibility])
+  @@index([status])
+  @@index([category])
+  @@index([createdById])
+}
+
+model TemplateVersion {
+  id                String   @id @default(cuid())
+  templatePackageId String
+  version           String // Semver string
+  manifest          Json // Version-specific configuration
+  changelog         String? // Changes from previous version
+  isActive          Boolean  @default(false) // Is this the active version
+  createdById       String
+  createdAt         DateTime @default(now())
+
+  // Relations
+  templatePackage TemplatePackage        @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
+  installations   TemplateInstallation[]
+
+  @@unique([templatePackageId, version])
+  @@index([templatePackageId])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model TemplateInstallation {
+  id                  String                  @id @default(cuid())
+  organizationId      String
+  templatePackageId   String
+  templateVersionId   String?
+  status              TemplateInstallStatus   @default(PENDING)
+  strategy            TemplateInstallStrategy @default(MERGE)
+  namePrefix          String? // Prefix for created resources (e.g., "Demo_")
+  preflight           Json? // Pre-installation checks and results
+  logs                Json? // Installation process logs
+  error               String? // Error message if failed
+  createdById         String
+  createdAt           DateTime                @default(now())
+  completedAt         DateTime?
+
+  // Relations
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templatePackage TemplatePackage        @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
+  templateVersion TemplateVersion?       @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  items           TemplateInstallItem[]
+
+  @@index([organizationId])
+  @@index([templatePackageId])
+  @@index([templateVersionId])
+  @@index([status])
+  @@index([createdById])
+}
+
+model TemplateInstallItem {
+  id             String                  @id @default(cuid())
+  installationId String
+  assetType      TemplateAssetType // Type of asset being installed
+  sourceKey      String // Key from template manifest
+  createdModel   String? // Model name that was created (e.g., "Workflow")
+  createdId      String? // ID of created resource
+  status         TemplateItemStatus      @default(CREATED) // Installation result
+  details        Json? // Additional details about the installation
+  createdAt      DateTime                @default(now())
+
+  // Relations
+  installation TemplateInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([assetType])
+  @@index([status])
+}
+
+enum TemplateVisibility {
+  PRIVATE  // Only visible to creating organization
+  UNLISTED // Accessible via direct link but not in public listings
+  PUBLIC   // Publicly discoverable and installable
+}
+
+enum TemplateStatus {
+  DRAFT     // Under development
+  PUBLISHED // Available for installation
+  ARCHIVED  // No longer active but preserved
+}
+
+enum TemplateInstallStatus {
+  PENDING   // Installation queued
+  RUNNING   // Currently installing
+  COMPLETED // Successfully installed
+  FAILED    // Installation failed
+}
+
+enum TemplateInstallStrategy {
+  MERGE     // Merge with existing data where possible
+  OVERWRITE // Replace existing data
+  PREFIX    // Add prefix to avoid conflicts
+}
+
+enum TemplateAssetType {
+  WORKFLOW         // Workflow configurations
+  REPORT          // Financial/custom reports
+  UILAYOUT        // UI layout configurations
+  ROLE            // Custom roles and permissions
+  VARIABLE        // Variable definitions
+  ACTION_TEMPLATE // Action template definitions
+  DATA_SEED       // Sample/seed data
+}
+
+enum TemplateItemStatus {
+  CREATED // Successfully created
+  SKIPPED // Skipped (already exists or not applicable)
+  UPDATED // Updated existing resource
+  FAILED  // Failed to create/update
 }
 
 // ==============================
