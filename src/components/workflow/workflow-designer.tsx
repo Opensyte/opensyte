@@ -147,7 +147,17 @@ export function WorkflowDesigner({
 
   // Add node handlers
   const handleAddTrigger = useCallback(() => {
+    const triggerNodes = nodes.filter(node => node.type === "trigger");
     const position = { x: 100, y: 100 };
+
+    if (triggerNodes.length > 0) {
+      const lastTrigger = triggerNodes.reduce((last, current) => {
+        return current.position.y > last.position.y ? current : last;
+      });
+      position.x = lastTrigger.position.x;
+      position.y = lastTrigger.position.y + 90; // Offset for new trigger
+    }
+
     const newNode = addNode(
       {
         type: "TRIGGER",
@@ -163,10 +173,20 @@ export function WorkflowDesigner({
     );
     setSelectedNode(newNode);
     setIsConfigOpen(true);
-  }, [addNode, setSelectedNode]);
+  }, [nodes, addNode, setSelectedNode]);
 
   const handleAddAction = useCallback(() => {
-    const position = { x: 300, y: 200 };
+    const actionNodes = nodes.filter(node => node.type === "action");
+    const position = { x: 300, y: 100 }; // Default position for actions
+
+    if (actionNodes.length > 0) {
+      const lastAction = actionNodes.reduce((last, current) => {
+        return current.position.y > last.position.y ? current : last;
+      });
+      position.x = lastAction.position.x;
+      position.y = lastAction.position.y + 120; // Offset for new action
+    }
+
     const newNode = addNode(
       {
         type: "ACTION",
@@ -180,7 +200,7 @@ export function WorkflowDesigner({
     );
     setSelectedNode(newNode);
     setIsConfigOpen(true);
-  }, [addNode, setSelectedNode]);
+  }, [nodes, addNode, setSelectedNode]);
 
   // Node click handler
   const handleNodeClickInternal = useCallback(

@@ -533,55 +533,215 @@ const triggerMapping: Record<string, TriggerOption[]> = {
   ],
 };
 
-// Template variables - these should come from the API eventually
+// Template variables - align with VariableResolver: snake_case and dot paths
 const templateVariables = [
+  // User
   {
     id: 1,
-    name: "USER_NAME",
-    description: "Name of the user",
-    variableName: "USER_NAME",
+    name: "User name",
+    description: "Name of the user who triggered the action",
+    variableName: "user_name",
     category: "user",
     sampleValue: "John Doe",
   },
   {
     id: 2,
-    name: "USER_EMAIL",
-    description: "Email of the user",
-    variableName: "USER_EMAIL",
+    name: "User email",
+    description: "Email of the user who triggered the action",
+    variableName: "user_email",
     category: "user",
     sampleValue: "john@example.com",
   },
+  // Organization
   {
-    id: 3,
-    name: "DEAL_ID",
-    description: "ID of the deal",
-    variableName: "DEAL_ID",
-    category: "deal",
-    sampleValue: "DEAL123",
+    id: 10,
+    name: "Organization name",
+    description: "Name of the organization",
+    variableName: "organization_name",
+    category: "organization",
+    sampleValue: "My Company",
+  },
+  // Customer / Contact (CRM)
+  {
+    id: 20,
+    name: "Customer name",
+    description: "Customer full name",
+    variableName: "customer_name",
+    category: "customer",
+    sampleValue: "Jane Smith",
   },
   {
-    id: 4,
-    name: "DEAL_NAME",
-    description: "Name of the deal",
-    variableName: "DEAL_NAME",
-    category: "deal",
-    sampleValue: "Big Sale",
+    id: 21,
+    name: "Customer first name",
+    description: "Customer first name",
+    variableName: "customer_first_name",
+    category: "customer",
+    sampleValue: "Jane",
   },
   {
-    id: 5,
-    name: "CUSTOMER_NAME",
-    description: "Name of the customer",
-    variableName: "CUSTOMER_NAME",
+    id: 22,
+    name: "Customer last name",
+    description: "Customer last name",
+    variableName: "customer_last_name",
+    category: "customer",
+    sampleValue: "Smith",
+  },
+  {
+    id: 23,
+    name: "Customer email",
+    description: "Customer email address",
+    variableName: "customer_email",
+    category: "customer",
+    sampleValue: "jane@acme.com",
+  },
+  {
+    id: 24,
+    name: "Customer phone",
+    description: "Customer phone number",
+    variableName: "customer_phone",
+    category: "customer",
+    sampleValue: "+1 202 555 0100",
+  },
+  {
+    id: 25,
+    name: "Customer company",
+    description: "Customer company name",
+    variableName: "customer_company",
     category: "customer",
     sampleValue: "Acme Corp",
   },
+  // Deal (CRM)
   {
-    id: 6,
-    name: "ORGANIZATION_NAME",
-    description: "Name of the organization",
-    variableName: "ORGANIZATION_NAME",
-    category: "organization",
-    sampleValue: "My Company",
+    id: 30,
+    name: "Deal title",
+    description: "Deal title",
+    variableName: "deal_title",
+    category: "deal",
+    sampleValue: "Enterprise Plan",
+  },
+  {
+    id: 31,
+    name: "Deal value",
+    description: "Deal value",
+    variableName: "deal_value",
+    category: "deal",
+    sampleValue: "1999",
+  },
+  {
+    id: 32,
+    name: "Deal status",
+    description: "Deal status",
+    variableName: "deal_status",
+    category: "deal",
+    sampleValue: "QUALIFIED",
+  },
+  {
+    id: 33,
+    name: "Deal stage",
+    description: "Deal stage",
+    variableName: "deal_stage",
+    category: "deal",
+    sampleValue: "2",
+  },
+  // Finance - Invoice
+  {
+    id: 40,
+    name: "Invoice number",
+    description: "Invoice number",
+    variableName: "invoice_number",
+    category: "invoice",
+    sampleValue: "INV-202501-12",
+  },
+  {
+    id: 41,
+    name: "Invoice amount",
+    description: "Invoice total amount",
+    variableName: "invoice_amount",
+    category: "invoice",
+    sampleValue: "4500",
+  },
+  {
+    id: 42,
+    name: "Invoice due date",
+    description: "Invoice due date",
+    variableName: "invoice_due_date",
+    category: "invoice",
+    sampleValue: "2025-09-30",
+  },
+  // Finance - Expense
+  {
+    id: 50,
+    name: "Expense amount",
+    description: "Expense amount",
+    variableName: "expense_amount",
+    category: "expense",
+    sampleValue: "120.50",
+  },
+  {
+    id: 51,
+    name: "Expense category",
+    description: "Expense category name",
+    variableName: "expense_category",
+    category: "expense",
+    sampleValue: "Travel",
+  },
+  {
+    id: 52,
+    name: "Expense description",
+    description: "Expense description",
+    variableName: "expense_description",
+    category: "expense",
+    sampleValue: "Flight to NYC",
+  },
+  // Projects
+  {
+    id: 60,
+    name: "Project name",
+    description: "Project name",
+    variableName: "project_name",
+    category: "project",
+    sampleValue: "Website Redesign",
+  },
+  {
+    id: 61,
+    name: "Project status",
+    description: "Project status",
+    variableName: "project_status",
+    category: "project",
+    sampleValue: "IN_PROGRESS",
+  },
+  // Tasks
+  {
+    id: 70,
+    name: "Task title",
+    description: "Task title",
+    variableName: "task_title",
+    category: "task",
+    sampleValue: "Design hero section",
+  },
+  {
+    id: 71,
+    name: "Task status",
+    description: "Task status",
+    variableName: "task_status",
+    category: "task",
+    sampleValue: "TODO",
+  },
+  {
+    id: 72,
+    name: "Task assignee",
+    description: "Task assignee name",
+    variableName: "task_assignee",
+    category: "task",
+    sampleValue: "Alex Parker",
+  },
+  {
+    id: 73,
+    name: "Task due date",
+    description: "Task due date",
+    variableName: "task_due_date",
+    category: "task",
+    sampleValue: "2025-10-01",
   },
 ];
 
@@ -1556,7 +1716,7 @@ export function WorkflowConfigSheet({
                                           to &quot;Custom&quot; to edit.
                                         </span>
                                       ) : (
-                                        "Use variables like {USER_NAME} for dynamic content"
+                                        "Use variables like {user_name} or {customer_email}"
                                       )}
                                     </FormDescription>
                                     <FormMessage />
@@ -1595,7 +1755,7 @@ export function WorkflowConfigSheet({
                                           to &quot;Custom&quot; to edit.
                                         </span>
                                       ) : (
-                                        "Use variables like {USER_NAME} for dynamic content. You can format text using the toolbar."
+                                        "Use variables like {user_name}, {customer_name}, {organization_name}."
                                       )}
                                     </FormDescription>
                                     <FormMessage />
@@ -1638,7 +1798,7 @@ export function WorkflowConfigSheet({
                                           to &quot;Custom&quot; to edit.
                                         </span>
                                       ) : (
-                                        "Use variables like {USER_NAME} for dynamic content. Keep messages concise for SMS."
+                                        "Use variables like {user_name}, {customer_phone}. Keep messages concise."
                                       )}
                                     </FormDescription>
                                     <FormMessage />

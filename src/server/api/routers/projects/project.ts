@@ -6,6 +6,7 @@ import {
 } from "~/server/api/trpc";
 import { ProjectStatusSchema } from "../../../../../prisma/generated/zod/index";
 import { PERMISSIONS } from "~/lib/rbac";
+import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
 export const projectRouter = createTRPCRouter({
   // Get all projects for an organization
@@ -86,7 +87,7 @@ export const projectRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.requirePermission(input.organizationId);
-      return ctx.db.project.create({
+      const project = await ctx.db.project.create({
         data: {
           organizationId: input.organizationId,
           name: input.name,
@@ -106,6 +107,35 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
+
+      // Trigger workflow events
+      try {
+        await WorkflowEvents.dispatchProjectEvent(
+          "created",
+          "project",
+          input.organizationId,
+          {
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            startDate: project.startDate,
+            endDate: project.endDate,
+            status: project.status,
+            budget: project.budget,
+            currency: project.currency,
+            createdById: project.createdById,
+            organizationId: project.organizationId,
+            createdAt: project.createdAt,
+            updatedAt: project.updatedAt,
+          },
+          ctx.user.id
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+        // Don't fail the main operation if workflow fails
+      }
+
+      return project;
     }),
 
   // Update project
@@ -127,7 +157,13 @@ export const projectRouter = createTRPCRouter({
       await ctx.requirePermission(input.organizationId);
       const { id, organizationId, ...updateData } = input;
 
-      return ctx.db.project.update({
+      // Load existing for status change detection
+      const existing = await ctx.db.project.findFirst({
+        where: { id, organizationId },
+        select: { status: true },
+      });
+
+      const updated = await ctx.db.project.update({
         where: {
           id,
           organizationId,
@@ -141,6 +177,37 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
+
+      // Trigger workflow events
+      try {
+        const statusChanged =
+          existing &&
+          updateData.status &&
+          existing.status !== updateData.status;
+        await WorkflowEvents.dispatchProjectEvent(
+          statusChanged ? "status_changed" : "updated",
+          "project",
+          organizationId,
+          {
+            id: updated.id,
+            name: updated.name,
+            description: updated.description,
+            startDate: updated.startDate,
+            endDate: updated.endDate,
+            status: updated.status,
+            budget: updated.budget,
+            currency: updated.currency,
+            organizationId: updated.organizationId,
+            updatedAt: updated.updatedAt,
+            ...(statusChanged ? { previousStatus: existing?.status } : {}),
+          },
+          ctx.user.id
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+      }
+
+      return updated;
     }),
 
   // Delete project
