@@ -8,6 +8,7 @@ import {
 } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { PERMISSIONS } from "~/lib/rbac";
+import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 import {
   PayrollStatusSchema,
   TimeOffTypeSchema,
@@ -190,6 +191,38 @@ export const hrRouter = createTRPCRouter({
           },
         });
 
+        // Trigger workflow events
+        try {
+          await WorkflowEvents.dispatchHrEvent(
+            "created",
+            "employee",
+            input.organizationId,
+            {
+              id: employee.id,
+              firstName: employee.firstName,
+              lastName: employee.lastName,
+              email: employee.email,
+              phone: employee.phone,
+              position: employee.position,
+              department: employee.department,
+              hireDate: employee.hireDate,
+              status: employee.status,
+              managerId: employee.managerId,
+              address: employee.address,
+              city: employee.city,
+              state: employee.state,
+              country: employee.country,
+              organizationId: employee.organizationId,
+              createdAt: employee.createdAt,
+              updatedAt: employee.updatedAt,
+            },
+            ctx.user.id
+          );
+        } catch (workflowError) {
+          console.error("Workflow dispatch failed:", workflowError);
+          // Don't fail the main operation if workflow fails
+        }
+
         return employee;
       } catch (error) {
         console.error("Failed to create employee:", error);
@@ -236,6 +269,61 @@ export const hrRouter = createTRPCRouter({
             },
           },
         });
+
+        // Dispatch workflow events (non-blocking)
+        try {
+          const basePayload = {
+            id: employee.id,
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            email: employee.email,
+            phone: employee.phone,
+            position: employee.position,
+            department: employee.department,
+            hireDate: employee.hireDate,
+            status: employee.status,
+            managerId: employee.managerId,
+            address: employee.address,
+            city: employee.city,
+            state: employee.state,
+            country: employee.country,
+            postalCode: employee.postalCode,
+            birthDate: employee.birthDate,
+            taxId: employee.taxId,
+            emergencyContactName: employee.emergencyContactName,
+            emergencyContactPhone: employee.emergencyContactPhone,
+            organizationId: employee.organizationId,
+            createdAt: employee.createdAt,
+            updatedAt: employee.updatedAt,
+          } as Record<string, unknown>;
+
+          // Always emit generic updated event
+          await WorkflowEvents.dispatchHrEvent(
+            "updated",
+            "employee",
+            input.organizationId,
+            basePayload,
+            ctx.user.id
+          );
+
+          // Emit status_changed event if status actually changed
+          if (existingEmployee.status !== employee.status) {
+            await WorkflowEvents.dispatchHrEvent(
+              "status_changed",
+              "employee",
+              input.organizationId,
+              {
+                ...basePayload,
+                previousStatus: existingEmployee.status,
+                newStatus: employee.status,
+              },
+              ctx.user.id
+            );
+          }
+        } catch (workflowError) {
+          console.error("Workflow dispatch failed:", workflowError);
+          // Do not fail the main operation if workflow fails
+        }
 
         return employee;
       } catch (error) {
@@ -652,10 +740,48 @@ export const hrRouter = createTRPCRouter({
                 lastName: true,
                 email: true,
                 department: true,
+                phone: true,
+                position: true,
               },
             },
           },
         });
+
+        // Trigger workflow events
+        try {
+          await WorkflowEvents.dispatchHrEvent(
+            "requested",
+            "timeoff",
+            input.organizationId,
+            {
+              id: timeOff.id,
+              type: timeOff.type,
+              startDate: timeOff.startDate,
+              endDate: timeOff.endDate,
+              duration: timeOff.duration,
+              reason: timeOff.reason,
+              status: timeOff.status,
+              employeeId: timeOff.employeeId,
+              employeeName:
+                `${timeOff.employee.firstName} ${timeOff.employee.lastName}`.trim(),
+              employeeEmail: timeOff.employee.email,
+              employeePhone: timeOff.employee.phone,
+              employeePosition: timeOff.employee.position,
+              employeeDepartment: timeOff.employee.department,
+              firstName: timeOff.employee.firstName,
+              lastName: timeOff.employee.lastName,
+              email: timeOff.employee.email,
+              phone: timeOff.employee.phone,
+              position: timeOff.employee.position,
+              department: timeOff.employee.department,
+              createdAt: timeOff.createdAt,
+              updatedAt: timeOff.updatedAt,
+            }
+          );
+        } catch (workflowError) {
+          console.error("Workflow dispatch failed:", workflowError);
+          // Don't fail the main operation if workflow fails
+        }
 
         return timeOff;
       } catch (error) {
