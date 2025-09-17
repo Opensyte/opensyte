@@ -7,6 +7,7 @@ import {
 import { db } from "~/server/db";
 import { PERMISSIONS } from "~/lib/rbac";
 import { LeadStatusSchema } from "../../../../../prisma/generated/zod";
+import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
 export const dealsCrmRoutes = createTRPCRouter({
   // Get deals by organization
@@ -98,10 +99,43 @@ export const dealsCrmRoutes = createTRPCRouter({
                 lastName: true,
                 company: true,
                 email: true,
+                organizationId: true,
               },
             },
           },
         });
+
+        // Trigger workflow events
+        try {
+          await WorkflowEvents.dispatchCrmEvent(
+            "created",
+            "deal",
+            input.organizationId,
+            {
+              id: deal.id,
+              title: deal.title,
+              value: deal.value,
+              currency: deal.currency,
+              status: deal.status,
+              stage: deal.stage,
+              probability: deal.probability,
+              expectedCloseDate: deal.expectedCloseDate,
+              description: deal.description,
+              customerId: deal.customerId,
+              customerName:
+                `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
+              customerEmail: deal.customer.email,
+              customerCompany: deal.customer.company,
+              actualCloseDate: deal.actualCloseDate,
+              createdAt: deal.createdAt,
+              updatedAt: deal.updatedAt,
+            },
+            ctx.user.id
+          );
+        } catch (workflowError) {
+          console.error("Workflow dispatch failed:", workflowError);
+          // Don't fail the main operation if workflow fails
+        }
 
         return deal;
       } catch (error) {
@@ -187,6 +221,48 @@ export const dealsCrmRoutes = createTRPCRouter({
             },
           },
         });
+
+        // Trigger workflow events - check for status changes
+        try {
+          const statusChanged = existingDeal.status !== deal.status;
+          const eventType = statusChanged ? "status_changed" : "updated";
+
+          await WorkflowEvents.dispatchCrmEvent(
+            eventType,
+            "deal",
+            input.organizationId,
+            {
+              id: deal.id,
+              title: deal.title,
+              value: deal.value,
+              currency: deal.currency,
+              status: deal.status,
+              stage: deal.stage,
+              probability: deal.probability,
+              expectedCloseDate: deal.expectedCloseDate,
+              description: deal.description,
+              customerId: deal.customerId,
+              customerName:
+                `${deal.customer.firstName} ${deal.customer.lastName}`.trim(),
+              customerEmail: deal.customer.email,
+              customerCompany: deal.customer.company,
+              actualCloseDate: deal.actualCloseDate,
+              createdAt: deal.createdAt,
+              updatedAt: deal.updatedAt,
+              // Include previous status for status change events
+              ...(statusChanged
+                ? {
+                    previousStatus: existingDeal.status,
+                    statusChanged: true,
+                  }
+                : {}),
+            },
+            ctx.user.id
+          );
+        } catch (workflowError) {
+          console.error("Workflow dispatch failed:", workflowError);
+          // Don't fail the main operation if workflow fails
+        }
 
         return deal;
       } catch (error) {

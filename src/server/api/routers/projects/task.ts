@@ -4,6 +4,7 @@ import {
   TaskStatusSchema,
   PrioritySchema,
 } from "../../../../../prisma/generated/zod/index";
+import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
 export const taskRouter = createTRPCRouter({
   // Get all tasks for an organization
@@ -93,7 +94,7 @@ export const taskRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.task.create({
+      const task = await ctx.db.task.create({
         data: {
           organizationId: input.organizationId,
           projectId: input.projectId,
@@ -117,6 +118,41 @@ export const taskRouter = createTRPCRouter({
           },
         },
       });
+
+      // Trigger workflow events
+      try {
+        await WorkflowEvents.dispatchProjectEvent(
+          "created",
+          "task",
+          input.organizationId,
+          {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            startDate: task.startDate,
+            dueDate: task.dueDate,
+            assignedToId: task.assignedToId,
+            createdById: task.createdById,
+            estimatedHours: task.estimatedHours,
+            actualHours: task.actualHours,
+            projectId: task.projectId,
+            projectName: task.project?.name,
+            parentTaskId: task.parentTaskId,
+            organizationId: task.organizationId,
+            completedAt: task.completedAt,
+            order: task.order,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+          }
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+        // Don't fail the main operation if workflow fails
+      }
+
+      return task;
     }),
 
   // Update task
@@ -145,7 +181,13 @@ export const taskRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, organizationId, ...updateData } = input;
 
-      return ctx.db.task.update({
+      // Load existing for status change detection
+      const existing = await ctx.db.task.findFirst({
+        where: { id, organizationId },
+        select: { status: true },
+      });
+
+      const updated = await ctx.db.task.update({
         where: {
           id,
           organizationId,
@@ -160,6 +202,43 @@ export const taskRouter = createTRPCRouter({
           },
         },
       });
+
+      // Trigger workflow events
+      try {
+        const statusChanged =
+          existing &&
+          updateData.status &&
+          existing.status !== updateData.status;
+        await WorkflowEvents.dispatchProjectEvent(
+          statusChanged ? "status_changed" : "updated",
+          "task",
+          organizationId,
+          {
+            id: updated.id,
+            title: updated.title,
+            description: updated.description,
+            status: updated.status,
+            priority: updated.priority,
+            startDate: updated.startDate,
+            dueDate: updated.dueDate,
+            assignedToId: updated.assignedToId,
+            estimatedHours: updated.estimatedHours,
+            actualHours: updated.actualHours,
+            projectId: updated.projectId,
+            projectName: updated.project?.name,
+            parentTaskId: updated.parentTaskId,
+            organizationId: updated.organizationId,
+            completedAt: updated.completedAt,
+            order: updated.order,
+            updatedAt: updated.updatedAt,
+            ...(statusChanged ? { previousStatus: existing?.status } : {}),
+          }
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+      }
+
+      return updated;
     }),
 
   // Delete task

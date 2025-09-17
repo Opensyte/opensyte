@@ -11,6 +11,7 @@ import {
   PaymentMethodSchema,
 } from "../../../../../prisma/generated/zod";
 import { formatDecimalLike } from "~/server/utils/format";
+import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
 // Shared schemas for better reusability
 const expenseFiltersSchema = z.object({
@@ -248,13 +249,48 @@ export const expenseRouter = createTRPCRouter({
         },
       });
 
+      // Trigger workflow events
+      try {
+        await WorkflowEvents.dispatchFinanceEvent(
+          "created",
+          "expense",
+          organizationId,
+          {
+            id: expense.id,
+            amount: expense.amount,
+            currency: expense.currency,
+            date: expense.date,
+            description: expense.description,
+            categoryId: expense.categoryId,
+            customCategory: expense.customCategory,
+            vendor: expense.vendor,
+            paymentMethod: expense.paymentMethod,
+            status: expense.status,
+            projectId: expense.projectId,
+            reimbursable: expense.reimbursable,
+            category: expense.category?.name,
+            categoryName: expense.category?.name,
+            projectName: expense.project?.name,
+            organizationId: expense.organizationId,
+            receipt: expense.receipt,
+            notes: expense.notes,
+            createdAt: expense.createdAt,
+            updatedAt: expense.updatedAt,
+          },
+          userId
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+        // Don't fail the main operation if workflow fails
+      }
+
       return {
         ...expense,
         amount: formatDecimalLike(expense.amount),
       };
     }),
 
-  // Update expense
+  // Update expense (dispatch updated/status_changed if status changes)
   update: createAnyPermissionProcedure([
     PERMISSIONS.FINANCE_WRITE,
     PERMISSIONS.FINANCE_ADMIN,
@@ -271,22 +307,12 @@ export const expenseRouter = createTRPCRouter({
       const { id, organizationId, data } = input;
       const userId = ctx.user?.id;
 
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
-
-      // Check if expense exists
-      const existingExpense = await db.expense.findFirst({
+      const existing = await db.expense.findFirst({
         where: { id, organizationId },
       });
+      if (!existing) throw new Error("Expense not found");
 
-      if (!existingExpense) {
-        throw new Error("Expense not found");
-      }
-
-      // Prepare update data - use relation connect/disconnect for foreign keys
       const updateData: Prisma.ExpenseUpdateInput = {};
-
       if (data.amount !== undefined)
         updateData.amount = new Prisma.Decimal(data.amount);
       if (data.currency !== undefined) updateData.currency = data.currency;
@@ -314,7 +340,6 @@ export const expenseRouter = createTRPCRouter({
       if (data.receipt !== undefined) updateData.receipt = data.receipt;
       if (data.notes !== undefined) updateData.notes = data.notes;
 
-      // Update the expense
       const expense = await db.expense.update({
         where: { id },
         data: updateData,
@@ -323,6 +348,39 @@ export const expenseRouter = createTRPCRouter({
           project: { select: { id: true, name: true } },
         },
       });
+
+      try {
+        const statusChanged = data.status && data.status !== existing.status;
+        await WorkflowEvents.dispatchFinanceEvent(
+          statusChanged ? "status_changed" : "updated",
+          "expense",
+          organizationId,
+          {
+            id: expense.id,
+            amount: expense.amount,
+            currency: expense.currency,
+            date: expense.date,
+            description: expense.description,
+            categoryId: expense.categoryId,
+            customCategory: expense.customCategory,
+            vendor: expense.vendor,
+            paymentMethod: expense.paymentMethod,
+            status: expense.status,
+            projectId: expense.projectId,
+            reimbursable: expense.reimbursable,
+            category: expense.category?.name,
+            projectName: expense.project?.name,
+            organizationId: expense.organizationId,
+            receipt: expense.receipt,
+            notes: expense.notes,
+            updatedAt: expense.updatedAt,
+            ...(statusChanged ? { previousStatus: existing.status } : {}),
+          },
+          userId
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+      }
 
       return {
         ...expense,

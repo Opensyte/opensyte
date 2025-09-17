@@ -13,6 +13,7 @@ import { financialReportsRouter } from "./routers/finance/financial-reports";
 import { invitationsRouter } from "./routers/invitations";
 import { rbacRouter } from "./routers/rbac";
 import { customRolesRouter } from "./routers/custom-roles";
+import { workflowsRouter } from "./routers/workflows";
 
 /**
  * This is the primary router for your server.
@@ -34,6 +35,7 @@ export const appRouter = createTRPCRouter({
   invitations: invitationsRouter,
   rbac: rbacRouter,
   customRoles: customRolesRouter,
+  workflows: workflowsRouter,
 });
 
 // export type definition of API

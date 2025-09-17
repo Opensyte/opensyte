@@ -12,7 +12,12 @@ import { Resend } from "resend";
 import { env } from "~/env";
 import { render } from "@react-email/components";
 import { InvoiceEmail } from "~/server/email/templates/invoice-email";
+<<<<<<< HEAD
 import { formatCurrency, formatDecimal } from "~/server/utils/format";
+=======
+import { formatDecimalLike } from "~/server/utils/format";
+import { WorkflowEvents } from "~/lib/workflow-dispatcher";
+>>>>>>> upstream/main
 
 // Shared schemas for better reusability and consistency
 const invoiceItemSchema = z.object({
@@ -152,6 +157,44 @@ export const invoiceRouter = createTRPCRouter({
         },
         include: { items: true, payments: true },
       });
+
+      // Trigger workflow events
+      try {
+        await WorkflowEvents.dispatchFinanceEvent(
+          "created",
+          "invoice",
+          input.organizationId,
+          {
+            id: created.id,
+            invoiceNumber: created.invoiceNumber,
+            totalAmount: created.totalAmount,
+            subtotal: created.subtotal,
+            taxAmount: created.taxAmount,
+            discountAmount: created.discountAmount,
+            shippingAmount: created.shippingAmount,
+            paidAmount: created.paidAmount,
+            currency: created.currency,
+            status: created.status,
+            issueDate: created.issueDate,
+            dueDate: created.dueDate,
+            paymentTerms: created.paymentTerms,
+            customerId: created.customerId,
+            customerName: created.customerName,
+            customerEmail: created.customerEmail,
+            customerPhone: created.customerPhone,
+            customerAddress: created.customerAddress,
+            notes: created.notes,
+            organizationId: created.organizationId,
+            createdAt: created.createdAt,
+            updatedAt: created.updatedAt,
+          },
+          ctx.user.id
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+        // Don't fail the main operation if workflow fails
+      }
+
       return created;
     }),
   updateInvoice: createPermissionProcedure(PERMISSIONS.FINANCE_WRITE)
@@ -291,6 +334,40 @@ export const invoiceRouter = createTRPCRouter({
         where: { id: existing.id },
         include: { items: true, payments: true },
       });
+      // Dispatch workflow for invoice update/status change
+      try {
+        const statusChanged = input.status && input.status !== existing.status;
+        await WorkflowEvents.dispatchFinanceEvent(
+          statusChanged ? "status_changed" : "updated",
+          "invoice",
+          input.organizationId,
+          {
+            id: refreshed!.id,
+            invoiceNumber: refreshed!.invoiceNumber,
+            totalAmount: refreshed!.totalAmount,
+            subtotal: refreshed!.subtotal,
+            taxAmount: refreshed!.taxAmount,
+            discountAmount: refreshed!.discountAmount,
+            shippingAmount: refreshed!.shippingAmount,
+            paidAmount: refreshed!.paidAmount,
+            currency: refreshed!.currency,
+            status: refreshed!.status,
+            issueDate: refreshed!.issueDate,
+            dueDate: refreshed!.dueDate,
+            paymentTerms: refreshed!.paymentTerms,
+            customerId: refreshed!.customerId,
+            customerName: refreshed!.customerName,
+            customerEmail: refreshed!.customerEmail,
+            customerPhone: refreshed!.customerPhone,
+            organizationId: refreshed!.organizationId,
+            updatedAt: refreshed!.updatedAt,
+            ...(statusChanged ? { previousStatus: existing.status } : {}),
+          },
+          ctx.user.id
+        );
+      } catch (workflowError) {
+        console.error("Workflow dispatch failed:", workflowError);
+      }
       return refreshed;
     }),
   deleteInvoice: createPermissionProcedure(PERMISSIONS.FINANCE_WRITE)
