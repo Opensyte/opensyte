@@ -23,7 +23,7 @@ import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Save, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { ImageUpload } from "~/components/ui/image-upload";
+import { UploadThingImageUpload } from "~/components/ui/uploadthing-image-upload";
 
 const organizationFormSchema = z.object({
   name: z
@@ -43,6 +43,10 @@ const organizationFormSchema = z.object({
     .string()
     .max(100, "Industry must be less than 100 characters")
     .optional(),
+  address: z
+    .string()
+    .max(500, "Address must be less than 500 characters")
+    .optional(),
   logo: z.string().optional(),
 });
 
@@ -55,6 +59,7 @@ interface OrganizationInfoFormProps {
     description?: string | null;
     website?: string | null;
     industry?: string | null;
+    address?: string | null;
     logo?: string | null;
   };
   canEdit: boolean;
@@ -74,6 +79,7 @@ export function OrganizationInfoForm({
       description: organization.description ?? "",
       website: organization.website ?? "",
       industry: organization.industry ?? "",
+      address: organization.address ?? "",
       logo: organization.logo ?? "",
     },
   });
@@ -170,6 +176,15 @@ export function OrganizationInfoForm({
               </a>
             </div>
           )}
+
+          {organization.address && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Address</label>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {organization.address}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50 border">
@@ -220,14 +235,13 @@ export function OrganizationInfoForm({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <ImageUpload
+                    <UploadThingImageUpload
                       value={field.value}
                       onChange={field.onChange}
                       disabled={!isEditing || isPending}
                       label="Organization Logo"
                       description="Upload a logo to represent your organization (optional)"
-                      type="organization-logo"
-                      organizationId={organization.id}
+                      endpoint="organizationLogo"
                     />
                   </FormControl>
                   <FormMessage />
@@ -301,6 +315,30 @@ export function OrganizationInfoForm({
                 )}
               />
             </div>
+
+            {/* Address */}
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Enter organization address (optional)"
+                      disabled={!isEditing || isPending}
+                      className={`min-h-[80px] resize-none ${!isEditing ? "bg-muted/50" : ""}`}
+                      maxLength={500}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {field.value?.length ?? 0}/500 characters
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           {isEditing && (

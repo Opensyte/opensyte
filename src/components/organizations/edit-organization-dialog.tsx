@@ -23,13 +23,14 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
-import { ImageUpload } from "~/components/ui/image-upload";
+import { UploadThingImageUpload } from "~/components/ui/uploadthing-image-upload";
 
 const organizationFormSchema = z.object({
   name: z.string().min(1, "Organization name is required"),
   description: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
   industry: z.string().optional(),
+  address: z.string().optional(),
   logo: z.string().optional(),
 });
 
@@ -41,6 +42,7 @@ interface OrganizationData {
   description?: string | null;
   website?: string | null;
   industry?: string | null;
+  address?: string | null;
   logo?: string | null;
 }
 
@@ -66,6 +68,7 @@ export function EditOrganizationDialog({
       description: "",
       website: "",
       industry: "",
+      address: "",
       logo: "",
     },
   });
@@ -77,6 +80,7 @@ export function EditOrganizationDialog({
         description: organization.description ?? "",
         website: organization.website ?? "",
         industry: organization.industry ?? "",
+        address: organization.address ?? "",
         logo: organization.logo ?? "",
       });
     }
@@ -132,14 +136,13 @@ export function EditOrganizationDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <ImageUpload
+                      <UploadThingImageUpload
                         value={field.value}
                         onChange={field.onChange}
                         disabled={isLoading}
                         label="Organization Logo"
                         description="Upload a logo to represent your organization (optional)"
-                        type="organization-logo"
-                        organizationId={organization?.id}
+                        endpoint="organizationLogo"
                       />
                     </FormControl>
                     <FormMessage />
@@ -204,6 +207,26 @@ export function EditOrganizationDialog({
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Organization address"
+                        className="min-h-[80px] resize-none"
+                        rows={3}
+                        {...field}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:space-x-1">

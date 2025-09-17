@@ -12,11 +12,7 @@ import { Resend } from "resend";
 import { env } from "~/env";
 import { render } from "@react-email/components";
 import { InvoiceEmail } from "~/server/email/templates/invoice-email";
-import {
-  formatCurrency,
-  formatDecimal,
-  formatDecimalLike,
-} from "~/server/utils/format";
+import { formatCurrency, formatDecimal } from "~/server/utils/format";
 import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
 // Shared schemas for better reusability and consistency
@@ -468,7 +464,13 @@ export const invoiceRouter = createTRPCRouter({
 
       const organization = await db.organization.findUnique({
         where: { id: invoice.organizationId },
-        select: { name: true, website: true, industry: true },
+        select: {
+          name: true,
+          website: true,
+          industry: true,
+          logo: true,
+          address: true,
+        },
       });
 
       // HTML email using react-email template
@@ -483,6 +485,8 @@ export const invoiceRouter = createTRPCRouter({
           customerAddress: invoice.customerAddress,
           customerPhone: invoice.customerPhone,
           organizationName: organization?.name ?? "Organization",
+          organizationAddress: organization?.address ?? null,
+          organizationLogo: organization?.logo ?? null,
           organizationWebsite: organization?.website ?? null,
           organizationIndustry: organization?.industry ?? null,
           currency: invoice.currency,

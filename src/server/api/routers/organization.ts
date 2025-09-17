@@ -9,6 +9,7 @@ const createOrganizationSchema = z.object({
   description: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
   industry: z.string().optional(),
+  address: z.string().optional(),
   logo: z.string().optional(),
 });
 
@@ -18,6 +19,7 @@ const updateOrganizationSchema = z.object({
   description: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
   industry: z.string().optional(),
+  address: z.string().optional(),
   logo: z.string().optional(),
 });
 
@@ -63,6 +65,7 @@ export const organizationRouter = createTRPCRouter({
           logo: org.logo,
           website: org.website,
           industry: org.industry,
+          address: org.address,
           membersCount: org._count.users,
           customersCount: org._count.customers,
           projectsCount: org._count.projects,
@@ -124,6 +127,7 @@ export const organizationRouter = createTRPCRouter({
           logo: organization.logo,
           website: organization.website,
           industry: organization.industry,
+          address: organization.address,
           membersCount: organization._count.users,
           customersCount: organization._count.customers,
           projectsCount: organization._count.projects,
@@ -153,6 +157,7 @@ export const organizationRouter = createTRPCRouter({
             description: input.description,
             website: input.website,
             industry: input.industry,
+            address: input.address,
             logo: input.logo,
             users: {
               create: {
@@ -186,6 +191,7 @@ export const organizationRouter = createTRPCRouter({
           logo: organization.logo,
           website: organization.website,
           industry: organization.industry,
+          address: organization.address,
           membersCount: organization._count.users,
           customersCount: organization._count.customers,
           projectsCount: organization._count.projects,
@@ -288,6 +294,7 @@ export const organizationRouter = createTRPCRouter({
           logo: organization.logo,
           website: organization.website,
           industry: organization.industry,
+          address: organization.address,
           membersCount: organization._count.users,
           customersCount: organization._count.customers,
           projectsCount: organization._count.projects,
