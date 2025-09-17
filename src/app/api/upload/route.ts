@@ -140,6 +140,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "File not found or already deleted",
+        fileError: fileError,
       });
     }
   } catch (error) {
