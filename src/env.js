@@ -22,6 +22,8 @@ export const env = createEnv({
     TWILIO_ACCOUNT_SID: z.string().optional(),
     TWILIO_AUTH_TOKEN: z.string().optional(),
     TWILIO_PHONE_NUMBER: z.string().optional(),
+    // UploadThing File Service
+    UPLOADTHING_TOKEN: z.string().min(1, "UPLOADTHING_TOKEN is required"),
   },
 
   /**
@@ -48,6 +50,8 @@ export const env = createEnv({
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
     TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
+    // UploadThing File Service
+    UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**
