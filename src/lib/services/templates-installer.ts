@@ -1,5 +1,11 @@
 import { z } from "zod";
-import type { Prisma, VariableDataType, VariableScope } from "@prisma/client";
+import type {
+  Prisma,
+  VariableDataType,
+  VariableScope,
+  IntegrationType,
+  WhatsAppMessageType,
+} from "@prisma/client";
 import { db } from "~/server/db";
 import { TemplateManifestSchema } from "~/types/templates";
 import {
@@ -24,7 +30,13 @@ export type InstallPreflightResult = {
   issues: string[];
   requiredIntegrations: { type: string; key: string }[];
   requiredVariables: string[];
-  collisions: { type: string; name: string }[];
+  collisions: { type: string; name: string; entity: string }[];
+  plan: Array<{
+    assetType: string;
+    name: string;
+    strategy: "MERGE" | "OVERWRITE" | "PREFIX";
+    reason?: string;
+  }>;
 };
 
 export async function preflightInstall(
@@ -43,24 +55,67 @@ export async function preflightInstall(
     ]),
   ];
 
-  const [existingVars, existingRoles] = await Promise.all([
-    db.variableDefinition.findMany({
-      where: { organizationId, name: { in: requiredVariables } },
-      select: { name: true },
-    }),
-    db.customRole.findMany({
-      where: {
-        organizationId,
-        name: { in: manifest.assets.rbac.roles.map(r => r.name) },
-      },
-      select: { name: true },
-    }),
-  ]);
-  const collisions: { type: string; name: string }[] = [];
+  const [existingVars, existingRoles, existingReports, existingWorkflows] =
+    await Promise.all([
+      db.variableDefinition.findMany({
+        where: { organizationId, name: { in: requiredVariables } },
+        select: { name: true },
+      }),
+      db.customRole.findMany({
+        where: {
+          organizationId,
+          name: { in: manifest.assets.rbac.roles.map(r => r.name) },
+        },
+        select: { name: true },
+      }),
+      db.financialReport.findMany({
+        where: { organizationId },
+        select: { name: true },
+      }),
+      db.workflow.findMany({
+        where: { organizationId },
+        select: { name: true },
+      }),
+    ]);
+  const collisions: { type: string; name: string; entity: string }[] = [];
   for (const v of existingVars)
-    collisions.push({ type: "variable", name: v.name });
+    collisions.push({
+      type: "variable",
+      name: v.name,
+      entity: "VariableDefinition",
+    });
   for (const r of existingRoles)
-    collisions.push({ type: "role", name: r.name });
+    collisions.push({ type: "role", name: r.name, entity: "CustomRole" });
+  for (const rep of manifest.assets.reports) {
+    if (existingReports.some(er => er.name === rep.localKey)) {
+      collisions.push({
+        type: "report",
+        name: rep.localKey,
+        entity: "FinancialReport",
+      });
+    }
+  }
+  for (const wf of manifest.assets.workflows) {
+    const name = wf.workflow.name;
+    if (existingWorkflows.some(ew => ew.name === name)) {
+      collisions.push({ type: "workflow", name, entity: "Workflow" });
+    }
+  }
+
+  const plan: Array<{
+    assetType: string;
+    name: string;
+    strategy: "MERGE" | "OVERWRITE" | "PREFIX";
+    reason?: string;
+  }> = [];
+  for (const c of collisions) {
+    plan.push({
+      assetType: c.type,
+      name: c.name,
+      strategy: "MERGE",
+      reason: "default",
+    });
+  }
 
   return {
     ok: issues.length === 0,
@@ -68,6 +123,7 @@ export async function preflightInstall(
     requiredIntegrations,
     requiredVariables,
     collisions,
+    plan,
   };
 }
 
@@ -116,6 +172,31 @@ export async function startInstall(
 
   try {
     await db.$transaction(async tx => {
+      type ManifestActionSubEntity = {
+        type?: string;
+        nodeId?: string;
+        integration?: { type?: string; key?: string } | null;
+        data?: Record<string, unknown>;
+      };
+
+      const getStringField = (
+        obj: Record<string, unknown>,
+        key: string,
+        fallback?: string
+      ): string | undefined => {
+        const v = obj[key];
+        return typeof v === "string" ? v : fallback;
+      };
+
+      const getJsonField = (
+        obj: Record<string, unknown>,
+        key: string
+      ): Prisma.InputJsonValue | undefined => {
+        const v = obj[key];
+        return v === undefined
+          ? undefined
+          : (JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue);
+      };
       const toJson = <T>(v: T): Prisma.InputJsonValue => {
         const serialized = JSON.stringify(v ?? {});
         return JSON.parse(serialized) as unknown as Prisma.InputJsonValue;
@@ -248,7 +329,7 @@ export async function startInstall(
         });
       }
 
-      // Workflows (basic create + graph persistence)
+      // Workflows (create + graph + action sub-entities)
       for (const wf of manifest.assets.workflows) {
         const createdWf = await tx.workflow.create({
           data: {
@@ -272,11 +353,14 @@ export async function startInstall(
             createdModel: "Workflow",
             createdId: createdWf.id,
             status: "CREATED",
-            details: toJson({}),
+            details: toJson({ name: wf.workflow.name }),
           },
         });
 
         // Helpers to narrow arbitrary records
+        // idMap for nodeId (ReactFlow) -> created row id
+        const nodeIdToRowId = new Map<string, string>();
+
         for (const rawNode of wf.nodes as unknown as Array<
           Record<string, unknown>
         >) {
@@ -288,7 +372,7 @@ export async function startInstall(
           const name = (rawNode.name as string) ?? "Node";
           const description =
             (rawNode.description as string | undefined) ?? null;
-          await tx.workflowNode.create({
+          const createdNode = await tx.workflowNode.create({
             data: {
               workflowId: createdWf.id,
               nodeId,
@@ -301,6 +385,7 @@ export async function startInstall(
               conditions: toJson(rawNode.conditions),
             },
           });
+          nodeIdToRowId.set(nodeId, createdNode.id);
         }
         for (const rawTrig of wf.triggers as unknown as Array<
           Record<string, unknown>
@@ -313,7 +398,7 @@ export async function startInstall(
           const moduleName = (rawTrig.module as string | undefined) ?? "";
           const entityType = (rawTrig.entityType as string | undefined) ?? "";
           const eventType = (rawTrig.eventType as string | undefined) ?? "";
-          await tx.workflowTrigger.create({
+          const createdTrig = await tx.workflowTrigger.create({
             data: {
               workflowId: createdWf.id,
               nodeId,
@@ -326,6 +411,17 @@ export async function startInstall(
               isActive: false,
             },
           });
+          await tx.templateInstallItem.create({
+            data: {
+              installationId: installation.id,
+              assetType: "WORKFLOW",
+              sourceKey: `${wf.localKey}:TRIGGER:${nodeId}`,
+              createdModel: "WorkflowTrigger",
+              createdId: createdTrig.id,
+              status: "CREATED",
+              details: toJson({ nodeId, type }),
+            },
+          });
         }
         for (const rawConn of wf.connections as unknown as Array<
           Record<string, unknown>
@@ -334,7 +430,7 @@ export async function startInstall(
           const targetNodeId = (rawConn.targetNodeId as string) ?? "";
           const edgeId = rawConn.edgeId as string | undefined;
           const label = (rawConn.label as string | undefined) ?? null;
-          await tx.workflowConnection.create({
+          const createdConn = await tx.workflowConnection.create({
             data: {
               workflowId: createdWf.id,
               sourceNodeId,
@@ -344,6 +440,205 @@ export async function startInstall(
               conditions: toJson(rawConn.conditions),
             },
           });
+          await tx.templateInstallItem.create({
+            data: {
+              installationId: installation.id,
+              assetType: "WORKFLOW",
+              sourceKey: `${wf.localKey}:CONNECTION:${edgeId ?? `${sourceNodeId}->${targetNodeId}`}`,
+              createdModel: "WorkflowConnection",
+              createdId: createdConn.id,
+              status: "CREATED",
+              details: toJson({ sourceNodeId, targetNodeId, edgeId }),
+            },
+          });
+        }
+
+        // Action sub-entities: resolve integration placeholders and create
+        for (const se of wf.actionSubEntities as unknown as Array<ManifestActionSubEntity>) {
+          const type = (se.type ?? "").toUpperCase();
+          const nodeId = se.nodeId ?? "";
+          const createdRowId = nodeIdToRowId.get(nodeId);
+          if (!createdRowId) continue;
+
+          // Resolve integration placeholder to config id
+          const integration = se.integration;
+          let integrationId: string | undefined;
+          if (integration?.type && integration?.key) {
+            const found = await tx.integrationConfig.findFirst({
+              where: {
+                organizationId,
+                // type is an enum in Prisma; compare as string
+                type: integration.type as unknown as Prisma.IntegrationConfigWhereInput["type"],
+                name: integration.key,
+              },
+              select: { id: true },
+            });
+            integrationId = found?.id ?? undefined;
+          }
+
+          const baseData: Record<string, unknown> = se.data ?? {};
+          const common = { actionId: createdRowId, integrationId } as {
+            actionId: string;
+            integrationId?: string;
+          };
+
+          if (type === "EMAIL") {
+            const emailData: Prisma.EmailActionUncheckedCreateInput = {
+              actionId: common.actionId,
+              integrationId: common.integrationId,
+              subject: getStringField(baseData, "subject") ?? "",
+              fromName: getStringField(baseData, "fromName"),
+              fromEmail: getStringField(baseData, "fromEmail"),
+              replyTo: getStringField(baseData, "replyTo"),
+              htmlBody: getStringField(baseData, "htmlBody"),
+              textBody: getStringField(baseData, "textBody"),
+              templateId: getStringField(baseData, "templateId"),
+              ccEmails: getJsonField(baseData, "ccEmails"),
+              bccEmails: getJsonField(baseData, "bccEmails"),
+              attachments: getJsonField(baseData, "attachments"),
+              variables: getJsonField(baseData, "variables"),
+              trackOpens:
+                (baseData.trackOpens as boolean | undefined) ?? undefined,
+              trackClicks:
+                (baseData.trackClicks as boolean | undefined) ?? undefined,
+            };
+            const created = await tx.emailAction.create({ data: emailData });
+            await tx.templateInstallItem.create({
+              data: {
+                installationId: installation.id,
+                assetType: "WORKFLOW",
+                sourceKey: `${wf.localKey}:EMAIL:${nodeId}`,
+                createdModel: "EmailAction",
+                createdId: created.id,
+                status: "CREATED",
+                details: toJson({ nodeId, type: "EMAIL" }),
+              },
+            });
+          } else if (type === "SMS") {
+            const smsData: Prisma.SmsActionUncheckedCreateInput = {
+              actionId: common.actionId,
+              integrationId: common.integrationId,
+              message: getStringField(baseData, "message") ?? "",
+              fromNumber: getStringField(baseData, "fromNumber"),
+              templateId: getStringField(baseData, "templateId"),
+              maxLength:
+                (baseData.maxLength as number | undefined) ?? undefined,
+              unicode: (baseData.unicode as boolean | undefined) ?? undefined,
+              variables: getJsonField(baseData, "variables"),
+            };
+            const created = await tx.smsAction.create({ data: smsData });
+            await tx.templateInstallItem.create({
+              data: {
+                installationId: installation.id,
+                assetType: "WORKFLOW",
+                sourceKey: `${wf.localKey}:SMS:${nodeId}`,
+                createdModel: "SmsAction",
+                createdId: created.id,
+                status: "CREATED",
+                details: toJson({ nodeId, type: "SMS" }),
+              },
+            });
+          } else if (type === "WHATSAPP") {
+            const toNumbersVal = (baseData as { toNumbers?: unknown })
+              .toNumbers;
+            const waData: Prisma.WhatsAppActionUncheckedCreateInput = {
+              actionId: common.actionId,
+              integrationId: common.integrationId,
+              toNumbers: JSON.parse(
+                JSON.stringify(toNumbersVal ?? [])
+              ) as Prisma.InputJsonValue,
+              businessAccountId: getStringField(baseData, "businessAccountId"),
+              messageType:
+                (getStringField(
+                  baseData,
+                  "messageType"
+                )?.toUpperCase() as WhatsAppMessageType) ?? "TEXT",
+              textMessage: getStringField(baseData, "textMessage"),
+              templateName: getStringField(baseData, "templateName"),
+              templateLanguage: getStringField(baseData, "templateLanguage"),
+              mediaUrl: getStringField(baseData, "mediaUrl"),
+              mediaType: getStringField(baseData, "mediaType"),
+              caption: getStringField(baseData, "caption"),
+              templateParams: getJsonField(baseData, "templateParams"),
+              variables: getJsonField(baseData, "variables"),
+            };
+            const created = await tx.whatsAppAction.create({ data: waData });
+            await tx.templateInstallItem.create({
+              data: {
+                installationId: installation.id,
+                assetType: "WORKFLOW",
+                sourceKey: `${wf.localKey}:WHATSAPP:${nodeId}`,
+                createdModel: "WhatsAppAction",
+                createdId: created.id,
+                status: "CREATED",
+                details: toJson({ nodeId, type: "WHATSAPP" }),
+              },
+            });
+          } else if (type === "SLACK") {
+            const slackData: Prisma.SlackActionUncheckedCreateInput = {
+              actionId: common.actionId,
+              integrationId: common.integrationId,
+              message: getStringField(baseData, "message") ?? "",
+              workspaceId: getStringField(baseData, "workspaceId"),
+              channel: getStringField(baseData, "channel"),
+              userId: getStringField(baseData, "userId"),
+              blocks: getJsonField(baseData, "blocks"),
+              attachments: getJsonField(baseData, "attachments"),
+              asUser: (baseData.asUser as boolean | undefined) ?? undefined,
+              username: getStringField(baseData, "username"),
+              iconEmoji: getStringField(baseData, "iconEmoji"),
+              iconUrl: getStringField(baseData, "iconUrl"),
+              threadTs: getStringField(baseData, "threadTs"),
+              replyBroadcast:
+                (baseData.replyBroadcast as boolean | undefined) ?? undefined,
+              variables: getJsonField(baseData, "variables"),
+            };
+            const created = await tx.slackAction.create({ data: slackData });
+            await tx.templateInstallItem.create({
+              data: {
+                installationId: installation.id,
+                assetType: "WORKFLOW",
+                sourceKey: `${wf.localKey}:SLACK:${nodeId}`,
+                createdModel: "SlackAction",
+                createdId: created.id,
+                status: "CREATED",
+                details: toJson({ nodeId, type: "SLACK" }),
+              },
+            });
+          } else if (type === "CALENDAR") {
+            const calData: Prisma.CalendarActionUncheckedCreateInput = {
+              actionId: common.actionId,
+              integrationId: common.integrationId,
+              title: getStringField(baseData, "title") ?? "Event",
+              startTime:
+                getStringField(baseData, "startTime") ??
+                new Date().toISOString(),
+              endTime:
+                getStringField(baseData, "endTime") ??
+                new Date(Date.now() + 3600000).toISOString(),
+              description: getStringField(baseData, "description"),
+              location: getStringField(baseData, "location"),
+              timezone: getStringField(baseData, "timezone"),
+              isAllDay: (baseData.isAllDay as boolean | undefined) ?? undefined,
+              attendees: getJsonField(baseData, "attendees"),
+              organizer: getStringField(baseData, "organizer"),
+              reminders: getJsonField(baseData, "reminders"),
+              recurrence: getJsonField(baseData, "recurrence"),
+              variables: getJsonField(baseData, "variables"),
+            };
+            const created = await tx.calendarAction.create({ data: calData });
+            await tx.templateInstallItem.create({
+              data: {
+                installationId: installation.id,
+                assetType: "WORKFLOW",
+                sourceKey: `${wf.localKey}:CALENDAR:${nodeId}`,
+                createdModel: "CalendarAction",
+                createdId: created.id,
+                status: "CREATED",
+                details: toJson({ nodeId, type: "CALENDAR" }),
+              },
+            });
+          }
         }
       }
     });

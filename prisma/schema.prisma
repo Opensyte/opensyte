@@ -119,6 +119,7 @@ model Organization {
   integrationConfigs  IntegrationConfig[]
   templatePackages    TemplatePackage[]
   templateInstallations TemplateInstallation[]
+  uiConfigs           OrganizationUiConfig[]
 }
 
 model UserOrganization {
@@ -1405,6 +1406,24 @@ model Workflow {
   @@index([status])
   @@index([category])
   @@index([createdById])
+}
+
+// ==============================
+// UI Configuration Store
+// ==============================
+
+model OrganizationUiConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  config         Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
 }
 
 enum WorkflowStatus {

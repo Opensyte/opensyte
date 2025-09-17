@@ -65,7 +65,12 @@ export const ManifestWorkflowSchema = z.object({
       z.object({
         // e.g., EmailAction, SmsAction payloads with integration placeholders
         type: z.string().min(1),
-        config: z.record(z.unknown()),
+        nodeId: z.string().min(1),
+        integration: z
+          .object({ type: z.string().min(1), key: z.string().min(1) })
+          .nullable()
+          .optional(),
+        data: z.record(z.unknown()),
       })
     )
     .optional()

@@ -23,7 +23,6 @@ import {
   Trash2,
   Shield,
   AlertTriangle,
-  Settings,
   Copy,
   Check,
 } from "lucide-react";
@@ -102,22 +101,7 @@ export function GeneralSettingsClient() {
         PERMISSIONS.SETTINGS_ADMIN,
       ]}
     >
-      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-6xl">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-                <Settings className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold">General Settings</h1>
-                <p className="text-muted-foreground">
-                  Manage your organization information and preferences
-                </p>
-              </div>
-            </div>
-          </div>{" "}
+      <div className="space-y-6">
           {orgLoading ? (
             <div className="space-y-6">
               <Card>
@@ -303,19 +287,18 @@ export function GeneralSettingsClient() {
               )}
             </>
           )}
-        </div>
+        
+        {/* Delete Organization Dialog */}
+        <DeleteOrganizationDialog
+          organization={organization}
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onSuccess={() => {
+            toast.success("Organization deleted successfully");
+            router.push("/");
+          }}
+        />
       </div>
-
-      {/* Delete Organization Dialog */}
-      <DeleteOrganizationDialog
-        organization={organization}
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onSuccess={() => {
-          toast.success("Organization deleted successfully");
-          router.push("/");
-        }}
-      />
     </ClientPermissionGuard>
   );
 }

@@ -9,6 +9,12 @@ import type {
   WorkflowConnection,
   WorkflowNode,
   WorkflowTrigger,
+  EmailAction,
+  SmsAction,
+  WhatsAppAction,
+  SlackAction,
+  CalendarAction,
+  IntegrationConfig,
 } from "@prisma/client";
 import { db } from "~/server/db";
 import {
@@ -188,6 +194,45 @@ export async function exportTemplateManifest(
     permissions: r.permissions.map(p => p.permission.name),
   }));
 
+  // Preload action sub-entities and integration configs for workflows
+  const allNodeRowIds = workflows.flatMap(w => w.nodes.map(n => n.id));
+  const [emailActs, smsActs, waActs, slackActs, calActs] = await Promise.all([
+    db.emailAction.findMany({ where: { actionId: { in: allNodeRowIds } } }),
+    db.smsAction.findMany({ where: { actionId: { in: allNodeRowIds } } }),
+    db.whatsAppAction.findMany({ where: { actionId: { in: allNodeRowIds } } }),
+    db.slackAction.findMany({ where: { actionId: { in: allNodeRowIds } } }),
+    db.calendarAction.findMany({ where: { actionId: { in: allNodeRowIds } } }),
+  ]);
+
+  const integrationIds = new Set<string>();
+  for (const a of emailActs)
+    if (a.integrationId) integrationIds.add(a.integrationId);
+  for (const a of smsActs)
+    if (a.integrationId) integrationIds.add(a.integrationId);
+  for (const a of waActs)
+    if (a.integrationId) integrationIds.add(a.integrationId);
+  for (const a of slackActs)
+    if (a.integrationId) integrationIds.add(a.integrationId);
+  for (const a of calActs)
+    if (a.integrationId) integrationIds.add(a.integrationId);
+  const integrations: Pick<IntegrationConfig, "id" | "name" | "type">[] =
+    integrationIds.size
+      ? await db.integrationConfig.findMany({
+          where: { id: { in: Array.from(integrationIds) } },
+          select: { id: true, name: true, type: true },
+        })
+      : [];
+  const integrationById = new Map<
+    string,
+    { type: IntegrationTypeType; key: string }
+  >();
+  for (const i of integrations) {
+    integrationById.set(i.id, {
+      type: i.type as unknown as IntegrationTypeType,
+      key: i.name,
+    });
+  }
+
   // Workflows
   const workflowAssets = workflows.map((w, idx) => {
     const localKey = deterministicLocalKey("wf", idx + 1, w.name);
@@ -223,6 +268,72 @@ export async function exportTemplateManifest(
         conditions: c.conditions as unknown as Record<string, unknown>,
       })
     );
+    // Action sub-entities for this workflow's nodes
+    const nodeRowIdByNodeId = new Map<string, string>();
+    for (const n of w.nodes) nodeRowIdByNodeId.set(n.id, n.nodeId);
+
+    const actionSubEntities: Array<{
+      type: string;
+      nodeId: string;
+      integration?: { type: IntegrationTypeType; key: string } | null;
+      data: Record<string, unknown>;
+    }> = [];
+    const toPlaceholder = (integrationId?: string | null) =>
+      integrationId ? (integrationById.get(integrationId) ?? null) : null;
+
+    const pushEntity = (
+      type: string,
+      rec:
+        | EmailAction
+        | SmsAction
+        | WhatsAppAction
+        | SlackAction
+        | CalendarAction
+    ) => {
+      const placeholder = toPlaceholder(rec.integrationId);
+      if (placeholder) {
+        if (
+          !requiresIntegrations.some(
+            r => r.type === placeholder.type && r.key === placeholder.key
+          )
+        ) {
+          requiresIntegrations.push({
+            type: placeholder.type,
+            key: placeholder.key,
+          });
+        }
+      }
+      const {
+        id: _id,
+        actionId: _actionId,
+        integrationId: _intId,
+        createdAt: _ca,
+        updatedAt: _ua,
+        ...rest
+      } = rec as unknown as Record<string, unknown>;
+      const nodeId =
+        nodeRowIdByNodeId.get(
+          (rec as unknown as { actionId: string }).actionId
+        ) ?? "";
+      actionSubEntities.push({
+        type,
+        nodeId,
+        integration: placeholder,
+        data: scrubPII(rest) as Record<string, unknown>,
+      });
+    };
+
+    for (const a of emailActs.filter(a => nodeRowIdByNodeId.has(a.actionId)))
+      pushEntity("EMAIL", a);
+    for (const a of smsActs.filter(a => nodeRowIdByNodeId.has(a.actionId)))
+      pushEntity("SMS", a);
+    for (const a of waActs.filter(a => nodeRowIdByNodeId.has(a.actionId)))
+      pushEntity("WHATSAPP", a);
+    for (const a of slackActs.filter(a => nodeRowIdByNodeId.has(a.actionId)))
+      pushEntity("SLACK", a);
+    for (const a of calActs.filter(a => nodeRowIdByNodeId.has(a.actionId)))
+      pushEntity("CALENDAR", a);
+
     return {
       localKey,
       workflow: {
@@ -236,7 +347,7 @@ export async function exportTemplateManifest(
       nodes: nodes.map(n => scrubPII(n) as Record<string, unknown>),
       triggers: triggers.map(t => scrubPII(t) as Record<string, unknown>),
       connections: connections.map(c => scrubPII(c) as Record<string, unknown>),
-      actionSubEntities: [],
+      actionSubEntities,
     };
   });
 
@@ -284,10 +395,21 @@ export async function exportTemplateManifest(
     ...orgActionTemplateAssets,
   ];
 
-  // Placeholder for UI layouts (phase 1 JSON only)
+  // UI layouts: export selected keys from OrganizationUiConfig
   const uiLayouts: Record<string, unknown> = {};
+  if (selection.uiLayoutKeys.length) {
+    const rows = await db.organizationUiConfig.findMany({
+      where: { organizationId, key: { in: selection.uiLayoutKeys } },
+      select: { key: true, config: true },
+    });
+    for (const r of rows)
+      uiLayouts[r.key] = scrubPII(r.config as unknown) as Record<
+        string,
+        unknown
+      >;
+  }
 
-  // Data seeds - phase 1: none by default
+  // Data seeds - minimal sanitized seeds with localKey references (cap counts)
   const dataSeeds: Record<string, unknown> = {};
 
   const manifest: TemplateManifest = {

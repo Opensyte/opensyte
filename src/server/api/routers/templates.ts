@@ -15,6 +15,8 @@ import {
 import {
   startInstall,
   StartInstallSchema,
+  preflightInstall,
+  InstallPreflightSchema,
 } from "~/lib/services/templates-installer";
 
 const toInputJson = <T>(v: T): Prisma.InputJsonValue =>
@@ -144,6 +146,13 @@ export const templatesRouter = createTRPCRouter({
       await ctx.requirePermission(input.organizationId);
       const manifest = await exportTemplateManifest(input);
       return manifest;
+    }),
+
+  preflight: createPermissionProcedure(PERMISSIONS.TEMPLATES_WRITE)
+    .input(InstallPreflightSchema)
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
+      return preflightInstall(input);
     }),
 
   startInstall: createPermissionProcedure(PERMISSIONS.TEMPLATES_WRITE)
