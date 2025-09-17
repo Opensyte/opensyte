@@ -12,12 +12,12 @@ import { Resend } from "resend";
 import { env } from "~/env";
 import { render } from "@react-email/components";
 import { InvoiceEmail } from "~/server/email/templates/invoice-email";
-<<<<<<< HEAD
-import { formatCurrency, formatDecimal } from "~/server/utils/format";
-=======
-import { formatDecimalLike } from "~/server/utils/format";
+import {
+  formatCurrency,
+  formatDecimal,
+  formatDecimalLike,
+} from "~/server/utils/format";
 import { WorkflowEvents } from "~/lib/workflow-dispatcher";
->>>>>>> upstream/main
 
 // Shared schemas for better reusability and consistency
 const invoiceItemSchema = z.object({
