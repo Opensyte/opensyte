@@ -3,12 +3,7 @@ import { SettingsPermissionWrapper } from "~/components/shared/wrappers/settings
 import { Suspense } from "react";
 import { Settings, Building2 } from "lucide-react";
 
-export default async function GeneralSettingsPage({
-  params,
-}: {
-  params: Promise<{ orgId: string }>;
-}) {
-  const { orgId } = await params;
+export default async function GeneralSettingsPage() {
   return (
     <SettingsPermissionWrapper>
       <div className="max-w-7xl mx-auto space-y-8 px-4 py-6 sm:px-6 lg:px-8">

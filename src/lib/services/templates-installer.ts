@@ -3,7 +3,6 @@ import type {
   Prisma,
   VariableDataType,
   VariableScope,
-  IntegrationType,
   WhatsAppMessageType,
 } from "@prisma/client";
 import { db } from "~/server/db";

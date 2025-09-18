@@ -34,7 +34,6 @@ import {
   AlertCircle,
   Info,
   MapPin,
-  Database,
   Workflow,
   Zap,
   RefreshCw,
@@ -60,9 +59,6 @@ export function TemplateInstallDialog({
   );
   const [namePrefix, setNamePrefix] = useState("");
   const [integrationMap, setIntegrationMap] = useState<Record<string, string>>(
-    {}
-  );
-  const [variableValues, setVariableValues] = useState<Record<string, string>>(
     {}
   );
 
@@ -96,14 +92,6 @@ export function TemplateInstallDialog({
       );
     }, [manifest]);
 
-  const requiredVariables: string[] = useMemo(() => {
-    if (!manifest) return [];
-    const names = new Set<string>();
-    manifest.requires.variables.forEach(v => names.add(v.name));
-    manifest.assets.variables.forEach(v => names.add(v.name));
-    return Array.from(names);
-  }, [manifest]);
-
   // Integration options
   const integrationsQuery = api.workflows.integrations.getIntegrations.useQuery(
     { organizationId },
@@ -118,7 +106,6 @@ export function TemplateInstallDialog({
   useEffect(() => {
     if (!open) {
       setIntegrationMap({});
-      setVariableValues({});
       setInstallationId(null);
       setNamePrefix("");
       setStrategy("MERGE");
@@ -131,18 +118,8 @@ export function TemplateInstallDialog({
     const integrationsOk = requiredIntegrations.every(
       req => !!integrationMap[`${req.type}:${req.key}`]
     );
-    // Ensure required variables have a value
-    const variablesOk = requiredVariables.every(
-      name => (variableValues[name]?.trim()?.length ?? 0) > 0
-    );
-    return integrationsOk && variablesOk;
-  }, [
-    manifest,
-    requiredIntegrations,
-    integrationMap,
-    requiredVariables,
-    variableValues,
-  ]);
+    return integrationsOk;
+  }, [manifest, requiredIntegrations, integrationMap]);
 
   const beginInstall = async () => {
     if (!manifest) return;
@@ -270,15 +247,6 @@ export function TemplateInstallDialog({
                       </div>
                     </div>
                     <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg">
-                      <Database className="h-5 w-5 mx-auto mb-1 text-orange-600" />
-                      <div className="text-sm font-medium">
-                        {requiredVariables.length}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Variables
-                      </div>
-                    </div>
-                    <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg">
                       <Workflow className="h-5 w-5 mx-auto mb-1 text-green-600" />
                       <div className="text-sm font-medium">
                         {(manifest.assets.workflows?.length ?? 0) +
@@ -355,63 +323,6 @@ export function TemplateInstallDialog({
                                 ))}
                               </SelectContent>
                             </Select>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Variables Section */}
-              <Card className="border-2 border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/20">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Database className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    <CardTitle className="text-lg">
-                      Configuration Variables
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {requiredVariables.length === 0 ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      No configuration variables required for this template.
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Provide values for the required configuration variables.
-                      </p>
-                      {requiredVariables.map(name => {
-                        const hasValue =
-                          (variableValues[name]?.trim()?.length ?? 0) > 0;
-                        return (
-                          <div key={name} className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`h-2 w-2 rounded-full ${hasValue ? "bg-green-500" : "bg-red-500"}`}
-                              />
-                              <label
-                                className="text-sm font-medium"
-                                htmlFor={`var-${name}`}
-                              >
-                                {name}
-                              </label>
-                            </div>
-                            <Input
-                              id={`var-${name}`}
-                              value={variableValues[name] ?? ""}
-                              onChange={e =>
-                                setVariableValues(prev => ({
-                                  ...prev,
-                                  [name]: e.target.value,
-                                }))
-                              }
-                              placeholder={`Enter value for ${name}`}
-                              className={`w-full ${hasValue ? "border-green-300" : "border-red-300"}`}
-                            />
                           </div>
                         );
                       })}

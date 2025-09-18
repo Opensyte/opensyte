@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { PERMISSIONS } from "~/lib/rbac";
 import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
@@ -34,6 +35,12 @@ import {
   Sparkles,
   Tag,
   Info,
+  Eye,
+  Workflow,
+  BarChart3,
+  Settings,
+  Shield,
+  FileText,
 } from "lucide-react";
 
 type TemplatesGalleryClientProps = {
@@ -43,6 +50,7 @@ type TemplatesGalleryClientProps = {
 export function TemplatesGalleryClient({
   organizationId,
 }: TemplatesGalleryClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [moduleFilter, setModuleFilter] = useState<string>("all");
@@ -110,6 +118,10 @@ export function TemplatesGalleryClient({
   const onInstall = (templateId: string) => {
     setSelectedTemplateId(templateId);
     setInstallOpen(true);
+  };
+
+  const onView = (templateId: string) => {
+    router.push(`/${organizationId}/templates/${templateId}`);
   };
 
   if (error) {
@@ -359,7 +371,7 @@ export function TemplatesGalleryClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
               {templates.map(t => {
                 const parsed = TemplateManifestSchema.safeParse(
                   (t as unknown as { manifest?: unknown }).manifest
@@ -369,6 +381,28 @@ export function TemplatesGalleryClient({
                   : [];
                 const templateTags = (t.tags as string[] | undefined) ?? [];
 
+                // Calculate asset counts from manifest
+                const assetCounts = parsed.success
+                  ? {
+                      workflows: parsed.data.assets.workflows.length,
+                      reports: parsed.data.assets.reports.length,
+                      actionTemplates:
+                        parsed.data.assets.actionTemplates.length,
+                      roles: parsed.data.assets.rbac.roles.length,
+                      projects: parsed.data.assets.projects?.length ?? 0,
+                      invoices: parsed.data.assets.invoices?.length ?? 0,
+                    }
+                  : null;
+
+                const totalAssets = assetCounts
+                  ? assetCounts.workflows +
+                    assetCounts.reports +
+                    assetCounts.actionTemplates +
+                    assetCounts.roles +
+                    assetCounts.projects +
+                    assetCounts.invoices
+                  : 0;
+
                 return (
                   <div
                     key={t.id}
@@ -376,7 +410,7 @@ export function TemplatesGalleryClient({
                   >
                     {/* Template Header */}
                     <div className="p-6 pb-4">
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between mb-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <h4 className="font-semibold text-foreground truncate text-lg">
@@ -391,17 +425,101 @@ export function TemplatesGalleryClient({
                               </Badge>
                             )}
                           </div>
-                          <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
-                            {t.description ?? "No description available"}
-                          </p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Package className="h-4 w-4" />
+                              <span>{totalAssets} assets</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <GitBranch className="h-4 w-4" />
+                              <span
+                                className={`px-2 py-1 rounded text-xs ${
+                                  t.status === "PUBLISHED"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                }`}
+                              >
+                                {t.status ?? "Draft"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs font-mono shrink-0 ml-3"
-                        >
-                          v{t.version ?? "1.0.0"}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-mono shrink-0"
+                          >
+                            v{t.version ?? "1.0.0"}
+                          </Badge>
+                        </div>
                       </div>
+                      {/* Asset Breakdown */}
+                      {assetCounts && totalAssets > 0 && (
+                        <div className="mb-4">
+                          <div className="flex items-center gap-1 mb-2">
+                            <Package className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Included Assets
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {assetCounts.workflows > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Workflow className="h-3 w-3 text-blue-600" />
+                                <span>
+                                  {assetCounts.workflows} Workflow
+                                  {assetCounts.workflows !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
+                            {assetCounts.reports > 0 && (
+                              <div className="flex items-center gap-1">
+                                <BarChart3 className="h-3 w-3 text-green-600" />
+                                <span>
+                                  {assetCounts.reports} Report
+                                  {assetCounts.reports !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
+                            {assetCounts.actionTemplates > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Settings className="h-3 w-3 text-purple-600" />
+                                <span>
+                                  {assetCounts.actionTemplates} Action
+                                  {assetCounts.actionTemplates !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
+                            {assetCounts.roles > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Shield className="h-3 w-3 text-rose-600" />
+                                <span>
+                                  {assetCounts.roles} Role
+                                  {assetCounts.roles !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
+                            {assetCounts.projects > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Package className="h-3 w-3 text-indigo-600" />
+                                <span>
+                                  {assetCounts.projects} Project
+                                  {assetCounts.projects !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
+                            {assetCounts.invoices > 0 && (
+                              <div className="flex items-center gap-1">
+                                <FileText className="h-3 w-3 text-orange-600" />
+                                <span>
+                                  {assetCounts.invoices} Invoice
+                                  {assetCounts.invoices !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Compatible Modules */}
                       {compatibleModules.length > 0 && (
@@ -471,26 +589,38 @@ export function TemplatesGalleryClient({
                       </div>
                     </div>
 
-                    {/* Install Button */}
-                    <div className="px-6 pb-6">
-                      <ClientPermissionGuard
-                        requiredPermissions={[PERMISSIONS.TEMPLATES_WRITE]}
-                        fallback={
-                          <div className="text-center py-3">
-                            <p className="text-xs text-muted-foreground">
-                              Installation requires write permissions
-                            </p>
-                          </div>
-                        }
-                      >
+                    {/* Action Buttons */}
+                    <div className="border-t bg-muted/30 px-6 py-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
                         <Button
-                          onClick={() => onInstall(t.id)}
-                          className="w-full gap-2"
+                          variant="outline"
+                          onClick={() => onView(t.id)}
+                          className="w-full sm:w-auto gap-2 hover:bg-background"
                         >
-                          <Download className="h-4 w-4" />
-                          Install Template
+                          <Eye className="h-4 w-4" />
+                          View Details
                         </Button>
-                      </ClientPermissionGuard>
+                        <ClientPermissionGuard
+                          requiredPermissions={[PERMISSIONS.TEMPLATES_WRITE]}
+                          fallback={
+                            <Button
+                              variant="outline"
+                              disabled
+                              className="w-full sm:w-auto text-xs"
+                            >
+                              Installation requires write permissions
+                            </Button>
+                          }
+                        >
+                          <Button
+                            onClick={() => onInstall(t.id)}
+                            className="w-full sm:w-auto gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            Install Template
+                          </Button>
+                        </ClientPermissionGuard>
+                      </div>
                     </div>
                   </div>
                 );

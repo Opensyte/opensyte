@@ -4,7 +4,6 @@ import type {
   CustomRole,
   CustomRolePermission,
   FinancialReport,
-  VariableDefinition,
   Workflow,
   WorkflowConnection,
   WorkflowNode,
@@ -15,17 +14,17 @@ import type {
   SlackAction,
   CalendarAction,
   IntegrationConfig,
+  Project,
+  Task,
+  Invoice,
+  InvoiceItem,
 } from "@prisma/client";
 import { db } from "~/server/db";
 import {
   TemplateManifestSchema,
   type TemplateManifest,
 } from "~/types/templates";
-import {
-  type IntegrationTypeType,
-  type VariableDataTypeType,
-  type VariableScopeType,
-} from "../../../prisma/generated/zod";
+import { type IntegrationTypeType } from "../../../prisma/generated/zod";
 
 export const ExportSelectionSchema = z.object({
   organizationId: z.string().cuid(),
@@ -33,8 +32,9 @@ export const ExportSelectionSchema = z.object({
     workflowIds: z.array(z.string().cuid()).default([]),
     reportIds: z.array(z.string().cuid()).default([]),
     actionTemplateIds: z.array(z.string()).default([]), // cuid or sys_*
-    variableNames: z.array(z.string()).default([]),
     roleNames: z.array(z.string()).default([]),
+    projectIds: z.array(z.string().cuid()).default([]),
+    invoiceTemplateIds: z.array(z.string().cuid()).default([]),
     includeSeeds: z.boolean().optional().default(false),
     uiLayoutKeys: z.array(z.string()).default([]),
   }),
@@ -87,7 +87,7 @@ export async function exportTemplateManifest(
     ExportSelectionSchema.parse(input);
 
   // Collect assets scoped to org
-  const [workflows, reports, orgActionTemplates, variables, roles] =
+  const [workflows, reports, orgActionTemplates, roles, projects, invoices] =
     await Promise.all([
       selection.workflowIds.length
         ? db.workflow.findMany({
@@ -119,11 +119,6 @@ export async function exportTemplateManifest(
             },
           })
         : Promise.resolve([] as ActionTemplate[]),
-      selection.variableNames.length
-        ? db.variableDefinition.findMany({
-            where: { organizationId, name: { in: selection.variableNames } },
-          })
-        : Promise.resolve([] as VariableDefinition[]),
       selection.roleNames.length
         ? db.customRole.findMany({
             where: { organizationId, name: { in: selection.roleNames } },
@@ -140,6 +135,18 @@ export async function exportTemplateManifest(
               }
             >
           ),
+      selection.projectIds.length
+        ? db.project.findMany({
+            where: { id: { in: selection.projectIds }, organizationId },
+            include: { tasks: true },
+          })
+        : Promise.resolve([] as Array<Project & { tasks: Task[] }>),
+      selection.invoiceTemplateIds.length
+        ? db.invoice.findMany({
+            where: { id: { in: selection.invoiceTemplateIds }, organizationId },
+            include: { items: true },
+          })
+        : Promise.resolve([] as Array<Invoice & { items: InvoiceItem[] }>),
     ]);
 
   // Build manifest
@@ -158,25 +165,6 @@ export async function exportTemplateManifest(
     type: IntegrationTypeType;
     key: string;
   }> = [];
-  const requiresVariables: Array<{
-    name: string;
-    dataType: VariableDataTypeType;
-    scope: VariableScopeType;
-    required: boolean;
-    defaultValue?: string;
-  }> = [];
-
-  // Variables
-  for (const v of variables) {
-    requiresVariables.push({
-      name: v.name,
-      dataType:
-        v.dataType as unknown as (typeof requiresVariables)[number]["dataType"],
-      scope: v.scope as unknown as (typeof requiresVariables)[number]["scope"],
-      required: v.isRequired ?? false,
-      defaultValue: v.defaultValue ?? undefined,
-    });
-  }
 
   // Roles
   const rbacRoles = (
@@ -303,18 +291,15 @@ export async function exportTemplateManifest(
           });
         }
       }
-      const {
-        id: _id,
-        actionId: _actionId,
-        integrationId: _intId,
-        createdAt: _ca,
-        updatedAt: _ua,
-        ...rest
-      } = rec as unknown as Record<string, unknown>;
-      const nodeId =
-        nodeRowIdByNodeId.get(
-          (rec as unknown as { actionId: string }).actionId
-        ) ?? "";
+      const raw = rec as Record<string, unknown>;
+      const rest: Record<string, unknown> = { ...raw };
+      delete rest.id;
+      delete rest.actionId;
+      delete rest.integrationId;
+      delete rest.createdAt;
+      delete rest.updatedAt;
+      const nodeIdKey = typeof raw.actionId === "string" ? raw.actionId : "";
+      const nodeId = nodeRowIdByNodeId.get(nodeIdKey) ?? "";
       actionSubEntities.push({
         type,
         nodeId,
@@ -354,6 +339,8 @@ export async function exportTemplateManifest(
   // Reports
   const reportAssets = reports.map((r, idx) => ({
     localKey: deterministicLocalKey("rep", idx + 1, r.name),
+    name: r.name,
+    description: r.description ?? undefined,
     template: scrubPII(r.template as unknown) as Record<string, unknown>,
     filters: scrubPII((r.filters as unknown) ?? {}) as Record<string, unknown>,
     dateRange: scrubPII((r.dateRange as unknown) ?? {}) as Record<
@@ -395,6 +382,56 @@ export async function exportTemplateManifest(
     ...orgActionTemplateAssets,
   ];
 
+  // Projects
+  const projectAssets = projects.map((p, idx) => ({
+    localKey: deterministicLocalKey("proj", idx + 1, p.name),
+    name: p.name,
+    description: p.description ?? undefined,
+    status: p.status as
+      | "PLANNED"
+      | "IN_PROGRESS"
+      | "ON_HOLD"
+      | "COMPLETED"
+      | "CANCELLED",
+    budget: p.budget ? Number(p.budget) : undefined,
+    currency: p.currency,
+    tasks: p.tasks.map(task => ({
+      title: task.title,
+      description: task.description ?? undefined,
+      status: task.status as
+        | "BACKLOG"
+        | "TODO"
+        | "IN_PROGRESS"
+        | "REVIEW"
+        | "DONE"
+        | "ARCHIVED",
+      priority: task.priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
+      estimatedHours: task.estimatedHours
+        ? Number(task.estimatedHours)
+        : undefined,
+    })),
+  }));
+
+  // Invoices
+  const invoiceAssets = invoices.map((inv, idx) => ({
+    localKey: deterministicLocalKey("inv", idx + 1, inv.invoiceNumber),
+    invoiceNumber: inv.invoiceNumber,
+    template: {
+      paymentTerms: inv.paymentTerms,
+      currency: inv.currency,
+      taxRate: Number(inv.taxAmount),
+      logo: inv.logoUrl ?? undefined,
+      termsAndConditions: inv.termsAndConditions ?? undefined,
+      footer: inv.footer ?? undefined,
+    },
+    items: inv.items.map(item => ({
+      description: item.description,
+      unitPrice: Number(item.unitPrice),
+      quantity: Number(item.quantity),
+      taxRate: Number(item.taxRate),
+    })),
+  }));
+
   // UI layouts: export selected keys from OrganizationUiConfig
   const uiLayouts: Record<string, unknown> = {};
   if (selection.uiLayoutKeys.length) {
@@ -417,16 +454,18 @@ export async function exportTemplateManifest(
     requires: {
       permissions: requiresPermissions,
       integrations: requiresIntegrations,
-      variables: requiresVariables,
+      variables: [],
     },
     assets: {
       workflows: workflowAssets,
       actionTemplates: actionTemplateAssets,
       reports: reportAssets,
+      projects: projectAssets,
+      invoices: invoiceAssets,
       uiLayouts:
         uiLayouts as unknown as TemplateManifest["assets"]["uiLayouts"],
       rbac: { roles: rbacRoles },
-      variables: requiresVariables,
+      variables: [],
       dataSeeds:
         dataSeeds as unknown as TemplateManifest["assets"]["dataSeeds"],
     },

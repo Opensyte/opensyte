@@ -94,9 +94,67 @@ export const ManifestActionTemplateSchema = z.object({
 
 export const ManifestReportSchema = z.object({
   localKey: z.string().min(1),
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
   template: z.record(z.unknown()),
   filters: z.record(z.unknown()).optional(),
   dateRange: z.record(z.unknown()).optional(),
+});
+
+export const ManifestProjectSchema = z.object({
+  localKey: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  status: z
+    .enum(["PLANNED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED"])
+    .optional(),
+  budget: z.number().optional(),
+  currency: z.string().default("USD"),
+  tasks: z
+    .array(
+      z.object({
+        title: z.string().min(1),
+        description: z.string().optional(),
+        status: z
+          .enum([
+            "BACKLOG",
+            "TODO",
+            "IN_PROGRESS",
+            "REVIEW",
+            "DONE",
+            "ARCHIVED",
+          ])
+          .optional(),
+        priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
+        estimatedHours: z.number().optional(),
+      })
+    )
+    .optional()
+    .default([]),
+});
+
+export const ManifestInvoiceSchema = z.object({
+  localKey: z.string().min(1),
+  invoiceNumber: z.string().optional(),
+  template: z.object({
+    paymentTerms: z.string().default("Net 30"),
+    currency: z.string().default("USD"),
+    taxRate: z.number().default(0),
+    logo: z.string().optional(),
+    termsAndConditions: z.string().optional(),
+    footer: z.string().optional(),
+  }),
+  items: z
+    .array(
+      z.object({
+        description: z.string().min(1),
+        unitPrice: z.number(),
+        quantity: z.number().default(1),
+        taxRate: z.number().optional(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export const ManifestUiLayoutsSchema = z.object({
@@ -134,6 +192,8 @@ export const TemplateManifestSchema = z
       workflows: z.array(ManifestWorkflowSchema).default([]),
       actionTemplates: z.array(ManifestActionTemplateSchema).default([]),
       reports: z.array(ManifestReportSchema).default([]),
+      projects: z.array(ManifestProjectSchema).default([]),
+      invoices: z.array(ManifestInvoiceSchema).default([]),
       uiLayouts: ManifestUiLayoutsSchema.optional().default({}),
       rbac: z
         .object({ roles: z.array(ManifestRoleSchema).default([]) })
@@ -147,3 +207,5 @@ export const TemplateManifestSchema = z
 export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
 export type ManifestWorkflow = z.infer<typeof ManifestWorkflowSchema>;
 export type ManifestRole = z.infer<typeof ManifestRoleSchema>;
+export type ManifestProject = z.infer<typeof ManifestProjectSchema>;
+export type ManifestInvoice = z.infer<typeof ManifestInvoiceSchema>;

@@ -1348,6 +1348,8 @@ enum TemplateAssetType {
   VARIABLE        // Variable definitions
   ACTION_TEMPLATE // Action template definitions
   DATA_SEED       // Sample/seed data
+  PROJECT         // Project templates with tasks
+  INVOICE         // Invoice templates and configurations
 }
 
 enum TemplateItemStatus {

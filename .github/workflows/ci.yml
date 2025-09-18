@@ -12,6 +12,7 @@ jobs:
     env:
       # Skip environment validation during CI
       SKIP_ENV_VALIDATION: true
+      NODE_OPTIONS: --max-old-space-size=8096
 
     steps:
       - name: Checkout repository

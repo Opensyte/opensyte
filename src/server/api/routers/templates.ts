@@ -69,6 +69,7 @@ export const templatesRouter = createTRPCRouter({
         description: z.string().optional(),
         category: z.string().optional(),
         version: z.string().regex(/^\d+\.\d+\.\d+$/),
+        status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
         iconUrl: z.string().url().optional(),
         tags: z.array(z.string()).optional(),
         manifest: TemplateManifestSchema,
@@ -84,7 +85,7 @@ export const templatesRouter = createTRPCRouter({
           category: input.category ?? null,
           version: input.version,
           visibility: "PRIVATE",
-          status: "DRAFT",
+          status: input.status ?? "DRAFT",
           iconUrl: input.iconUrl ?? null,
           tags: input.tags ?? [],
           manifest: toInputJson(input.manifest),
@@ -96,6 +97,56 @@ export const templatesRouter = createTRPCRouter({
         },
       });
       return created;
+    }),
+
+  updatePackage: createPermissionProcedure(PERMISSIONS.TEMPLATES_WRITE)
+    .input(
+      z.object({
+        templatePackageId: z.string().cuid(),
+        name: z.string().min(1),
+        description: z.string().optional(),
+        category: z.string().optional(),
+        version: z.string().regex(/^\d+\.\d+\.\d+$/),
+        status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+        iconUrl: z.string().url().optional(),
+        tags: z.array(z.string()).optional(),
+        manifest: TemplateManifestSchema,
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Find the template package and verify ownership
+      const pkg = await ctx.db.templatePackage.findFirst({
+        where: {
+          id: input.templatePackageId,
+        },
+      });
+
+      if (!pkg) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Check permission for the organization that owns this template
+      await ctx.requirePermission(pkg.organizationId!);
+
+      const updated = await ctx.db.templatePackage.update({
+        where: { id: input.templatePackageId },
+        data: {
+          name: input.name,
+          description: input.description ?? null,
+          category: input.category ?? null,
+          version: input.version,
+          status: input.status ?? pkg.status,
+          iconUrl: input.iconUrl ?? pkg.iconUrl ?? null,
+          tags: input.tags ?? (pkg.tags as string[]),
+          manifest: toInputJson(input.manifest),
+          assetsCount:
+            (input.manifest.assets.workflows?.length ?? 0) +
+            (input.manifest.assets.actionTemplates?.length ?? 0) +
+            (input.manifest.assets.reports?.length ?? 0) +
+            (input.manifest.assets.projects?.length ?? 0) +
+            (input.manifest.assets.invoices?.length ?? 0),
+          updatedAt: new Date(),
+        },
+      });
+      return updated;
     }),
 
   createVersion: createPermissionProcedure(PERMISSIONS.TEMPLATES_WRITE)
