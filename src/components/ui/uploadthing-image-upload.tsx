@@ -40,16 +40,6 @@ export function UploadThingImageUpload({
   // Get endpoint-specific config
   const getEndpointConfig = () => {
     switch (endpoint) {
-      case "organizationLogo":
-        return {
-          maxSize: "4MB",
-          types: ["PNG", "JPG", "JPEG", "WEBP", "SVG"],
-        };
-      case "userAvatar":
-        return {
-          maxSize: "2MB",
-          types: ["PNG", "JPG", "JPEG", "WEBP"],
-        };
       case "documentUpload":
         return {
           maxSize: "10MB",

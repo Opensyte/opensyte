@@ -37,20 +37,6 @@ To get this value:
 
 The UploadThing file router is configured in `src/server/uploadthing.ts` with the following endpoints:
 
-#### Organization Logo (`organizationLogo`)
-
-- **Max Size**: 4MB
-- **File Types**: JPEG, PNG, WebP, SVG
-- **Authentication**: Required
-- **Use Case**: Organization profile logos
-
-#### User Avatar (`userAvatar`)
-
-- **Max Size**: 2MB
-- **File Types**: JPEG, PNG, WebP
-- **Authentication**: Required
-- **Use Case**: User profile pictures
-
 #### Document Upload (`documentUpload`)
 
 - **Max Size**: 8MB per file (up to 5 files)
@@ -73,7 +59,7 @@ import { UploadThingImageUpload } from "~/components/ui/uploadthing-image-upload
   disabled={false}
   label="Organization Logo"
   description="Upload a logo for your organization"
-  endpoint="organizationLogo"
+  endpoint="documentUpload"
 />;
 ```
 
@@ -94,7 +80,7 @@ For custom implementations, you can use the raw UploadDropzone:
 import { UploadDropzone } from "~/lib/uploadthing";
 
 <UploadDropzone
-  endpoint="organizationLogo"
+  endpoint="documentUpload"
   onClientUploadComplete={res => {
     console.log("Files: ", res);
     setImageUrl(res[0]?.url);
@@ -124,8 +110,8 @@ import {
 } from "~/lib/uploadthing";
 
 // Get configuration for an endpoint
-const config = getUploadConfig("organizationLogo");
-// Returns: { maxFileSize: "4MB", acceptedTypes: ["image/*"], endpoint: "organizationLogo" }
+const config = getUploadConfig("documentUpload");
+// Returns: { maxFileSize: "4MB", acceptedTypes: ["image/*"], endpoint: "documentUpload" }
 ```
 
 ## Migration from Local Upload

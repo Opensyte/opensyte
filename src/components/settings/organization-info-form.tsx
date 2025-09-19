@@ -241,7 +241,7 @@ export function OrganizationInfoForm({
                       disabled={!isEditing || isPending}
                       label="Organization Logo"
                       description="Upload a logo to represent your organization (optional)"
-                      endpoint="organizationLogo"
+                      endpoint="documentUpload"
                     />
                   </FormControl>
                   <FormMessage />

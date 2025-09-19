@@ -15,18 +15,6 @@ export const UploadDropzone = generateUploadDropzone<OurFileRouter>();
  */
 export const getUploadConfig = (endpoint: keyof OurFileRouter) => {
   switch (endpoint) {
-    case "organizationLogo":
-      return {
-        maxFileSize: "4MB",
-        acceptedTypes: ["image/*"],
-        endpoint: "organizationLogo" as const,
-      };
-    case "userAvatar":
-      return {
-        maxFileSize: "2MB",
-        acceptedTypes: ["image/*"],
-        endpoint: "userAvatar" as const,
-      };
     case "documentUpload":
       return {
         maxFileSize: "10MB",
