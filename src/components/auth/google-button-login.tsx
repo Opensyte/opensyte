@@ -10,7 +10,10 @@ export function GoogleLoginButton() {
         provider: "google",
       });
     } catch (error) {
-      console.error("Google login error:", error);
+      console.error(
+        "Google login error:",
+        error instanceof Error ? error.message : String(error)
+      );
     }
   };
 
