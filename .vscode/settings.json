@@ -25,5 +25,7 @@
     "javascriptreact",
     "typescript",
     "typescriptreact"
-  ]
+  ],
+  "kiroAgent.configureMCP": "Disabled",
+  "typescript.autoClosingTags": false
 }

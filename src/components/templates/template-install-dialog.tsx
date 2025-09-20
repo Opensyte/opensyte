@@ -18,9 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Separator } from "~/components/ui/separator";
 import { Progress } from "~/components/ui/progress";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { toast } from "sonner";
 import type { RouterOutputs } from "~/trpc/react";
 import {
@@ -32,7 +30,6 @@ import {
   Settings,
   CheckCircle,
   AlertCircle,
-  Info,
   MapPin,
   Workflow,
   Zap,
@@ -129,6 +126,7 @@ export function TemplateInstallDialog({
         manifest,
         strategy,
         namePrefix: namePrefix || undefined,
+        templatePackageId: templatePackageId ?? undefined,
       });
       setInstallationId(res.installationId);
       toast.success("Installation started");
@@ -153,8 +151,13 @@ export function TemplateInstallDialog({
         if (!s) break;
         if (s.status === "COMPLETED" || s.status === "FAILED") {
           done = true;
-          if (s.status === "COMPLETED") toast.success("Installation completed");
-          else toast.error("Installation failed");
+          if (s.status === "COMPLETED") {
+            toast.success("Template installed successfully!");
+            // Auto-close dialog on successful completion
+            setTimeout(() => onOpenChange(false), 1000);
+          } else {
+            toast.error("Installation failed");
+          }
           break;
         }
         await new Promise(r => setTimeout(r, 1500));
@@ -166,18 +169,18 @@ export function TemplateInstallDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-[90vw] w-full">
-        <DialogHeader className="space-y-3">
+      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl w-full mx-auto">
+        <DialogHeader className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg">
-              <Package className="h-5 w-5" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm">
+              <Package className="h-6 w-6" />
             </div>
             <div>
-              <DialogTitle className="text-xl">
-                Install Template Package
+              <DialogTitle className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                Install Template
               </DialogTitle>
-              <DialogDescription>
-                Configure and install this template in your organization
+              <DialogDescription className="text-gray-600 dark:text-gray-400">
+                Configure and deploy this template to your organization
               </DialogDescription>
             </div>
           </div>
@@ -185,95 +188,91 @@ export function TemplateInstallDialog({
 
         <div className="space-y-6">
           {!manifest ? (
-            <Card className="border-2">
-              <CardContent className="flex items-center justify-center py-8">
-                <div className="flex items-center gap-3">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  <span className="text-muted-foreground">
-                    Loading template details...
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Loading template details...
+                </span>
+              </div>
+            </div>
           ) : (
             <>
               {/* Template Overview */}
-              <Card className="border-2 border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <CardTitle className="text-lg">Template Overview</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Template Overview
+                  </h3>
+
                   {/* Compatible Modules */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Compatible Modules
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {(manifest.header.compatibleModules ?? []).length > 0 ? (
                         manifest.header.compatibleModules.map(module => (
-                          <div
+                          <span
                             key={module}
-                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-md"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-full border border-blue-200 dark:border-blue-700"
                           >
-                            <CheckCircle className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                              {module.charAt(0).toUpperCase() + module.slice(1)}
-                            </span>
-                          </div>
+                            <CheckCircle className="h-3 w-3" />
+                            {module.charAt(0).toUpperCase() + module.slice(1)}
+                          </span>
                         ))
                       ) : (
-                        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">
-                          <AlertCircle className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
-                          <span className="text-xs text-yellow-700 dark:text-yellow-300">
-                            No modules specified
-                          </span>
-                        </div>
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm rounded-full border border-amber-200 dark:border-amber-700">
+                          <AlertCircle className="h-3 w-3" />
+                          No modules specified
+                        </span>
                       )}
                     </div>
                   </div>
 
                   {/* Requirements Summary */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg">
-                      <MapPin className="h-5 w-5 mx-auto mb-1 text-purple-600" />
-                      <div className="text-sm font-medium">
-                        {requiredIntegrations.length}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                        <MapPin className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Integrations
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          {requiredIntegrations.length}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          Integrations
+                        </div>
                       </div>
                     </div>
-                    <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg">
-                      <Workflow className="h-5 w-5 mx-auto mb-1 text-green-600" />
-                      <div className="text-sm font-medium">
-                        {(manifest.assets.workflows?.length ?? 0) +
-                          (manifest.assets.reports?.length ?? 0) +
-                          (manifest.assets.actionTemplates?.length ?? 0)}
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/20">
+                        <Workflow className="h-5 w-5 text-green-600 dark:text-green-400" />
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Assets
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          {(manifest.assets.workflows?.length ?? 0) +
+                            (manifest.assets.reports?.length ?? 0) +
+                            (manifest.assets.actionTemplates?.length ?? 0)}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          Assets
+                        </div>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Separator />
+                </div>
+              </div>
 
               {/* Integration Mapping Section */}
-              <Card className="border-2 border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/20">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    <CardTitle className="text-lg">
-                      Integration Mapping
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Integration Mapping
+                  </h3>
+                </div>
+                <div className="space-y-4">
                   {requiredIntegrations.length === 0 ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-500" />
@@ -328,26 +327,23 @@ export function TemplateInstallDialog({
                       })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Installation Strategy */}
-              <Card className="border-2 border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    <CardTitle className="text-lg">
-                      Installation Strategy
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Choose how to handle conflicts with existing data.
-                  </p>
-
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Installation Strategy
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Choose how to handle conflicts with existing data.
+                </p>
+                <div className="space-y-4">
                   <div className="space-y-3">
-                    <label className="text-sm font-medium">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Installation Strategy
                     </label>
                     <Select
@@ -398,88 +394,101 @@ export function TemplateInstallDialog({
 
                   {strategy === "PREFIX" && (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Name Prefix</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Name Prefix
+                      </label>
                       <Input
                         placeholder="Enter prefix for asset names"
                         value={namePrefix}
                         onChange={e => setNamePrefix(e.target.value)}
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         All imported assets will be prefixed with this text.
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              <Separator />
+                </div>
+              </div>
 
               {/* Installation Actions */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="space-y-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`mt-1 h-2 w-2 rounded-full ${canStart ? "bg-green-500" : "bg-amber-500"}`}
+                  />
                   <div className="space-y-1">
-                    <h3 className="text-lg font-semibold">Ready to Install?</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {canStart ? "Ready to Install" : "Configuration Required"}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {canStart
-                        ? "All requirements are satisfied. You can proceed with the installation."
-                        : "Please complete all required configurations above."}
+                        ? "All requirements are satisfied. Click below to start the installation."
+                        : "Please complete all required configurations above before proceeding."}
                     </p>
                   </div>
-                  <div
-                    className={`h-3 w-3 rounded-full ${canStart ? "bg-green-500" : "bg-red-500"}`}
-                  />
                 </div>
 
-                <Button
-                  className="w-full gap-2"
-                  disabled={!canStart || startInstallMutation.isPending}
-                  onClick={beginInstall}
-                  size="lg"
-                >
-                  {startInstallMutation.isPending ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Starting Installation...
-                    </>
-                  ) : (
-                    <>
-                      <Package className="h-4 w-4" />
-                      Start Installation
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    className="w-full sm:w-auto"
+                    disabled={startInstallMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="w-full sm:flex-1 gap-2"
+                    disabled={!canStart || startInstallMutation.isPending}
+                    onClick={beginInstall}
+                    size="lg"
+                  >
+                    {startInstallMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Installing...
+                      </>
+                    ) : (
+                      <>
+                        <Package className="h-4 w-4" />
+                        Start Installation
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {/* Installation Progress */}
               {installationId && (
-                <Card className="border-2 border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
+                <div className="space-y-4 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/20">
                       <RefreshCw className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
-                      <CardTitle className="text-lg">
-                        Installation in Progress
-                      </CardTitle>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Progress
-                      value={startInstallMutation.isPending ? 25 : 75}
-                      className="h-3"
-                    />
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>Installation ID:</span>
-                        <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
-                          {installationId}
-                        </code>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Please wait while we install your template. This may
-                        take a few moments.
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        Installing Template
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Please wait while we deploy your template
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+
+                  <Progress
+                    value={startInstallMutation.isPending ? 25 : 75}
+                    className="h-2"
+                  />
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Installation ID:
+                    </span>
+                    <code className="px-2 py-1 bg-white dark:bg-gray-800 rounded text-xs font-mono border border-gray-200 dark:border-gray-600">
+                      {installationId}
+                    </code>
+                  </div>
+                </div>
               )}
             </>
           )}

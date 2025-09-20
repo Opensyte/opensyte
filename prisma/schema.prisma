@@ -1275,7 +1275,7 @@ model TemplateVersion {
 model TemplateInstallation {
   id                  String                  @id @default(cuid())
   organizationId      String
-  templatePackageId   String
+  templatePackageId   String? // Optional for direct manifest installations
   templateVersionId   String?
   status              TemplateInstallStatus   @default(PENDING)
   strategy            TemplateInstallStrategy @default(MERGE)
@@ -1289,7 +1289,7 @@ model TemplateInstallation {
 
   // Relations
   organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  templatePackage TemplatePackage        @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
+  templatePackage TemplatePackage?       @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
   templateVersion TemplateVersion?       @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
   items           TemplateInstallItem[]
 
