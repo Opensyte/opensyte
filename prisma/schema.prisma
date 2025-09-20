@@ -6,7 +6,8 @@ generator client {
 }
 
 generator zod {
-  provider = "npx zod-prisma-types"
+  provider = "zod-prisma-types"
+  output   = "./generated/zod"
 }
 
 datasource db {
@@ -2443,4 +2444,23 @@ enum TemplateShareAccessStatus {
   EXHAUSTED     // Action blocked due to usage limit
   INVALID       // Invalid token or share not found
   ERROR         // Internal error during processing
+}
+
+// ==============================
+// Early Access Beta Models
+// ==============================
+
+model EarlyAccessCode {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  code      String   @unique
+  isUsed    Boolean  @default(false)
+  usedById  String?
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([code])
+  @@index([isUsed])
 }

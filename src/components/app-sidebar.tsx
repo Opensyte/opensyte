@@ -4,14 +4,13 @@ import * as React from "react";
 import {
   CreditCard,
   FileSpreadsheet,
-  Mail,
-  MessageSquare,
   Settings2,
   Users,
   Building2,
   Plus,
   Folder,
   GitBranch,
+  MessageSquare,
 } from "lucide-react";
 
 import { NavMain } from "~/components/nav-main";
@@ -34,6 +33,8 @@ import { authClient } from "~/lib/auth-client";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { ProjectCreateDialog } from "~/components/projects/project-create-dialog";
+import { FeedbackDialog } from "~/components/feedback-dialog";
+import { Button } from "~/components/ui/button";
 import { getRoleDisplayName } from "~/lib/rbac";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -42,6 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const orgId = params?.orgId as string;
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] =
     useState(false);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
 
   const { data: organizations, isLoading } = api.organization.getAll.useQuery(
     { userId: session?.user?.id ?? "" },
@@ -157,6 +159,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     // Collaboration Module
     if (permissions.canViewCollaboration) {
+      // --- UNCOMMENT WHILE IMPLEMENTING THE FEATURE ---
+      /*
       navItems.push({
         title: "Collaboration",
         url: "/[orgId]/collaboration",
@@ -176,6 +180,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       });
+      */
     }
 
     // HR Module
@@ -207,6 +212,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     // Marketing Module
     if (permissions.canViewMarketing) {
+      // --- UNCOMMENT WHILE IMPLEMENTING THE FEATURE ---
+      /*
       navItems.push({
         title: "Marketing",
         url: "/[orgId]/marketing",
@@ -226,6 +233,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       });
+      */
     }
 
     // Settings Module - always show but with different items based on permissions
@@ -249,10 +257,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
 
       if (permissions.canManageBilling) {
+        // --- REMOVED FOR BETA VERSION ---
+        /*
         settingsItems.push({
           title: "Billing",
           url: "/[orgId]/settings/billing",
         });
+        */
       }
 
       // Templates entry under Settings (links to Templates gallery page)
@@ -310,8 +321,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarContent>
         <SidebarFooter>
           <NavUserSkeleton />
+          <div className="px-2 pb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsFeedbackDialogOpen(true)}
+              className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+            >
+              <MessageSquare className="h-3 w-3 mr-2" />
+              Suggest an idea / Report a bug
+            </Button>
+          </div>
         </SidebarFooter>
         <SidebarRail />
+
+        {/* Feedback Dialog */}
+        <FeedbackDialog
+          open={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}
+        />
       </Sidebar>
     );
   }
@@ -332,6 +360,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             avatar: session.user.image ?? "/avatars/user.jpg",
           }}
         />
+        <div className="px-2 pb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsFeedbackDialogOpen(true)}
+            className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+          >
+            <MessageSquare className="h-3 w-3 mr-2" />
+            Suggest an idea / Report a bug
+          </Button>
+        </div>
       </SidebarFooter>
       <SidebarRail />
 
@@ -343,6 +382,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           organizationId={orgId}
         />
       )}
+
+      {/* Feedback Dialog */}
+      <FeedbackDialog
+        open={isFeedbackDialogOpen}
+        onOpenChange={setIsFeedbackDialogOpen}
+      />
     </Sidebar>
   );
 }
