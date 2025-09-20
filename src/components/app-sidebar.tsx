@@ -255,6 +255,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         });
       }
 
+      // Templates entry under Settings (links to Templates gallery page)
+      // Templates link visible when user can view templates
+      if (userPermissions?.permissions?.canViewTemplates) {
+        settingsItems.push({
+          title: "Templates",
+          url: "/[orgId]/templates",
+        });
+      }
+
       navItems.push({
         title: "Settings",
         url: "/[orgId]/settings",

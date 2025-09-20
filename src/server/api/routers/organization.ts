@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import type { Prisma } from "@prisma/client";
+import {
+  createTRPCRouter,
+  publicProcedure,
+  createAnyPermissionProcedure,
+  createPermissionProcedure,
+} from "../trpc";
+import { PERMISSIONS } from "~/lib/rbac";
 import { db } from "~/server/db";
 import { UserRole } from "@prisma/client";
 
@@ -302,6 +309,69 @@ export const organizationRouter = createTRPCRouter({
         console.error("Error updating organization:", error);
         throw new Error("Failed to update organization");
       }
+    }),
+
+  // UI Config endpoints
+  getUiConfig: createAnyPermissionProcedure([
+    PERMISSIONS.SETTINGS_READ,
+    PERMISSIONS.SETTINGS_WRITE,
+    PERMISSIONS.SETTINGS_ADMIN,
+  ])
+    .input(
+      z.object({ organizationId: z.string().cuid(), key: z.string().min(1) })
+    )
+    .query(async ({ input, ctx }) => {
+      await ctx.requireAnyPermission(input.organizationId);
+      const row = await ctx.db.organizationUiConfig.findFirst({
+        where: { organizationId: input.organizationId, key: input.key },
+      });
+      return row?.config ?? null;
+    }),
+
+  upsertUiConfig: createPermissionProcedure(PERMISSIONS.SETTINGS_WRITE)
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        key: z.string().min(1),
+        config: z.record(z.unknown()),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
+      const saved = await ctx.db.organizationUiConfig.upsert({
+        where: {
+          organizationId_key: {
+            organizationId: input.organizationId,
+            key: input.key,
+          },
+        },
+        update: {
+          config: JSON.parse(
+            JSON.stringify(input.config)
+          ) as Prisma.InputJsonValue,
+        },
+        create: {
+          organizationId: input.organizationId,
+          key: input.key,
+          config: JSON.parse(
+            JSON.stringify(input.config)
+          ) as Prisma.InputJsonValue,
+        },
+      });
+      return saved;
+    }),
+
+  listUiConfigs: createAnyPermissionProcedure([
+    PERMISSIONS.SETTINGS_READ,
+    PERMISSIONS.SETTINGS_WRITE,
+    PERMISSIONS.SETTINGS_ADMIN,
+  ])
+    .input(z.object({ organizationId: z.string().cuid() }))
+    .query(async ({ input, ctx }) => {
+      await ctx.requireAnyPermission(input.organizationId);
+      return ctx.db.organizationUiConfig.findMany({
+        where: { organizationId: input.organizationId },
+      });
     }),
 
   // Delete organization

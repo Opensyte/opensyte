@@ -41,6 +41,13 @@ export const PERMISSIONS = {
   WORKFLOWS_WRITE: "workflows:write",
   WORKFLOWS_ADMIN: "workflows:admin",
 
+  // Template permissions
+  TEMPLATES_READ: "templates:read",
+  TEMPLATES_WRITE: "templates:write",
+  TEMPLATES_ADMIN: "templates:admin",
+  TEMPLATES_PUBLISH: "templates:publish",
+  TEMPLATES_SHARE: "templates:share",
+
   // Organization permissions
   ORG_ADMIN: "organization:admin",
   ORG_BILLING: "organization:billing",
@@ -104,6 +111,7 @@ export function getPermissionMetadata(permissionName: string) {
       collaboration: "Collaboration",
       marketing: "Marketing",
       workflows: "Workflows",
+      templates: "Templates",
       settings: "Settings",
       organization: "Organization",
       billing: "Billing",
@@ -117,6 +125,8 @@ export function getPermissionMetadata(permissionName: string) {
       manage: "Manage",
       billing: "Billing",
       members: "Members",
+      share: "Share",
+      publish: "Publish",
     };
 
     const moduleName = moduleNames[module] ?? module;
@@ -128,6 +138,10 @@ export function getPermissionMetadata(permissionName: string) {
       return `Create and manage ${moduleName.toLowerCase()} data`;
     } else if (action === "admin") {
       return `Full ${moduleName.toLowerCase()} administration`;
+    } else if (action === "share") {
+      return `Share ${moduleName.toLowerCase()} with other organizations`;
+    } else if (action === "publish") {
+      return `Publish ${moduleName.toLowerCase()} for public use`;
     } else {
       return `${actionName} ${moduleName.toLowerCase()}`;
     }
@@ -152,6 +166,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_ADMIN,
     PERMISSIONS.WORKFLOWS_ADMIN,
+    PERMISSIONS.TEMPLATES_ADMIN,
+    PERMISSIONS.TEMPLATES_PUBLISH,
+    PERMISSIONS.TEMPLATES_SHARE,
     PERMISSIONS.SETTINGS_ADMIN,
     PERMISSIONS.ORG_ADMIN,
     PERMISSIONS.ORG_BILLING,
@@ -169,6 +186,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_ADMIN,
     PERMISSIONS.WORKFLOWS_ADMIN,
+    PERMISSIONS.TEMPLATES_ADMIN,
+    PERMISSIONS.TEMPLATES_PUBLISH,
+    PERMISSIONS.TEMPLATES_SHARE,
     PERMISSIONS.SETTINGS_ADMIN,
     PERMISSIONS.ORG_MEMBERS,
   ],
@@ -181,6 +201,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.MARKETING_READ,
     PERMISSIONS.WORKFLOWS_WRITE,
+    PERMISSIONS.TEMPLATES_WRITE,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -192,6 +213,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.WORKFLOWS_READ,
+    PERMISSIONS.TEMPLATES_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -202,6 +224,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.MARKETING_READ,
     PERMISSIONS.FINANCE_READ,
     PERMISSIONS.WORKFLOWS_READ,
+    PERMISSIONS.TEMPLATES_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -212,6 +235,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.WORKFLOWS_READ,
+    PERMISSIONS.TEMPLATES_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -221,6 +245,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.HR_READ,
     PERMISSIONS.WORKFLOWS_READ,
+    PERMISSIONS.TEMPLATES_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
@@ -231,12 +256,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.COLLABORATION_WRITE,
     PERMISSIONS.HR_READ, // Own HR data only
     PERMISSIONS.WORKFLOWS_READ,
+    PERMISSIONS.TEMPLATES_READ,
     PERMISSIONS.SETTINGS_READ,
   ],
 
   CONTRACTOR: [
     PERMISSIONS.PROJECTS_READ,
     PERMISSIONS.COLLABORATION_READ,
+    PERMISSIONS.TEMPLATES_READ,
     // Time-based restrictions should be implemented at application level
   ],
 
@@ -248,6 +275,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.HR_READ,
     PERMISSIONS.MARKETING_READ,
     PERMISSIONS.WORKFLOWS_READ,
+    PERMISSIONS.TEMPLATES_READ,
   ],
 };
 
@@ -393,6 +421,7 @@ export function getNavPermissions(userRole: UserRole) {
     canViewMarketing: canAccessModule(userRole, "marketing"),
     canViewCollaboration: canAccessModule(userRole, "collaboration"),
     canViewWorkflows: canAccessModule(userRole, "workflows"),
+    canViewTemplates: canAccessModule(userRole, "templates"),
     canViewSettings: canAccessModule(userRole, "settings"),
 
     canWriteCRM:
@@ -417,6 +446,9 @@ export function getNavPermissions(userRole: UserRole) {
     canWriteWorkflows:
       hasPermission(userRole, PERMISSIONS.WORKFLOWS_WRITE) ||
       hasPermission(userRole, PERMISSIONS.WORKFLOWS_ADMIN),
+    canWriteTemplates:
+      hasPermission(userRole, PERMISSIONS.TEMPLATES_WRITE) ||
+      hasPermission(userRole, PERMISSIONS.TEMPLATES_ADMIN),
     canWriteSettings:
       hasPermission(userRole, PERMISSIONS.SETTINGS_WRITE) ||
       hasPermission(userRole, PERMISSIONS.SETTINGS_ADMIN),
@@ -536,6 +568,7 @@ export function canWriteToModule(
     | "projects"
     | "marketing"
     | "workflows"
+    | "templates"
     | "settings"
 ): boolean {
   const writePermission = `${module}:write`;
@@ -561,6 +594,7 @@ export function canReadFromModule(
     | "projects"
     | "marketing"
     | "workflows"
+    | "templates"
     | "settings"
 ): boolean {
   const readPermission = `${module}:read`;

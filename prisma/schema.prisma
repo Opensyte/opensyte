@@ -117,6 +117,11 @@ model Organization {
   actionTemplates     ActionTemplate[]
   variableDefinitions VariableDefinition[]
   integrationConfigs  IntegrationConfig[]
+  templatePackages    TemplatePackage[]
+  templateInstallations TemplateInstallation[]
+  templateShares      TemplateShare[]
+  templateShareImports TemplateShareImport[]
+  uiConfigs           OrganizationUiConfig[]
 }
 
 model UserOrganization {
@@ -1212,6 +1217,153 @@ enum FinancialReportScheduleFrequency {
 }
 
 // ==============================
+// ERP Template Pack Models
+// ==============================
+
+model TemplatePackage {
+  id             String             @id @default(cuid())
+  organizationId String? // Null for public templates
+  name           String
+  description    String?
+  category       String? // e.g., "CRM", "HR", "Finance", "Complete Setup"
+  version        String // Semver string (e.g., "1.0.0")
+  visibility     TemplateVisibility @default(PRIVATE)
+  status         TemplateStatus     @default(DRAFT)
+  iconUrl        String?
+  tags           Json? // Array of tag strings for categorization
+  manifest       Json // Complete ERP configuration data
+  assetsCount    Int                @default(0) // Number of assets in template
+  sizeBytes      Int? // Template size in bytes
+  createdById    String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  // Relations
+  organization  Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions      TemplateVersion[]
+  installations TemplateInstallation[]
+  shares        TemplateShare[]
+  shareImports  TemplateShareImport[]
+
+  @@index([organizationId])
+  @@index([visibility])
+  @@index([status])
+  @@index([category])
+  @@index([createdById])
+}
+
+model TemplateVersion {
+  id                String   @id @default(cuid())
+  templatePackageId String
+  version           String // Semver string
+  manifest          Json // Version-specific configuration
+  changelog         String? // Changes from previous version
+  isActive          Boolean  @default(false) // Is this the active version
+  createdById       String
+  createdAt         DateTime @default(now())
+
+  // Relations
+  templatePackage TemplatePackage        @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
+  installations   TemplateInstallation[]
+
+  @@unique([templatePackageId, version])
+  @@index([templatePackageId])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model TemplateInstallation {
+  id                  String                  @id @default(cuid())
+  organizationId      String
+  templatePackageId   String? // Optional for direct manifest installations
+  templateVersionId   String?
+  status              TemplateInstallStatus   @default(PENDING)
+  strategy            TemplateInstallStrategy @default(MERGE)
+  namePrefix          String? // Prefix for created resources (e.g., "Demo_")
+  preflight           Json? // Pre-installation checks and results
+  logs                Json? // Installation process logs
+  error               String? // Error message if failed
+  createdById         String
+  createdAt           DateTime                @default(now())
+  completedAt         DateTime?
+
+  // Relations
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templatePackage TemplatePackage?       @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
+  templateVersion TemplateVersion?       @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  items           TemplateInstallItem[]
+
+  @@index([organizationId])
+  @@index([templatePackageId])
+  @@index([templateVersionId])
+  @@index([status])
+  @@index([createdById])
+}
+
+model TemplateInstallItem {
+  id             String                  @id @default(cuid())
+  installationId String
+  assetType      TemplateAssetType // Type of asset being installed
+  sourceKey      String // Key from template manifest
+  createdModel   String? // Model name that was created (e.g., "Workflow")
+  createdId      String? // ID of created resource
+  status         TemplateItemStatus      @default(CREATED) // Installation result
+  details        Json? // Additional details about the installation
+  createdAt      DateTime                @default(now())
+
+  // Relations
+  installation TemplateInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([assetType])
+  @@index([status])
+}
+
+enum TemplateVisibility {
+  PRIVATE  // Only visible to creating organization
+  UNLISTED // Accessible via direct link but not in public listings
+  PUBLIC   // Publicly discoverable and installable
+}
+
+enum TemplateStatus {
+  DRAFT     // Under development
+  PUBLISHED // Available for installation
+  ARCHIVED  // No longer active but preserved
+}
+
+enum TemplateInstallStatus {
+  PENDING   // Installation queued
+  RUNNING   // Currently installing
+  COMPLETED // Successfully installed
+  FAILED    // Installation failed
+}
+
+enum TemplateInstallStrategy {
+  MERGE     // Merge with existing data where possible
+  OVERWRITE // Replace existing data
+  PREFIX    // Add prefix to avoid conflicts
+}
+
+enum TemplateAssetType {
+  WORKFLOW         // Workflow configurations
+  REPORT          // Financial/custom reports
+  UILAYOUT        // UI layout configurations
+  ROLE            // Custom roles and permissions
+  VARIABLE        // Variable definitions
+  ACTION_TEMPLATE // Action template definitions
+  DATA_SEED       // Sample/seed data
+  PROJECT         // Project templates with tasks
+  INVOICE         // Invoice templates and configurations
+}
+
+enum TemplateItemStatus {
+  CREATED // Successfully created
+  SKIPPED // Skipped (already exists or not applicable)
+  UPDATED // Updated existing resource
+  FAILED  // Failed to create/update
+}
+
+// ==============================
 // Workflow Management Models
 // ==============================
 
@@ -1260,6 +1412,24 @@ model Workflow {
   @@index([status])
   @@index([category])
   @@index([createdById])
+}
+
+// ==============================
+// UI Configuration Store
+// ==============================
+
+model OrganizationUiConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  config         Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
 }
 
 enum WorkflowStatus {
@@ -2120,4 +2290,157 @@ model WorkflowAnalytics {
   @@index([workflowId])
   @@index([periodStart])
   @@index([granularity])
+}
+
+// ==============================
+// Template Package Sharing System
+// ==============================
+
+model TemplateShare {
+  id                String                @id @default(cuid())
+  templatePackageId String
+  organizationId    String
+  
+  // Share configuration
+  name              String?               // Optional descriptive name for the share
+  shareMode         TemplateShareMode     @default(LINK)
+  tokenHash         String?               @unique // Hashed token for link shares (null for email-only shares)
+  expiresAt         DateTime?             // Optional expiration date
+  maxUses           Int?                  // Optional usage limit
+  allowExternal     Boolean              @default(false) // Allow non-organization recipients
+  notes             String?               // Internal notes about the share
+  
+  // Status tracking
+  status            TemplateShareStatus   @default(ACTIVE)
+  usageCount        Int                  @default(0)
+  lastAccessedAt    DateTime?
+  revokedAt         DateTime?
+  revokedById       String?
+  
+  // Snapshot data - immutable capture at share creation
+  snapshotData      Json                 // Frozen template package data
+  snapshotVersion   String               // Snapshot format version for future compatibility
+  
+  // Metadata
+  createdById       String
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  // Relations
+  templatePackage   TemplatePackage      @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
+  organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipients        TemplateShareRecipient[]
+  accessLogs        TemplateShareAccessLog[]
+  imports           TemplateShareImport[]
+
+  @@index([templatePackageId])
+  @@index([organizationId])
+  @@index([shareMode])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([createdById])
+  @@index([tokenHash])
+}
+
+model TemplateShareRecipient {
+  id           String                        @id @default(cuid())
+  shareId      String
+  email        String
+  status       TemplateShareRecipientStatus  @default(PENDING)
+  invitedAt    DateTime                     @default(now())
+  viewedAt     DateTime?
+  importedAt   DateTime?
+  
+  // Relations
+  share        TemplateShare                @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  
+  @@unique([shareId, email])
+  @@index([shareId])
+  @@index([email])
+  @@index([status])
+}
+
+model TemplateShareAccessLog {
+  id            String                      @id @default(cuid())
+  shareId       String
+  action        TemplateShareAccessAction
+  status        TemplateShareAccessStatus
+  recipientEmail String?                   // For email shares
+  userAgent     String?
+  ipAddress     String?
+  errorMessage  String?                   // For failed attempts
+  metadata      Json?                     // Additional context data
+  createdAt     DateTime                  @default(now())
+  
+  // Relations
+  share         TemplateShare             @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  
+  @@index([shareId])
+  @@index([action])
+  @@index([status])
+  @@index([createdAt])
+  @@index([recipientEmail])
+}
+
+model TemplateShareImport {
+  id                  String              @id @default(cuid())
+  shareId             String
+  organizationId      String
+  templatePackageId   String              // The newly created template package from import
+  importedById        String
+  importedAt          DateTime            @default(now())
+  
+  // Provenance tracking
+  originalPackageId   String              // Reference to the original shared package
+  originalOrgId       String              // Organization that created the original
+  snapshotVersion     String              // Version of snapshot that was imported
+  
+  // Relations
+  share               TemplateShare       @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templatePackage     TemplatePackage     @relation(fields: [templatePackageId], references: [id], onDelete: Cascade)
+  
+  @@index([shareId])
+  @@index([organizationId])
+  @@index([templatePackageId])
+  @@index([importedById])
+  @@index([originalPackageId])
+}
+
+// Enums for Template Sharing
+
+enum TemplateShareMode {
+  LINK          // Token-based sharing via public link
+  EMAIL         // Email invitation only
+  MIXED         // Both link and email (link + specific recipients)
+}
+
+enum TemplateShareStatus {
+  ACTIVE        // Share is currently active and accessible
+  EXPIRED       // Share has passed its expiration date
+  REVOKED       // Share has been manually revoked
+  EXHAUSTED     // Share has reached its usage limit
+}
+
+enum TemplateShareRecipientStatus {
+  PENDING       // Invitation sent, not yet viewed
+  VIEWED        // Recipient has viewed the shared template
+  IMPORTED      // Recipient has successfully imported the template
+  DECLINED      // Recipient has explicitly declined (future feature)
+}
+
+enum TemplateShareAccessAction {
+  PREVIEW       // Viewed the shared template preview
+  IMPORT        // Attempted to import the template
+  DOWNLOAD      // Downloaded template data (future feature)
+}
+
+enum TemplateShareAccessStatus {
+  SUCCESS       // Action completed successfully
+  BLOCKED       // Action blocked due to permissions/restrictions
+  EXPIRED       // Action blocked due to expiration
+  REVOKED       // Action blocked due to revocation
+  EXHAUSTED     // Action blocked due to usage limit
+  INVALID       // Invalid token or share not found
+  ERROR         // Internal error during processing
 }
