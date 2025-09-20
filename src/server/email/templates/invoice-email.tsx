@@ -30,8 +30,10 @@ export interface InvoiceEmailProps {
   customerAddress?: string | null;
   customerPhone?: string | null;
   organizationName: string;
+  organizationLogo?: string | null;
   organizationWebsite?: string | null;
   organizationIndustry?: string | null;
+  organizationAddress?: string | null;
   currency: string;
   items: InvoiceEmailItem[];
   subtotal: string;
@@ -64,7 +66,24 @@ export function InvoiceEmail(props: InvoiceEmailProps) {
             <Section style={sectionCol}>
               <Text style={sectionTitle}>From</Text>
               <Text style={text}>
+                {props.organizationLogo && (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={props.organizationLogo}
+                      alt={props.organizationName}
+                      style={{ maxWidth: 120, marginBottom: 8 }}
+                    />
+                    <br />
+                  </>
+                )}
                 {props.organizationName}
+                {props.organizationAddress && (
+                  <>
+                    <br />
+                    {props.organizationAddress}
+                  </>
+                )}
                 {props.organizationWebsite && (
                   <>
                     <br />

@@ -9,6 +9,7 @@ export const currencies = [
   { code: "AUD", name: "Australian Dollar", symbol: "A$" },
   { code: "CHF", name: "Swiss Franc", symbol: "CHF" },
   { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
+  { code: "IDR", name: "Indonesian Rupiah", symbol: "Rp" },
   { code: "INR", name: "Indian Rupee", symbol: "₹" },
   { code: "BRL", name: "Brazilian Real", symbol: "R$" },
   { code: "MXN", name: "Mexican Peso", symbol: "$" },

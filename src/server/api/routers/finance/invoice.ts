@@ -12,7 +12,7 @@ import { Resend } from "resend";
 import { env } from "~/env";
 import { render } from "@react-email/components";
 import { InvoiceEmail } from "~/server/email/templates/invoice-email";
-import { formatDecimalLike } from "~/server/utils/format";
+import { formatCurrency, formatDecimal } from "~/server/utils/format";
 import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
 // Shared schemas for better reusability and consistency
@@ -389,7 +389,20 @@ export const invoiceRouter = createTRPCRouter({
       // Note: invoice access is organization specific; we fetch invoice then verify organization permissions
       const invoice = await db.invoice.findUnique({
         where: { id: input.id },
-        include: { items: true, payments: true, customer: true },
+        include: {
+          items: true,
+          payments: true,
+          customer: true,
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              logo: true,
+              industry: true,
+              website: true,
+            },
+          },
+        },
       });
       if (!invoice) throw new Error("Invoice not found");
       await ctx.requireAnyPermission(invoice.organizationId);
@@ -451,7 +464,13 @@ export const invoiceRouter = createTRPCRouter({
 
       const organization = await db.organization.findUnique({
         where: { id: invoice.organizationId },
-        select: { name: true, website: true, industry: true },
+        select: {
+          name: true,
+          website: true,
+          industry: true,
+          logo: true,
+          address: true,
+        },
       });
 
       // HTML email using react-email template
@@ -466,23 +485,31 @@ export const invoiceRouter = createTRPCRouter({
           customerAddress: invoice.customerAddress,
           customerPhone: invoice.customerPhone,
           organizationName: organization?.name ?? "Organization",
+          organizationAddress: organization?.address ?? null,
+          organizationLogo: organization?.logo ?? null,
           organizationWebsite: organization?.website ?? null,
           organizationIndustry: organization?.industry ?? null,
           currency: invoice.currency,
           items: invoice.items.map(i => ({
             description: i.description,
-            quantity: formatDecimalLike(i.quantity),
-            unitPrice: formatDecimalLike(i.unitPrice),
-            taxRate: formatDecimalLike(i.taxRate),
-            discountRate: formatDecimalLike(i.discountRate),
-            lineTotal: formatDecimalLike(i.subtotal),
+            quantity: formatDecimal(i.quantity),
+            unitPrice: formatCurrency(i.unitPrice, invoice.currency),
+            taxRate: formatDecimal(i.taxRate),
+            discountRate: formatDecimal(i.discountRate),
+            lineTotal: formatCurrency(i.subtotal, invoice.currency),
           })),
-          subtotal: formatDecimalLike(invoice.subtotal),
-          taxAmount: formatDecimalLike(invoice.taxAmount),
-          discountAmount: formatDecimalLike(invoice.discountAmount),
-          shippingAmount: formatDecimalLike(invoice.shippingAmount),
-          totalAmount: formatDecimalLike(invoice.totalAmount),
-          paidAmount: formatDecimalLike(invoice.paidAmount),
+          subtotal: formatCurrency(invoice.subtotal, invoice.currency),
+          taxAmount: formatCurrency(invoice.taxAmount, invoice.currency),
+          discountAmount: formatCurrency(
+            invoice.discountAmount,
+            invoice.currency
+          ),
+          shippingAmount: formatCurrency(
+            invoice.shippingAmount,
+            invoice.currency
+          ),
+          totalAmount: formatCurrency(invoice.totalAmount, invoice.currency),
+          paidAmount: formatCurrency(invoice.paidAmount, invoice.currency),
           paymentTerms: invoice.paymentTerms,
           notes: invoice.notes,
           termsAndConditions: invoice.termsAndConditions,
@@ -490,12 +517,14 @@ export const invoiceRouter = createTRPCRouter({
       );
 
       const resend = new Resend(env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: "Acme <onboarding@resend.dev>",
+      const sendMail = await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
         to: invoice.customerEmail,
         subject: `Invoice ${invoice.invoiceNumber}`,
         html: emailHtml,
       });
+
+      console.log("Resend response", sendMail);
 
       const updated = await db.invoice.update({
         where: { id: invoice.id },

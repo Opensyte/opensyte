@@ -55,9 +55,19 @@ type LoadedWorkflow = NonNullable<
 >;
 
 export class WorkflowExecutionEngine {
-  private emailService = new EmailService();
+  private emailService?: EmailService;
   private smsService = new SmsService();
   private variableResolver = new VariableResolver();
+
+  /**
+   * Get or initialize email service lazily
+   */
+  private getEmailService(): EmailService {
+    if (!this.emailService) {
+      this.emailService = new EmailService();
+    }
+    return this.emailService;
+  }
 
   /**
    * Main entry point for workflow execution
@@ -645,7 +655,7 @@ export class WorkflowExecutionEngine {
     }
 
     // Send email
-    const result = await this.emailService.sendEmail({
+    const result = await this.getEmailService().sendEmail({
       to: recipientEmail,
       subject: resolvedSubject,
       htmlBody: resolvedHtmlBody,

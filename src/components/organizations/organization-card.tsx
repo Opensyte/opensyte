@@ -60,14 +60,14 @@ export function OrganizationCard({
         <CardHeader className="space-y-3 pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-lg">
+              <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-lg overflow-hidden">
                 {logo ? (
                   <Image
                     src={logo}
                     alt={name}
-                    width={36}
-                    height={36}
-                    className="rounded-md"
+                    width={48}
+                    height={48}
+                    className="object-cover w-full h-full"
                   />
                 ) : (
                   <BuildingIcon className="h-6 w-6" />
