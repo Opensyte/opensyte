@@ -46,6 +46,7 @@ export const PERMISSIONS = {
   TEMPLATES_WRITE: "templates:write",
   TEMPLATES_ADMIN: "templates:admin",
   TEMPLATES_PUBLISH: "templates:publish",
+  TEMPLATES_SHARE: "templates:share",
 
   // Organization permissions
   ORG_ADMIN: "organization:admin",
@@ -124,6 +125,8 @@ export function getPermissionMetadata(permissionName: string) {
       manage: "Manage",
       billing: "Billing",
       members: "Members",
+      share: "Share",
+      publish: "Publish",
     };
 
     const moduleName = moduleNames[module] ?? module;
@@ -135,6 +138,10 @@ export function getPermissionMetadata(permissionName: string) {
       return `Create and manage ${moduleName.toLowerCase()} data`;
     } else if (action === "admin") {
       return `Full ${moduleName.toLowerCase()} administration`;
+    } else if (action === "share") {
+      return `Share ${moduleName.toLowerCase()} with other organizations`;
+    } else if (action === "publish") {
+      return `Publish ${moduleName.toLowerCase()} for public use`;
     } else {
       return `${actionName} ${moduleName.toLowerCase()}`;
     }
@@ -161,6 +168,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.WORKFLOWS_ADMIN,
     PERMISSIONS.TEMPLATES_ADMIN,
     PERMISSIONS.TEMPLATES_PUBLISH,
+    PERMISSIONS.TEMPLATES_SHARE,
     PERMISSIONS.SETTINGS_ADMIN,
     PERMISSIONS.ORG_ADMIN,
     PERMISSIONS.ORG_BILLING,
@@ -180,6 +188,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.WORKFLOWS_ADMIN,
     PERMISSIONS.TEMPLATES_ADMIN,
     PERMISSIONS.TEMPLATES_PUBLISH,
+    PERMISSIONS.TEMPLATES_SHARE,
     PERMISSIONS.SETTINGS_ADMIN,
     PERMISSIONS.ORG_MEMBERS,
   ],

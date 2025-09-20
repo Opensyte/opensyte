@@ -19,7 +19,7 @@ import {
   Redo,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { useEffect } from "react";
+import { useEffect, forwardRef, useImperativeHandle } from "react";
 
 interface RichTextEditorProps {
   content: string;
@@ -28,12 +28,14 @@ interface RichTextEditorProps {
   className?: string;
 }
 
-export function RichTextEditor({
-  content,
-  onChange,
-  placeholder = "Start typing...",
-  className,
-}: RichTextEditorProps) {
+export interface RichTextEditorRef {
+  insertVariable: (variableName: string) => void;
+}
+
+export const RichTextEditor = forwardRef<
+  RichTextEditorRef,
+  RichTextEditorProps
+>(({ content, onChange, placeholder = "Start typing...", className }, ref) => {
   // Avoid SSR hydration mismatches by mounting editor only on client
   const editor = useEditor({
     immediatelyRender: false,
@@ -69,12 +71,34 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: cn(
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[120px] px-3 py-2",
+          "prose prose-sm max-w-none focus:outline-none min-h-[120px] px-3 py-2",
+          "[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-4",
+          "[&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-3",
+          "[&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-2",
+          "[&_p]:my-2 [&_p]:leading-relaxed",
+          "[&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-3",
+          "[&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-3",
+          "[&_li]:my-1",
+          "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4",
           className
         ),
       },
     },
   });
+
+  // Expose insertVariable function through ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      insertVariable: (variableName: string) => {
+        if (editor) {
+          const variableText = `{${variableName}}`;
+          editor.chain().focus().insertContent(variableText).run();
+        }
+      },
+    }),
+    [editor]
+  );
 
   // Keep the editor content in sync with external content changes
   // without causing hydration issues
@@ -234,4 +258,6 @@ export function RichTextEditor({
       </div>
     </div>
   );
-}
+});
+
+RichTextEditor.displayName = "RichTextEditor";

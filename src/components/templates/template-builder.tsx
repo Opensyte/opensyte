@@ -47,6 +47,7 @@ import {
   Eye,
 } from "lucide-react";
 import Link from "next/link";
+import { TemplateShareDialog } from "./template-share-dialog";
 
 type TemplateBuilderProps = {
   organizationId: string;
@@ -1442,6 +1443,15 @@ export function TemplateBuilder({ organizationId }: TemplateBuilderProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          <TemplateShareDialog
+                            templatePackageId={template.id}
+                            organizationId={organizationId}
+                            templateName={template.name}
+                            templateDescriptionHtml={
+                              template.description ?? null
+                            }
+                            variant="icon-only"
+                          />
                           <Link
                             href={`/${organizationId}/templates/${template.id}`}
                           >
