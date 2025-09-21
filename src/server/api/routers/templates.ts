@@ -287,4 +287,61 @@ export const templatesRouter = createTRPCRouter({
         data: { status: "DRAFT", visibility: "PRIVATE" },
       });
     }),
+
+  deletePackage: createPermissionProcedure(PERMISSIONS.TEMPLATES_ADMIN)
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        templatePackageId: z.string().cuid(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.requirePermission(input.organizationId);
+
+      // Find the template package and verify ownership
+      const pkg = await ctx.db.templatePackage.findFirst({
+        where: {
+          id: input.templatePackageId,
+          organizationId: input.organizationId,
+        },
+        include: {
+          versions: true,
+          installations: true,
+        },
+      });
+
+      if (!pkg) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Check if template has active installations
+      const activeInstallations = pkg.installations.filter(
+        installation => installation.status === "COMPLETED"
+      );
+
+      if (activeInstallations.length > 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `Cannot delete template: it has ${activeInstallations.length} active installation(s). Please remove all installations first.`,
+        });
+      }
+
+      // Delete in transaction to ensure consistency
+      return ctx.db.$transaction(async tx => {
+        // Delete template versions first
+        await tx.templateVersion.deleteMany({
+          where: { templatePackageId: input.templatePackageId },
+        });
+
+        // Delete any failed installations
+        await tx.templateInstallation.deleteMany({
+          where: { templatePackageId: input.templatePackageId },
+        });
+
+        // Delete the template package
+        await tx.templatePackage.delete({
+          where: { id: input.templatePackageId },
+        });
+
+        return { success: true };
+      });
+    }),
 });

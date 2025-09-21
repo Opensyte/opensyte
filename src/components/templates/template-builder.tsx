@@ -28,6 +28,17 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   Check,
@@ -45,6 +56,8 @@ import {
   List,
   Edit,
   Eye,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { TemplateShareDialog } from "./template-share-dialog";
@@ -115,6 +128,7 @@ export function TemplateBuilder({ organizationId }: TemplateBuilderProps) {
   const exportMutation = api.templates.exportSelection.useMutation();
   const createPackageMutation = api.templates.createPackage.useMutation();
   const validateMutation = api.templates.validateManifest.useMutation();
+  const deletePackageMutation = api.templates.deletePackage.useMutation();
   const utils = api.useUtils();
 
   const canContinueAssets = useMemo(() => {
@@ -190,6 +204,25 @@ export function TemplateBuilder({ organizationId }: TemplateBuilderProps) {
     } catch (e: unknown) {
       const message =
         e instanceof Error ? e.message : "Failed to create template package";
+      toast.error(message);
+    }
+  };
+
+  const handleDeleteTemplate = async (
+    templateId: string,
+    templateName: string
+  ) => {
+    try {
+      await deletePackageMutation.mutateAsync({
+        organizationId,
+        templatePackageId: templateId,
+      });
+
+      toast.success(`Template "${templateName}" deleted successfully`);
+      await utils.templates.listOrg.invalidate();
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to delete template";
       toast.error(message);
     }
   };
@@ -1476,6 +1509,71 @@ export function TemplateBuilder({ organizationId }: TemplateBuilderProps) {
                               Edit
                             </Button>
                           </Link>
+                          <ClientPermissionGuard
+                            requiredPermissions={[PERMISSIONS.TEMPLATES_ADMIN]}
+                            fallback={null}
+                          >
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2 text-destructive hover:text-destructive"
+                                  disabled={deletePackageMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="flex items-center gap-2">
+                                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                                    Delete Template Package
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete the template
+                                    package &quot;{template.name}&quot;? This
+                                    action cannot be undone and will permanently
+                                    remove the template and all its versions.
+                                    {template.status === "PUBLISHED" && (
+                                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
+                                        <strong>Warning:</strong> This template
+                                        is currently published. Deleting it may
+                                        affect organizations that have installed
+                                        it.
+                                      </div>
+                                    )}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDeleteTemplate(
+                                        template.id,
+                                        template.name
+                                      )
+                                    }
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    disabled={deletePackageMutation.isPending}
+                                  >
+                                    {deletePackageMutation.isPending ? (
+                                      <>
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                                        Deleting...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete Template
+                                      </>
+                                    )}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </ClientPermissionGuard>
                         </div>
                       </div>
                     ))}
