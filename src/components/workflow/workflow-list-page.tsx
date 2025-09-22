@@ -279,113 +279,132 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
               Manage and create automated workflows for your organization
             </p>
           </div>
-          <ClientPermissionGuard
-            requiredAnyPermissions={[
-              PERMISSIONS.WORKFLOWS_WRITE,
-              PERMISSIONS.WORKFLOWS_ADMIN,
-            ]}
-            fallback={null}
-          >
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={setIsCreateDialogOpen}
+          <div className="flex gap-2">
+            <ClientPermissionGuard
+              requiredAnyPermissions={[
+                PERMISSIONS.WORKFLOWS_READ,
+                PERMISSIONS.WORKFLOWS_WRITE,
+                PERMISSIONS.WORKFLOWS_ADMIN,
+              ]}
+              fallback={null}
             >
-              <DialogTrigger asChild>
-                <Button className="gap-2">
+              <Link href={`/${organizationId}/workflows/message-templates`}>
+                <Button variant="outline" className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Create Workflow
+                  Message Templates
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create New Workflow</DialogTitle>
-                  <DialogDescription>
-                    Create a new automated workflow to streamline your
-                    processes.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="workflow-name">Workflow Name *</Label>
-                    <Input
-                      id="workflow-name"
-                      placeholder="Enter workflow name"
-                      value={newWorkflow.name}
-                      onChange={e =>
-                        setNewWorkflow({ ...newWorkflow, name: e.target.value })
-                      }
-                    />
+              </Link>
+            </ClientPermissionGuard>
+            <ClientPermissionGuard
+              requiredAnyPermissions={[
+                PERMISSIONS.WORKFLOWS_WRITE,
+                PERMISSIONS.WORKFLOWS_ADMIN,
+              ]}
+              fallback={null}
+            >
+              <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create Workflow
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Workflow</DialogTitle>
+                    <DialogDescription>
+                      Create a new automated workflow to streamline your
+                      processes.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="workflow-name">Workflow Name *</Label>
+                      <Input
+                        id="workflow-name"
+                        placeholder="Enter workflow name"
+                        value={newWorkflow.name}
+                        onChange={e =>
+                          setNewWorkflow({
+                            ...newWorkflow,
+                            name: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="workflow-description">Description</Label>
+                      <Textarea
+                        id="workflow-description"
+                        placeholder="Describe what this workflow does"
+                        value={newWorkflow.description}
+                        onChange={e =>
+                          setNewWorkflow({
+                            ...newWorkflow,
+                            description: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="workflow-category">Category</Label>
+                      <Select
+                        value={newWorkflow.category}
+                        onValueChange={value =>
+                          setNewWorkflow({ ...newWorkflow, category: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CRM">CRM</SelectItem>
+                          <SelectItem value="HR">HR</SelectItem>
+                          <SelectItem value="Finance">Finance</SelectItem>
+                          <SelectItem value="Projects">Projects</SelectItem>
+                          <SelectItem value="Marketing">Marketing</SelectItem>
+                          <SelectItem value="Operations">Operations</SelectItem>
+                          <SelectItem value="Customer Service">
+                            Customer Service
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="workflow-description">Description</Label>
-                    <Textarea
-                      id="workflow-description"
-                      placeholder="Describe what this workflow does"
-                      value={newWorkflow.description}
-                      onChange={e =>
-                        setNewWorkflow({
-                          ...newWorkflow,
-                          description: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="workflow-category">Category</Label>
-                    <Select
-                      value={newWorkflow.category}
-                      onValueChange={value =>
-                        setNewWorkflow({ ...newWorkflow, category: value })
-                      }
+                  <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCreateDialogOpen(false)}
+                      className="w-full sm:w-auto"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CRM">CRM</SelectItem>
-                        <SelectItem value="HR">HR</SelectItem>
-                        <SelectItem value="Finance">Finance</SelectItem>
-                        <SelectItem value="Projects">Projects</SelectItem>
-                        <SelectItem value="Marketing">Marketing</SelectItem>
-                        <SelectItem value="Operations">Operations</SelectItem>
-                        <SelectItem value="Customer Service">
-                          Customer Service
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsCreateDialogOpen(false)}
-                    className="w-full sm:w-auto"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleCreateWorkflow}
-                    disabled={
-                      !newWorkflow.name.trim() ||
-                      createWorkflowMutation.isPending
-                    }
-                    className="w-full sm:w-auto"
-                  >
-                    {createWorkflowMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      "Create & Design"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </ClientPermissionGuard>
-        </div>
-
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleCreateWorkflow}
+                      disabled={
+                        !newWorkflow.name.trim() ||
+                        createWorkflowMutation.isPending
+                      }
+                      className="w-full sm:w-auto"
+                    >
+                      {createWorkflowMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        "Create & Design"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </ClientPermissionGuard>
+          </div>
+        </div>{" "}
         {/* Edit Workflow Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -473,7 +492,6 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
         {/* Delete Workflow Confirmation Dialog */}
         <AlertDialog
           open={isDeleteDialogOpen}
@@ -507,7 +525,6 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {workflows.map(workflow => (
             <Card
@@ -646,7 +663,6 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
             </Card>
           ))}
         </div>
-
         {workflows.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl flex items-center justify-center mb-6">

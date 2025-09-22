@@ -1,14 +1,7 @@
-import "~/styles/globals.css";
 import { headers } from "next/headers";
-import { Geist } from "next/font/google";
 import { auth } from "~/lib/auth";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
 
 export const metadata: Metadata = {
   title: "Opensyte | Authentication",
@@ -16,7 +9,7 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/icon-white.svg" }],
 };
 
-export default async function RootLayout({
+export default async function AuthLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth.api.getSession({
@@ -25,9 +18,5 @@ export default async function RootLayout({
 
   if (session) return redirect("/");
 
-  return (
-    <html lang="en" className={`${geist.variable} dark`}>
-      <body>{children}</body>
-    </html>
-  );
+  return <>{children}</>;
 }

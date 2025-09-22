@@ -1656,24 +1656,22 @@ export function WorkflowConfigSheet({
                                         <span>Custom</span>
                                       </div>
                                     </SelectItem>
-                                    {/* Ready templates */}
-                                    {(filteredTemplates ?? [])
-                                      .slice(0, 2)
-                                      .map(t => (
-                                        <SelectItem key={t.id} value={t.id}>
-                                          <div className="flex items-center gap-2">
-                                            <span>{t.name}</span>
-                                            {t.isLocked && (
-                                              <Badge
-                                                variant="secondary"
-                                                className="text-xs rounded-full"
-                                              >
-                                                Ready
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        </SelectItem>
-                                      ))}
+                                    {/* All available templates */}
+                                    {(filteredTemplates ?? []).map(t => (
+                                      <SelectItem key={t.id} value={t.id}>
+                                        <div className="flex items-center gap-2">
+                                          <span>{t.name}</span>
+                                          {t.isLocked && (
+                                            <Badge
+                                              variant="secondary"
+                                              className="text-xs rounded-full"
+                                            >
+                                              Ready
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                                 <FormDescription className="text-xs">

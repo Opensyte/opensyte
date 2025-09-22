@@ -83,6 +83,12 @@ export const rbacRouter = createTRPCRouter({
           PERMISSIONS.SETTINGS_WRITE,
           PERMISSIONS.SETTINGS_ADMIN,
         ]),
+        // Templates module visibility/write
+        canViewTemplates: hasAnyPermission(userOrg, [
+          PERMISSIONS.TEMPLATES_READ,
+          PERMISSIONS.TEMPLATES_WRITE,
+          PERMISSIONS.TEMPLATES_ADMIN,
+        ]),
         canWriteCRM: hasAnyPermission(userOrg, [
           PERMISSIONS.CRM_WRITE,
           PERMISSIONS.CRM_ADMIN,
@@ -109,6 +115,10 @@ export const rbacRouter = createTRPCRouter({
         canWriteSettings: hasAnyPermission(userOrg, [
           PERMISSIONS.SETTINGS_WRITE,
           PERMISSIONS.SETTINGS_ADMIN,
+        ]),
+        canWriteTemplates: hasAnyPermission(userOrg, [
+          PERMISSIONS.TEMPLATES_WRITE,
+          PERMISSIONS.TEMPLATES_ADMIN,
         ]),
         canManageOrganization: hasAnyPermission(userOrg, [
           PERMISSIONS.ORG_ADMIN,

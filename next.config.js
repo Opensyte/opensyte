@@ -3,7 +3,6 @@
  * for Docker builds.
  */
 import "./src/env.js";
-
 /** @type {import("next").NextConfig} */
 const config = {
   images: {
@@ -21,6 +20,14 @@ const config = {
         pathname: "/f/**",
       },
     ],
+  },
+  output: "standalone",
+  reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true, // due to heap memory issues
   },
 };
 

@@ -1,13 +1,4 @@
-import "~/styles/globals.css";
-import { Geist } from "next/font/google";
 import type { Metadata } from "next";
-import { TRPCReactProvider } from "~/trpc/react";
-import { Toaster } from "~/components/ui/sonner";
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
 
 export const metadata: Metadata = {
   title: "Opensyte | Accept Invitation",
@@ -20,18 +11,5 @@ export default function AcceptInviteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html
-      lang="en"
-      className={`${geist.variable} dark`}
-      suppressHydrationWarning
-    >
-      <body>
-        <TRPCReactProvider>
-          {children}
-          <Toaster />
-        </TRPCReactProvider>
-      </body>
-    </html>
-  );
+  return <>{children}</>;
 }

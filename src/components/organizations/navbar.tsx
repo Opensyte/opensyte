@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { PlusIcon, MenuIcon, XIcon } from "lucide-react";
+import { PlusIcon, MenuIcon, XIcon, Shield } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
@@ -23,8 +24,14 @@ import type { OrganizationFormValues } from "~/components/organizations/add-orga
 export function DashboardNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session } = authClient.useSession();
+  const router = useRouter();
 
   const utils = api.useUtils();
+
+  // Check if user is admin
+  const { data: isAdmin = false } = api.admin.isAdmin.useQuery(undefined, {
+    enabled: !!session?.user?.id,
+  });
 
   const createOrganizationMutation = api.organization.create.useMutation({
     onSuccess: () => {
@@ -100,6 +107,18 @@ export function DashboardNavbar() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {isAdmin && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/admin")}
+                    className="cursor-pointer"
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem
                 onClick={async () => {
                   await authClient.signOut();
@@ -168,6 +187,17 @@ export function DashboardNavbar() {
                 </div>
               </div>
               <div className="mt-3 space-y-1">
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => router.push("/admin")}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Dashboard
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

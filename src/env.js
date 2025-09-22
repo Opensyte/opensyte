@@ -21,6 +21,12 @@ export const env = createEnv({
     // Google OAuth
     GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
     GOOGLE_CLIENT_SECRET: z.string().min(1, "GOOGLE_CLIENT_SECRET is required"),
+    // Better Auth Configuration
+    BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET is required"),
+    BETTER_AUTH_URL: z.string().url("BETTER_AUTH_URL must be a valid URL"),
+    // Google OAuth (optional)
+    GOOGLE_CLIENT_ID: z.string(),
+    GOOGLE_CLIENT_SECRET: z.string(),
     // Resend Email Service
     RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
     RESEND_FROM_EMAIL: z
@@ -34,6 +40,11 @@ export const env = createEnv({
     TWILIO_PHONE_NUMBER: z.string().optional(),
     // UploadThing File Service
     UPLOADTHING_TOKEN: z.string().min(1, "UPLOADTHING_TOKEN is required"),
+    ALLOW_EARLY_ACCESS: z
+      .string()
+      .transform(val => val === "true")
+      .default("false"),
+    ADMIN_EMAILS: z.string().optional(),
   },
 
   /**
@@ -42,7 +53,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_APP_URL: z.string().url(),
   },
 
   /**
@@ -53,6 +64,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     // Better Auth
+    // Better Auth Configuration
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     // Google OAuth
@@ -69,6 +81,9 @@ export const env = createEnv({
     // UploadThing File Service
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    ALLOW_EARLY_ACCESS: process.env.ALLOW_EARLY_ACCESS,
+    ADMIN_EMAILS: process.env.ADMIN_EMAILS,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
