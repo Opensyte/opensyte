@@ -17,6 +17,11 @@ import {
   hasPermission as hasCustomPermission,
 } from "~/lib/custom-rbac";
 import type { ExtendedUserOrganization } from "~/types/custom-roles";
+import {
+  checkUserEarlyAccess,
+  isEarlyAccessEnabled,
+  isAdminEmail,
+} from "~/lib/early-access";
 
 /**
  * 1. CONTEXT
@@ -35,9 +40,27 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     headers: opts.headers,
   });
 
+  // Check early access requirements
+  let hasEarlyAccess = true; // Default to true if early access is disabled
+
+  if (isEarlyAccessEnabled() && authSession?.user) {
+    const accessStatus = await checkUserEarlyAccess();
+
+    // Check if user is an admin (admins get automatic access to bypass early access)
+    // Users listed in ADMIN_EMAILS environment variable can access the dashboard
+    // without needing to register an early access code
+    const userIsAdmin = authSession.user.email
+      ? isAdminEmail(authSession.user.email)
+      : false;
+
+    // User has access if they have early access OR are an admin
+    hasEarlyAccess = accessStatus.hasAccess || userIsAdmin;
+  }
+
   return {
     db,
     user: authSession?.user,
+    hasEarlyAccess,
     ...opts,
   };
 };
@@ -116,6 +139,35 @@ const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
 });
 
 /**
+ * Early access middleware
+ *
+ * Ensures users have early access before accessing protected procedures
+ */
+const earlyAccessMiddleware = t.middleware(async ({ next, ctx }) => {
+  if (!ctx.user?.id) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "You must be logged in to access this resource",
+    });
+  }
+
+  if (!ctx.hasEarlyAccess) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Early access required. Please enter your registration code to continue.",
+    });
+  }
+
+  return next({
+    ctx: {
+      user: ctx.user,
+      hasEarlyAccess: ctx.hasEarlyAccess,
+    },
+  });
+});
+
+/**
  * Public (unauthenticated) procedure
  *
  * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
@@ -125,12 +177,21 @@ const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
 export const publicProcedure = t.procedure.use(timingMiddleware);
 
 /**
+ * Protected procedure with early access check
+ *
+ * This procedure ensures the user is authenticated and has early access (or is an admin)
+ */
+export const protectedProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(earlyAccessMiddleware);
+
+/**
  * Permission-based procedure middleware
  *
- * Creates procedures that require specific permissions
+ * Creates procedures that require specific permissions and early access
  */
 export const createPermissionProcedure = (permission: string) => {
-  return publicProcedure.use(async ({ ctx, next }) => {
+  return protectedProcedure.use(async ({ ctx, next }) => {
     if (!ctx.user?.id) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -190,10 +251,10 @@ export const createPermissionProcedure = (permission: string) => {
 /**
  * Multiple permission-based procedure middleware
  *
- * Creates procedures that require any of the specified permissions
+ * Creates procedures that require any of the specified permissions and early access
  */
 export const createAnyPermissionProcedure = (permissions: string[]) => {
-  return publicProcedure.use(async ({ ctx, next }) => {
+  return protectedProcedure.use(async ({ ctx, next }) => {
     if (!ctx.user?.id) {
       throw new TRPCError({
         code: "UNAUTHORIZED",

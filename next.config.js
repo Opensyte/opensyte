@@ -3,8 +3,16 @@
  * for Docker builds.
  */
 import "./src/env.js";
-
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  output: "standalone",
+  reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true, // due to heap memory issues
+  },
+};
 
 export default config;

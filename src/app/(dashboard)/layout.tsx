@@ -1,44 +1,38 @@
-import "~/styles/globals.css";
-
-import { type Metadata } from "next";
-import { Geist } from "next/font/google";
-
-import { TRPCReactProvider } from "~/trpc/react";
 import { headers } from "next/headers";
 import { auth } from "~/lib/auth";
 import { redirect } from "next/navigation";
-import { Toaster } from "~/components/ui/sonner";
+import {
+  checkUserEarlyAccess,
+  isEarlyAccessEnabled,
+  isAdminEmail,
+} from "~/lib/early-access";
 
-export const metadata: Metadata = {
-  title: "Opensyte",
-  description: "All in one business solution",
-  icons: [{ rel: "icon", url: "/icon-white.svg" }],
-};
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
-
-export default async function RootLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // First check authentication
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   if (!session) return redirect("/sign-in");
-  return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${geist.variable} dark`}
-    >
-      <body>
-        <TRPCReactProvider>
-          {children}
-          <Toaster />
-        </TRPCReactProvider>
-      </body>
-    </html>
-  );
+
+  // Check early access requirements based on ALLOW_EARLY_ACCESS environment variable
+  if (isEarlyAccessEnabled()) {
+    const accessStatus = await checkUserEarlyAccess();
+
+    // Check if user is an admin (admins get automatic access to bypass early access)
+    // Users listed in ADMIN_EMAILS environment variable can access the dashboard
+    // without needing to register an early access code
+    const userIsAdmin = session.user?.email
+      ? isAdminEmail(session.user.email)
+      : false;
+
+    // If user doesn't have early access AND is not an admin, redirect to early access page
+    if (!accessStatus.hasAccess && !userIsAdmin) {
+      redirect("/early-access");
+    }
+  }
+
+  // User is authenticated and has proper access, render the dashboard
+  return <>{children}</>;
 }

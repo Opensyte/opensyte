@@ -67,7 +67,7 @@ interface Project {
   startDate: Date | null;
   endDate: Date | null;
   budget: number | null;
-  currency: string;
+  currency: string | null;
   createdAt: Date;
   _count: {
     tasks: number;
@@ -104,7 +104,7 @@ export function ProjectEditDialog({
         | "COMPLETED"
         | "CANCELLED",
       budget: project.budget ? Number(project.budget) : undefined,
-      currency: project.currency,
+      currency: project.currency ?? "USD",
       startDate: project.startDate ?? undefined,
       endDate: project.endDate ?? undefined,
     },
@@ -122,7 +122,7 @@ export function ProjectEditDialog({
         | "COMPLETED"
         | "CANCELLED",
       budget: project.budget ? Number(project.budget) : undefined,
-      currency: project.currency,
+      currency: project.currency ?? "USD",
       startDate: project.startDate ?? undefined,
       endDate: project.endDate ?? undefined,
     });

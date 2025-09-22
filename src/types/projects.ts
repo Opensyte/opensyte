@@ -145,16 +145,16 @@ export const taskPriorityIcons = {
 } as const;
 
 export const projectStatusColors = {
-  PLANNING: "bg-blue-100 text-blue-800",
-  ACTIVE: "bg-green-100 text-green-800",
+  PLANNED: "bg-blue-100 text-blue-800",
+  IN_PROGRESS: "bg-green-100 text-green-800",
   ON_HOLD: "bg-yellow-100 text-yellow-800",
   COMPLETED: "bg-emerald-100 text-emerald-800",
   CANCELLED: "bg-red-100 text-red-800",
 } as const;
 
 export const projectStatusLabels = {
-  PLANNING: "Planning",
-  ACTIVE: "Active",
+  PLANNED: "Planned",
+  IN_PROGRESS: "In Progress",
   ON_HOLD: "On Hold",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
