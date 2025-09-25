@@ -17,7 +17,7 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
-    "start": "node .next/standalone/server.js",
+    "start": "next start",
     "test": "vitest run src/__tests__/basic.test.ts src/__tests__/variable-store.test.ts src/__tests__/simple-integration.test.ts",
     "test:all": "vitest run src/__tests__/",
     "test:watch": "vitest src/__tests__/basic.test.ts src/__tests__/variable-store.test.ts src/__tests__/simple-integration.test.ts",
