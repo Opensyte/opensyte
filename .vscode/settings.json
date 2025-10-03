@@ -27,5 +27,8 @@
     "typescriptreact"
   ],
   "kiroAgent.configureMCP": "Disabled",
-  "typescript.autoClosingTags": false
+  "typescript.autoClosingTags": false,
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  }
 }

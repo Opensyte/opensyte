@@ -9,6 +9,7 @@ import { variablesRouter } from "./variables";
 import { workflowAnalyticsRouter } from "./analytics";
 import { nodesRouter } from "./components/nodes";
 import { connectionsRouter } from "./connections";
+import { schedulerRouter } from "./scheduler";
 
 export const workflowsRouter = createTRPCRouter({
   workflow: workflowRouter,
@@ -21,4 +22,5 @@ export const workflowsRouter = createTRPCRouter({
   analytics: workflowAnalyticsRouter,
   nodes: nodesRouter,
   connections: connectionsRouter,
+  scheduler: schedulerRouter,
 });

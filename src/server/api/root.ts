@@ -18,6 +18,7 @@ import { templatesRouter } from "./routers/templates";
 import { templateSharingRouter } from "./routers/template-sharing";
 import { adminRouter } from "./routers/admin";
 import { earlyAccessRouter } from "./routers/early-access";
+import { paymentRouter } from "./routers/payment";
 
 /**
  * This is the primary router for your server.
@@ -44,6 +45,7 @@ export const appRouter = createTRPCRouter({
   templateSharing: templateSharingRouter,
   admin: adminRouter,
   earlyAccess: earlyAccessRouter,
+  payment: paymentRouter,
 });
 
 // export type definition of API

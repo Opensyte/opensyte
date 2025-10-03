@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -43,6 +44,7 @@ export interface InvoiceEmailProps {
   paymentTerms?: string | null;
   notes?: string | null;
   termsAndConditions?: string | null;
+  paymentUrl?: string;
 }
 
 export function InvoiceEmail(props: InvoiceEmailProps) {
@@ -178,6 +180,16 @@ export function InvoiceEmail(props: InvoiceEmailProps) {
               </Text>
             )}
           </Section>
+          {props.paymentUrl && (
+            <Section style={paymentSection}>
+              <Button href={props.paymentUrl} style={paymentButton}>
+                Pay Invoice Online
+              </Button>
+              <Text style={paymentText}>
+                Click the button above to pay securely with credit card
+              </Text>
+            </Section>
+          )}
           {props.paymentTerms && (
             <Text style={small}>Payment Terms: {props.paymentTerms}</Text>
           )}
@@ -304,6 +316,27 @@ const footer: React.CSSProperties = {
   margin: "16px 0 0",
   color: "#6b7280",
   lineHeight: "16px",
+};
+const paymentSection: React.CSSProperties = {
+  margin: "32px 0",
+  textAlign: "center",
+};
+const paymentButton: React.CSSProperties = {
+  backgroundColor: "#2563eb",
+  borderRadius: "6px",
+  color: "#ffffff",
+  fontSize: "16px",
+  fontWeight: "600",
+  textDecoration: "none",
+  textAlign: "center",
+  display: "inline-block",
+  padding: "12px 32px",
+  margin: "0 auto",
+};
+const paymentText: React.CSSProperties = {
+  fontSize: 13,
+  color: "#6b7280",
+  margin: "12px 0 0",
 };
 
 export default InvoiceEmail;

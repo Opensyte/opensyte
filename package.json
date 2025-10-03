@@ -9,6 +9,7 @@
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
+    "db:seed": "bun run prisma/seed.ts",
     "db:studio": "prisma studio",
     "dev": "next dev --turbo",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
@@ -18,6 +19,7 @@
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
     "start": "next start",
+    "scheduler": "bun run scripts/run-scheduler.ts",
     "test": "vitest run src/__tests__/basic.test.ts src/__tests__/variable-store.test.ts src/__tests__/simple-integration.test.ts",
     "test:all": "vitest run src/__tests__/",
     "test:watch": "vitest src/__tests__/basic.test.ts src/__tests__/variable-store.test.ts src/__tests__/simple-integration.test.ts",
@@ -83,6 +85,7 @@
     "resend": "^6.0.1",
     "server-only": "^0.0.1",
     "sonner": "^2.0.1",
+    "stripe": "^19.0.0",
     "superjson": "^2.2.1",
     "tailwind-merge": "^3.0.2",
     "tunnel-rat": "^0.1.2",
@@ -115,5 +118,8 @@
   "ct3aMetadata": {
     "initVersion": "7.39.0"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "prisma": {
+    "seed": "bun run prisma/seed.ts"
+  }
 }

@@ -14,6 +14,7 @@ import { render } from "@react-email/components";
 import { InvoiceEmail } from "~/server/email/templates/invoice-email";
 import { formatDecimalLike } from "~/server/utils/format";
 import { WorkflowEvents } from "~/lib/workflow-dispatcher";
+import { paymentService } from "~/lib/services/payment-service";
 
 // Shared schemas for better reusability and consistency
 const invoiceItemSchema = z.object({
@@ -454,6 +455,20 @@ export const invoiceRouter = createTRPCRouter({
         select: { name: true, website: true, industry: true },
       });
 
+      // Generate Stripe payment link if not already created
+      let paymentUrl = invoice.stripePaymentUrl;
+      if (!paymentUrl) {
+        try {
+          const paymentResult = await paymentService.createPaymentLink(invoice);
+          if (paymentResult.success) {
+            paymentUrl = paymentResult.paymentUrl ?? null;
+          }
+        } catch (error) {
+          console.error("Failed to create payment link:", error);
+          // Continue without payment link - don't fail the entire send operation
+        }
+      }
+
       // HTML email using react-email template
       const emailHtml = await render(
         InvoiceEmail({
@@ -486,6 +501,7 @@ export const invoiceRouter = createTRPCRouter({
           paymentTerms: invoice.paymentTerms,
           notes: invoice.notes,
           termsAndConditions: invoice.termsAndConditions,
+          paymentUrl: paymentUrl ?? undefined,
         })
       );
 
