@@ -8,7 +8,14 @@ import { PERMISSIONS } from "~/lib/rbac";
 import { db } from "~/server/db";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "@prisma/client";
-import { WorkflowStatusSchema } from "../../../../../prisma/generated/zod";
+import {
+  WorkflowStatusSchema,
+  WorkflowNodeTypeSchema,
+} from "../../../../../prisma/generated/zod";
+import {
+  parseConfigForType,
+  requiresConfigTypes,
+} from "./components/node-config-schemas";
 
 // Simplified workflow router that matches actual Prisma schema
 export const workflowRouter = createTRPCRouter({
@@ -296,7 +303,7 @@ export const workflowRouter = createTRPCRouter({
         nodes: z.array(
           z.object({
             nodeId: z.string().min(1),
-            type: z.enum(["TRIGGER", "ACTION"]),
+            type: WorkflowNodeTypeSchema,
             name: z.string().min(1).max(100),
             description: z.string().optional(),
             position: z.object({
@@ -349,13 +356,34 @@ export const workflowRouter = createTRPCRouter({
 
         const result = await db.$transaction(async tx => {
           // 1. Sync nodes first
+          const nodesWithValidatedConfig = input.nodes.map(node => {
+            const validatedConfig = parseConfigForType(node.type, node.config);
+
+            if (
+              requiresConfigTypes.has(node.type) &&
+              validatedConfig === null
+            ) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `${node.type} nodes require configuration`,
+              });
+            }
+
+            return {
+              ...node,
+              config: validatedConfig ?? undefined,
+            };
+          });
+
           const currentNodes = await tx.workflowNode.findMany({
             where: { workflowId: input.workflowId },
             select: { nodeId: true, id: true },
           });
 
           const currentNodeIds = new Set(currentNodes.map(n => n.nodeId));
-          const newNodeIds = new Set(input.nodes.map(n => n.nodeId));
+          const newNodeIds = new Set(
+            nodesWithValidatedConfig.map(n => n.nodeId)
+          );
 
           // Delete nodes that are no longer present (cascade will handle connections)
           const nodesToDelete = [...currentNodeIds].filter(
@@ -372,7 +400,7 @@ export const workflowRouter = createTRPCRouter({
 
           // Upsert all provided nodes
           const upsertedNodes = await Promise.all(
-            input.nodes.map(node =>
+            nodesWithValidatedConfig.map(node =>
               tx.workflowNode.upsert({
                 where: {
                   workflowId_nodeId: {

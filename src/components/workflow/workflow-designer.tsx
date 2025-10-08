@@ -24,9 +24,20 @@ import {
   Loader2,
   AlertTriangle,
   Clock,
+  RefreshCw,
+  Search,
+  Filter as FilterIcon,
+  CalendarClock,
+  GitBranch,
 } from "lucide-react";
 import { TriggerNode } from "./nodes/trigger-node";
 import { ActionNode } from "./nodes/action-node";
+import { DelayNode } from "./nodes/delay-node";
+import { LoopNode } from "./nodes/loop-node";
+import { QueryNode } from "./nodes/query-node";
+import { FilterNode } from "./nodes/filter-node";
+import { ScheduleNode } from "./nodes/schedule-node";
+import { ConditionNode } from "./nodes/condition-node";
 import { WorkflowConfigSheet } from "./workflow-config-sheet";
 import { toast } from "sonner";
 import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
@@ -44,6 +55,42 @@ const createNodeTypes = (onDeleteNode: (nodeId: string) => void) => ({
   ),
   action: (props: NodeProps) => (
     <ActionNode {...props} onDelete={onDeleteNode} />
+  ),
+  delay: (props: NodeProps) => (
+    <DelayNode
+      {...(props as NodeProps<WorkflowCanvasNode>)}
+      onDelete={onDeleteNode}
+    />
+  ),
+  loop: (props: NodeProps) => (
+    <LoopNode
+      {...(props as NodeProps<WorkflowCanvasNode>)}
+      onDelete={onDeleteNode}
+    />
+  ),
+  query: (props: NodeProps) => (
+    <QueryNode
+      {...(props as NodeProps<WorkflowCanvasNode>)}
+      onDelete={onDeleteNode}
+    />
+  ),
+  filter: (props: NodeProps) => (
+    <FilterNode
+      {...(props as NodeProps<WorkflowCanvasNode>)}
+      onDelete={onDeleteNode}
+    />
+  ),
+  schedule: (props: NodeProps) => (
+    <ScheduleNode
+      {...(props as NodeProps<WorkflowCanvasNode>)}
+      onDelete={onDeleteNode}
+    />
+  ),
+  condition: (props: NodeProps) => (
+    <ConditionNode
+      {...(props as NodeProps<WorkflowCanvasNode>)}
+      onDelete={onDeleteNode}
+    />
   ),
 });
 
@@ -145,18 +192,32 @@ export function WorkflowDesigner({
     [deleteNode]
   );
 
+  const getNextPosition = useCallback(
+    (
+      reactFlowType: string,
+      fallback: { x: number; y: number },
+      offset = 120
+    ) => {
+      const similarNodes = nodes.filter(node => node.type === reactFlowType);
+      if (similarNodes.length === 0) {
+        return fallback;
+      }
+
+      const lastNode = similarNodes.reduce((last, current) =>
+        current.position.y > last.position.y ? current : last
+      );
+
+      return {
+        x: lastNode.position.x,
+        y: lastNode.position.y + offset,
+      };
+    },
+    [nodes]
+  );
+
   // Add node handlers
   const handleAddTrigger = useCallback(() => {
-    const triggerNodes = nodes.filter(node => node.type === "trigger");
-    const position = { x: 100, y: 100 };
-
-    if (triggerNodes.length > 0) {
-      const lastTrigger = triggerNodes.reduce((last, current) => {
-        return current.position.y > last.position.y ? current : last;
-      });
-      position.x = lastTrigger.position.x;
-      position.y = lastTrigger.position.y + 90; // Offset for new trigger
-    }
+    const position = getNextPosition("trigger", { x: 100, y: 100 }, 90);
 
     const newNode = addNode(
       {
@@ -173,19 +234,10 @@ export function WorkflowDesigner({
     );
     setSelectedNode(newNode);
     setIsConfigOpen(true);
-  }, [nodes, addNode, setSelectedNode]);
+  }, [addNode, setSelectedNode, getNextPosition]);
 
   const handleAddAction = useCallback(() => {
-    const actionNodes = nodes.filter(node => node.type === "action");
-    const position = { x: 300, y: 100 }; // Default position for actions
-
-    if (actionNodes.length > 0) {
-      const lastAction = actionNodes.reduce((last, current) => {
-        return current.position.y > last.position.y ? current : last;
-      });
-      position.x = lastAction.position.x;
-      position.y = lastAction.position.y + 120; // Offset for new action
-    }
+    const position = getNextPosition("action", { x: 320, y: 100 });
 
     const newNode = addNode(
       {
@@ -200,7 +252,125 @@ export function WorkflowDesigner({
     );
     setSelectedNode(newNode);
     setIsConfigOpen(true);
-  }, [nodes, addNode, setSelectedNode]);
+  }, [addNode, setSelectedNode, getNextPosition]);
+
+  const handleAddDelay = useCallback(() => {
+    const position = getNextPosition("delay", { x: 520, y: 100 });
+
+    const newNode = addNode(
+      {
+        type: "DELAY",
+        name: "Delay",
+        config: { delayMs: 1000 },
+        delayMs: 1000,
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, getNextPosition, setSelectedNode]);
+
+  const handleAddLoop = useCallback(() => {
+    const position = getNextPosition("loop", { x: 520, y: 240 });
+
+    const newNode = addNode(
+      {
+        type: "LOOP",
+        name: "Loop",
+        config: {
+          sourceKey: "payload.items",
+          itemVariable: "item",
+          indexVariable: "index",
+        },
+        sourceKey: "payload.items",
+        itemVariable: "item",
+        indexVariable: "index",
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, getNextPosition, setSelectedNode]);
+
+  const handleAddQuery = useCallback(() => {
+    const position = getNextPosition("query", { x: 720, y: 100 });
+
+    const newNode = addNode(
+      {
+        type: "QUERY",
+        name: "Query",
+        config: {
+          model: "contacts",
+          resultKey: "query_results",
+        },
+        model: "contacts",
+        resultKey: "query_results",
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, getNextPosition, setSelectedNode]);
+
+  const handleAddFilter = useCallback(() => {
+    const position = getNextPosition("filter", { x: 720, y: 240 });
+
+    const newNode = addNode(
+      {
+        type: "FILTER",
+        name: "Filter",
+        config: {
+          sourceKey: "query_results",
+          conditions: [],
+          logicalOperator: "AND",
+        },
+        sourceKey: "query_results",
+        logicalOperator: "AND",
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, getNextPosition, setSelectedNode]);
+
+  const handleAddSchedule = useCallback(() => {
+    const position = getNextPosition("schedule", { x: 900, y: 100 });
+
+    const newNode = addNode(
+      {
+        type: "SCHEDULE",
+        name: "Schedule",
+        config: {
+          cron: "0 * * * *",
+          timezone: "UTC",
+        },
+        cron: "0 * * * *",
+        timezone: "UTC",
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, getNextPosition, setSelectedNode]);
+
+  const handleAddCondition = useCallback(() => {
+    const position = getNextPosition("condition", { x: 900, y: 240 });
+
+    const newNode = addNode(
+      {
+        type: "CONDITION",
+        name: "Condition",
+        config: {
+          conditions: [],
+          logicalOperator: "AND",
+        },
+        logicalOperator: "AND",
+      },
+      position
+    );
+    setSelectedNode(newNode);
+    setIsConfigOpen(true);
+  }, [addNode, getNextPosition, setSelectedNode]);
 
   // Node click handler
   const handleNodeClickInternal = useCallback(
@@ -262,148 +432,251 @@ export function WorkflowDesigner({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <Card className="mb-4 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-xl font-semibold">{workflow?.name}</h2>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Badge
-                  variant={
-                    workflow?.status === "ACTIVE" ? "default" : "secondary"
-                  }
-                >
-                  {workflow?.status}
-                </Badge>
-                {hasUnsavedChanges ? (
-                  <div className="flex items-center gap-1 text-orange-600">
-                    <Clock className="h-3 w-3" />
-                    <span>Unsaved changes</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <span>
-                      Last saved: {new Date(lastSaveTime).toLocaleTimeString()}
-                    </span>
-                  </div>
-                )}
+    <div className="flex h-full gap-4">
+      {/* Sidebar - Node Types */}
+      <ClientPermissionGuard
+        requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
+      >
+        <Card className="w-20 flex-shrink-0 p-2">
+          <div className="flex flex-col gap-2">
+            <div className="mb-2 text-center">
+              <p className="text-xs font-medium text-muted-foreground">Nodes</p>
+            </div>
+
+            {/* Trigger Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddTrigger}
+              className="h-14 w-full flex-col gap-1 p-1"
+              title="Add Trigger"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="text-[10px] leading-tight">Trigger</span>
+            </Button>
+
+            {/* Action Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddAction}
+              className="h-14 w-full flex-col gap-1 p-1"
+              title="Add Action"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="text-[10px] leading-tight">Action</span>
+            </Button>
+
+            <div className="my-1 border-t border-border" />
+
+            {/* Delay Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddDelay}
+              className="h-14 w-full flex-col gap-1 border-amber-500/50 bg-amber-50 p-1 hover:border-amber-500 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+              title="Add Delay Node"
+            >
+              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <span className="text-[10px] leading-tight text-amber-900 dark:text-amber-100">
+                Delay
+              </span>
+            </Button>
+
+            {/* Loop Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddLoop}
+              className="h-14 w-full flex-col gap-1 border-blue-500/50 bg-blue-50 p-1 hover:border-blue-500 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
+              title="Add Loop Node"
+            >
+              <RefreshCw className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span className="text-[10px] leading-tight text-blue-900 dark:text-blue-100">
+                Loop
+              </span>
+            </Button>
+
+            {/* Query Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddQuery}
+              className="h-14 w-full flex-col gap-1 border-emerald-500/50 bg-emerald-50 p-1 hover:border-emerald-500 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40"
+              title="Add Query Node"
+            >
+              <Search className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-[10px] leading-tight text-emerald-900 dark:text-emerald-100">
+                Query
+              </span>
+            </Button>
+
+            {/* Filter Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddFilter}
+              className="h-14 w-full flex-col gap-1 border-red-500/50 bg-red-50 p-1 hover:border-red-500 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40"
+              title="Add Filter Node"
+            >
+              <FilterIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <span className="text-[10px] leading-tight text-red-900 dark:text-red-100">
+                Filter
+              </span>
+            </Button>
+
+            {/* Schedule Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddSchedule}
+              className="h-14 w-full flex-col gap-1 border-indigo-500/50 bg-indigo-50 p-1 hover:border-indigo-500 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40"
+              title="Add Schedule Node"
+            >
+              <CalendarClock className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-[10px] leading-tight text-indigo-900 dark:text-indigo-100">
+                Schedule
+              </span>
+            </Button>
+
+            {/* Condition Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddCondition}
+              className="h-14 w-full flex-col gap-1 border-purple-500/50 bg-purple-50 p-1 hover:border-purple-500 hover:bg-purple-100 dark:bg-purple-950/20 dark:hover:bg-purple-950/40"
+              title="Add Condition Node"
+            >
+              <GitBranch className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <span className="text-[10px] leading-tight text-purple-900 dark:text-purple-100">
+                Condition
+              </span>
+            </Button>
+          </div>
+        </Card>
+      </ClientPermissionGuard>
+
+      {/* Main Content */}
+      <div className="flex flex-1 flex-col">
+        {/* Header */}
+        <Card className="mb-4 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">{workflow?.name}</h2>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Badge
+                    variant={
+                      workflow?.status === "ACTIVE" ? "default" : "secondary"
+                    }
+                  >
+                    {workflow?.status}
+                  </Badge>
+                  {hasUnsavedChanges ? (
+                    <div className="flex items-center gap-1 text-orange-600">
+                      <Clock className="h-3 w-3" />
+                      <span>Unsaved changes</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-green-600">
+                      <span>
+                        Last saved:{" "}
+                        {new Date(lastSaveTime).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            {/* Add Node Buttons */}
-            <ClientPermissionGuard
-              requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAddTrigger}
-                className="flex items-center gap-2"
+            <div className="flex items-center gap-2">
+              {/* Save Button */}
+              <ClientPermissionGuard
+                requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
               >
-                <Plus className="h-4 w-4" />
-                Add Trigger
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAddAction}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Action
-              </Button>
-            </ClientPermissionGuard>
-
-            {/* Save Button */}
-            <ClientPermissionGuard
-              requiredPermissions={[PERMISSIONS.WORKFLOWS_WRITE]}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManualSave}
-                disabled={!hasUnsavedChanges || isLoadingWorkflow}
-                className="flex items-center gap-2"
-              >
-                {isLoadingWorkflow ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save
-              </Button>
-            </ClientPermissionGuard>
-
-            {/* Workflow Controls */}
-            <ClientPermissionGuard
-              requiredPermissions={[PERMISSIONS.WORKFLOWS_ADMIN]}
-            >
-              {workflow?.status === "ACTIVE" ? (
                 <Button
-                  size="sm"
                   variant="outline"
-                  onClick={() =>
-                    workflow &&
-                    toggleWorkflowStatus(workflow.id, workflow.status)
-                  }
-                  disabled={updateWorkflowMutation.isPending}
-                >
-                  {updateWorkflowMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Pause className="h-4 w-4" />
-                  )}
-                  Pause
-                </Button>
-              ) : (
-                <Button
                   size="sm"
-                  onClick={() =>
-                    workflow &&
-                    toggleWorkflowStatus(workflow.id, workflow.status)
-                  }
-                  disabled={updateWorkflowMutation.isPending}
+                  onClick={handleManualSave}
+                  disabled={!hasUnsavedChanges || isLoadingWorkflow}
+                  className="flex items-center gap-2"
                 >
-                  {updateWorkflowMutation.isPending ? (
+                  {isLoadingWorkflow ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Play className="h-4 w-4" />
+                    <Save className="h-4 w-4" />
                   )}
-                  Activate
+                  Save
                 </Button>
-              )}
-            </ClientPermissionGuard>
-          </div>
-        </div>
-      </Card>
+              </ClientPermissionGuard>
 
-      {/* React Flow Canvas */}
-      <Card className="flex-1 overflow-hidden">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={handleNodeClickInternal}
-          nodeTypes={nodeTypes}
-          fitView
-          snapToGrid
-          snapGrid={[15, 15]}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          minZoom={0.1}
-          maxZoom={2}
-          attributionPosition="bottom-left"
-        >
-          <Controls />
-          <MiniMap />
-          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-        </ReactFlow>
-      </Card>
+              {/* Workflow Controls */}
+              <ClientPermissionGuard
+                requiredPermissions={[PERMISSIONS.WORKFLOWS_ADMIN]}
+              >
+                {workflow?.status === "ACTIVE" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      workflow &&
+                      toggleWorkflowStatus(workflow.id, workflow.status)
+                    }
+                    disabled={updateWorkflowMutation.isPending}
+                  >
+                    {updateWorkflowMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Pause className="h-4 w-4" />
+                    )}
+                    Pause
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      workflow &&
+                      toggleWorkflowStatus(workflow.id, workflow.status)
+                    }
+                    disabled={updateWorkflowMutation.isPending}
+                  >
+                    {updateWorkflowMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                    Activate
+                  </Button>
+                )}
+              </ClientPermissionGuard>
+            </div>
+          </div>
+        </Card>
+
+        {/* React Flow Canvas */}
+        <Card className="flex-1 overflow-hidden">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={handleNodeClickInternal}
+            nodeTypes={nodeTypes}
+            fitView
+            snapToGrid
+            snapGrid={[15, 15]}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            minZoom={0.1}
+            maxZoom={2}
+            attributionPosition="bottom-left"
+          >
+            <Controls />
+            <MiniMap />
+            <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+          </ReactFlow>
+        </Card>
+      </div>
 
       {/* Configuration Sheet */}
       {selectedNode && (

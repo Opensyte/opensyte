@@ -17,18 +17,124 @@ export interface WorkflowNode {
   smsAction?: SmsActionConfig | null;
   sourceConnections: WorkflowConnection[];
   targetConnections?: WorkflowConnection[];
+  schedule?: Record<string, unknown> | null;
 }
 
 export interface WorkflowConnection {
   id: string;
   targetNodeId: string;
+  sourceHandle?: string | null;
+  edgeId?: string | null;
+  label?: string | null;
   executionOrder?: number | null;
   conditions?: unknown;
 }
 
-export interface WorkflowNodeConfig {
+export type WorkflowNodeConfig =
+  | LoopNodeConfig
+  | QueryNodeConfig
+  | FilterNodeConfig
+  | ConditionNodeConfig
+  | ScheduleNodeConfig
+  | DelayNodeConfig
+  | ParallelNodeConfig
+  | Record<string, unknown>;
+
+export interface DelayNodeConfig {
   delayMs?: number;
+  resultKey?: string;
   [key: string]: unknown;
+}
+
+export interface ParallelNodeConfig {
+  failureHandling?: "fail_on_any" | "wait_for_all" | (string & {});
+  parallelNodeIds?: string[];
+  resultKey?: string;
+  [key: string]: unknown;
+}
+
+export interface LoopNodeConfig {
+  dataSource?: string;
+  sourceKey?: string;
+  itemVariable?: string;
+  indexVariable?: string;
+  maxIterations?: number;
+  resultKey?: string;
+  emptyPathHandle?: string;
+  [key: string]: unknown;
+}
+
+export interface QueryNodeConfig {
+  model: string;
+  filters?: QueryFilterConfig[];
+  orderBy?: QueryOrderConfig[];
+  limit?: number;
+  offset?: number;
+  select?: string[];
+  include?: string[];
+  resultKey?: string;
+  fallbackKey?: string;
+  [key: string]: unknown;
+}
+
+export interface FilterNodeConfig {
+  sourceKey: string;
+  conditions?: QueryFilterConfig[];
+  logicalOperator?: LogicalOperator;
+  resultKey?: string;
+  fallbackKey?: string;
+  [key: string]: unknown;
+}
+
+export interface ConditionNodeConfig {
+  conditions?: QueryFilterConfig[];
+  logicalOperator?: LogicalOperator;
+  resultKey?: string;
+  [key: string]: unknown;
+}
+
+export interface ScheduleNodeConfig {
+  cron?: string;
+  frequency?: string;
+  timezone?: string;
+  startAt?: string;
+  endAt?: string;
+  isActive?: boolean;
+  resultKey?: string;
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export type LogicalOperator = "AND" | "OR";
+
+export interface QueryFilterConfig {
+  field: string;
+  operator:
+    | "equals"
+    | "not_equals"
+    | "gt"
+    | "gte"
+    | "lt"
+    | "lte"
+    | "contains"
+    | "not_contains"
+    | "starts_with"
+    | "ends_with"
+    | "in"
+    | "not_in"
+    | "between"
+    | "is_empty"
+    | "is_not_empty";
+  value?: unknown;
+  valueTo?: unknown;
+  values?: unknown[];
+  path?: string;
+  negate?: boolean;
+}
+
+export interface QueryOrderConfig {
+  field: string;
+  direction?: "asc" | "desc";
 }
 
 export interface EmailActionConfig {

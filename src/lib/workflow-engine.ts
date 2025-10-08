@@ -10,11 +10,13 @@ import {
   type Prisma,
   type WorkflowExecutionStatus,
   type NodeExecutionStatus,
+  type WorkflowNodeType,
 } from "@prisma/client";
 import { EmailService } from "./services/email-service";
 import { SmsService } from "./services/sms-service";
 import { VariableResolver } from "./services/variable-resolver";
 import { executionLogger } from "./services/execution-logger";
+import { WorkflowScheduler } from "./services/workflow-scheduler";
 import {
   type WorkflowNode,
   type EmailActionConfig,
@@ -22,6 +24,7 @@ import {
   type WorkflowNodeConfig,
   type WorkflowConnection,
   type PayloadWithOptionalFields,
+<<<<<<< Updated upstream
   type ConditionNodeConfig,
   type ConditionConfig,
   type LoopNodeConfig,
@@ -30,6 +33,17 @@ import {
   type ApprovalNodeConfig,
   type CreateRecordNodeConfig,
   type UpdateRecordNodeConfig,
+=======
+  type LoopNodeConfig,
+  type QueryNodeConfig,
+  type FilterNodeConfig,
+  type QueryFilterConfig,
+  type QueryOrderConfig,
+  type ConditionNodeConfig,
+  type ScheduleNodeConfig,
+  type DelayNodeConfig,
+  type LogicalOperator,
+>>>>>>> Stashed changes
 } from "~/types/workflow-types";
 
 export interface WorkflowTriggerEvent {
@@ -62,10 +76,84 @@ type LoadedWorkflow = NonNullable<
   Awaited<ReturnType<WorkflowExecutionEngine["loadWorkflow"]>>
 >;
 
+type WorkflowRuntimeState = {
+  shared: Record<string, unknown>;
+  nodeOutputs: Record<string, unknown>;
+};
+
+interface ExecuteNodeOutcome {
+  result: NodeExecutionResult;
+  nextSteps: NextExecutionStep[];
+}
+
+interface NextExecutionStep {
+  connection: WorkflowConnection;
+  triggerData: WorkflowTriggerEvent;
+  runtimeContext: WorkflowRuntimeState;
+}
+
+interface ConditionEvaluationResult {
+  matched: boolean;
+  evaluations: Array<{
+    condition: QueryFilterConfig;
+    result: boolean;
+    actual: unknown;
+  }>;
+}
+
+interface LoopExecutionOutcome {
+  output: Record<string, unknown>;
+  nextSteps: NextExecutionStep[];
+}
+
+interface QueryExecutionOutcome {
+  output: Record<string, unknown>;
+}
+
+interface FilterExecutionOutcome {
+  output: Record<string, unknown>;
+}
+
+interface ScheduleExecutionOutcome {
+  output: Record<string, unknown>;
+}
+
+type PrismaDelegateKey = keyof typeof db;
+
+const LOOP_BODY_HANDLES = new Set(["loop", "body", "item"]);
+const LOOP_EMPTY_HANDLES = new Set(["empty", "else", "fallback"]);
+const CONDITION_TRUE_HANDLES = new Set(["true", "yes"]);
+const CONDITION_FALSE_HANDLES = new Set(["false", "no"]);
+const FALLBACK_HANDLES = new Set(["fallback", "default", "otherwise"]);
+
+const QUERY_MODEL_MAP: Record<
+  string,
+  { delegate: PrismaDelegateKey; defaultWhere?: Record<string, unknown> }
+> = {
+  Lead: { delegate: "customer", defaultWhere: { type: "LEAD" } },
+  Leads: { delegate: "customer", defaultWhere: { type: "LEAD" } },
+  Customer: { delegate: "customer" },
+  Customers: { delegate: "customer" },
+  Project: { delegate: "project" },
+  Projects: { delegate: "project" },
+  Task: { delegate: "task" },
+  Tasks: { delegate: "task" },
+  Invoice: { delegate: "invoice" },
+  Invoices: { delegate: "invoice" },
+  Employee: { delegate: "employee" },
+  Employees: { delegate: "employee" },
+  Payroll: { delegate: "payroll" },
+  Payrolls: { delegate: "payroll" },
+  PTO: { delegate: "timeOff" },
+  TimeOff: { delegate: "timeOff" },
+};
+
 export class WorkflowExecutionEngine {
   private emailService = new EmailService();
   private smsService = new SmsService();
   private variableResolver = new VariableResolver();
+  private scheduler = new WorkflowScheduler();
+  private static readonly MAX_NODE_EXECUTIONS = 50;
 
   /**
    * Main entry point for workflow execution
@@ -265,8 +353,16 @@ export class WorkflowExecutionEngine {
     triggerId?: string
   ): Promise<NodeExecutionResult[]> {
     const results: NodeExecutionResult[] = [];
+<<<<<<< Updated upstream
     const executedNodes = new Set<string>();
     const executionContext: Record<string, unknown> = {};
+=======
+    const executionCounts = new Map<string, number>();
+    const runtimeContext: WorkflowRuntimeState = {
+      shared: Object.create(null) as Record<string, unknown>,
+      nodeOutputs: Object.create(null) as Record<string, unknown>,
+    };
+>>>>>>> Stashed changes
 
     // Determine starting nodes strictly from the matched trigger
     const startNodes: WorkflowNode[] = [];
@@ -332,8 +428,13 @@ export class WorkflowExecutionEngine {
         workflow,
         triggerData,
         results,
+<<<<<<< Updated upstream
         executedNodes,
         executionContext
+=======
+        executionCounts,
+        runtimeContext
+>>>>>>> Stashed changes
       );
     }
 
@@ -349,24 +450,57 @@ export class WorkflowExecutionEngine {
     workflow: LoadedWorkflow,
     triggerData: WorkflowTriggerEvent,
     results: NodeExecutionResult[],
+<<<<<<< Updated upstream
     executedNodes: Set<string>,
     executionContext: Record<string, unknown>
+=======
+    executionCounts: Map<string, number>,
+    runtimeContext: WorkflowRuntimeState
+>>>>>>> Stashed changes
   ): Promise<void> {
-    if (executedNodes.has(currentNode.id)) {
-      return; // Already executed
+    const executionCount = executionCounts.get(currentNode.id) ?? 0;
+    if (executionCount >= WorkflowExecutionEngine.MAX_NODE_EXECUTIONS) {
+      await executionLogger.warn(
+        {
+          workflowExecutionId,
+          nodeId: currentNode.id,
+          source: "node-executor",
+          category: "execution-limit",
+        },
+        `Node ${currentNode.id} reached execution limit`,
+        {
+          nodeId: currentNode.id,
+          type: currentNode.type,
+          executionCount,
+        }
+      );
+      return;
     }
+    executionCounts.set(currentNode.id, executionCount + 1);
 
+<<<<<<< Updated upstream
     // Execute current node
     const nodeResult = await this.executeNode(
       workflowExecutionId,
       currentNode,
       triggerData,
       workflow
+=======
+    const outgoingConnections = [...(currentNode.sourceConnections ?? [])].sort(
+      (a, b) => (a.executionOrder ?? 0) - (b.executionOrder ?? 0)
+>>>>>>> Stashed changes
     );
 
-    results.push(nodeResult);
-    executedNodes.add(currentNode.id);
+    const outcome = await this.executeNode(
+      workflowExecutionId,
+      workflow.id,
+      currentNode,
+      triggerData,
+      runtimeContext,
+      outgoingConnections
+    );
 
+<<<<<<< Updated upstream
     // Store node output in execution context for variable resolution
     if (nodeResult.output) {
       executionContext[currentNode.id] = nodeResult.output;
@@ -427,9 +561,19 @@ export class WorkflowExecutionEngine {
     );
 
     for (const connection of connections) {
+=======
+    results.push(outcome.result);
+
+    if (outcome.result.status === "FAILED" && !currentNode.isOptional) {
+      return;
+    }
+
+    for (const step of outcome.nextSteps) {
+>>>>>>> Stashed changes
       const nextNode = workflow.nodes.find(
-        n => n.id === connection.targetNodeId
+        n => n.id === step.connection.targetNodeId
       );
+<<<<<<< Updated upstream
       if (nextNode && !executedNodes.has(nextNode.id)) {
         await this.executeNodeSequence(
           workflowExecutionId,
@@ -439,8 +583,34 @@ export class WorkflowExecutionEngine {
           results,
           executedNodes,
           executionContext
+=======
+      if (!nextNode) {
+        await executionLogger.warn(
+          {
+            workflowExecutionId,
+            nodeId: currentNode.id,
+            source: "node-executor",
+            category: "missing-node",
+          },
+          `Target node ${step.connection.targetNodeId} not found for connection`,
+          {
+            connectionId: step.connection.id,
+            sourceNodeId: currentNode.id,
+          }
+>>>>>>> Stashed changes
         );
+        continue;
       }
+
+      await this.executeNodeSequence(
+        workflowExecutionId,
+        nextNode,
+        workflow,
+        step.triggerData,
+        results,
+        executionCounts,
+        step.runtimeContext
+      );
     }
   }
 
@@ -449,8 +619,10 @@ export class WorkflowExecutionEngine {
    */
   private async executeNode(
     workflowExecutionId: string,
+    workflowId: string,
     node: WorkflowNode,
     triggerData: WorkflowTriggerEvent,
+<<<<<<< Updated upstream
     workflow?: LoadedWorkflow
   ): Promise<NodeExecutionResult> {
     const startTime = Date.now();
@@ -505,80 +677,105 @@ export class WorkflowExecutionEngine {
     triggerData: WorkflowTriggerEvent,
     workflow?: LoadedWorkflow
   ): Promise<NodeExecutionResult> {
+=======
+    runtimeContext: WorkflowRuntimeState,
+    connections: WorkflowConnection[]
+  ): Promise<ExecuteNodeOutcome> {
+>>>>>>> Stashed changes
     const startTime = Date.now();
+    const normalizedType = this.normalizeNodeType(node);
 
-    // Log node execution started
     await executionLogger.logNodeStarted(
       workflowExecutionId,
       node.id,
-      node.type,
-      node.name ?? `${node.type} Node`
+      normalizedType,
+      node.name ?? `${normalizedType} Node`
     );
 
+    const nodeExecution = await db.nodeExecution.create({
+      data: {
+        workflowExecutionId,
+        nodeId: node.id,
+        executionOrder: node.executionOrder ?? 0,
+        status: "RUNNING",
+        startedAt: new Date(),
+        input: triggerData as unknown as Prisma.InputJsonValue,
+        maxRetries: node.retryLimit ?? 3,
+      },
+    });
+
+    let output: Record<string, unknown> = {};
+    let status: NodeExecutionStatus = "COMPLETED";
+    let nextSteps: NextExecutionStep[] = [];
+
     try {
-      // Create node execution record
-      const nodeExecution = await db.nodeExecution.create({
-        data: {
-          workflowExecutionId,
-          nodeId: node.id,
-          executionOrder: node.executionOrder ?? 0,
-          status: "RUNNING",
-          startedAt: new Date(),
-          input: triggerData as unknown as Prisma.InputJsonValue,
-          maxRetries: node.retryLimit ?? 3,
-        },
-      });
-
-      let output: Record<string, unknown> = {};
-      let status: NodeExecutionStatus = "COMPLETED";
-
-      // Execute based on node type
-      switch (node.type) {
+      switch (normalizedType) {
         case "EMAIL":
-          if (node.emailAction) {
-            output = await this.executeEmailAction(
-              node.emailAction,
-              triggerData
-            );
-            if (output.emailSent !== true) {
-              throw new Error(
-                typeof output.error === "string"
-                  ? output.error
-                  : "Email sending failed"
-              );
-            }
-            await executionLogger.logActionExecution(
-              workflowExecutionId,
-              node.id,
-              "EMAIL",
-              {
-                subject: node.emailAction.subject,
-                recipientType: "trigger-based",
-              },
-              output
+          if (!node.emailAction) {
+            status = "SKIPPED";
+            output = {
+              skipped: true,
+              reason: "Email node missing configuration",
+            };
+            break;
+          }
+          output = await this.executeEmailAction(node.emailAction, triggerData);
+          if (output.emailSent !== true) {
+            throw new Error(
+              typeof output.error === "string"
+                ? output.error
+                : "Email sending failed"
             );
           }
+          await executionLogger.logActionExecution(
+            workflowExecutionId,
+            node.id,
+            "EMAIL",
+            {
+              subject: node.emailAction.subject,
+              recipientType: "trigger-based",
+            },
+            output
+          );
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
           break;
 
         case "SMS":
-          if (node.smsAction) {
-            output = await this.executeSmsAction(node.smsAction, triggerData);
-            if (output.smsSent !== true) {
-              throw new Error(
-                typeof output.error === "string" ? output.error : "SMS failed"
-              );
-            }
-            await executionLogger.logActionExecution(
-              workflowExecutionId,
-              node.id,
-              "SMS",
-              {
-                messageLength: node.smsAction.message?.length ?? 0,
-                recipientType: "trigger-based",
-              },
-              output
+          if (!node.smsAction) {
+            status = "SKIPPED";
+            output = {
+              skipped: true,
+              reason: "SMS node missing configuration",
+            };
+            break;
+          }
+          output = await this.executeSmsAction(node.smsAction, triggerData);
+          if (output.smsSent !== true) {
+            throw new Error(
+              typeof output.error === "string" ? output.error : "SMS failed"
             );
           }
+          await executionLogger.logActionExecution(
+            workflowExecutionId,
+            node.id,
+            "SMS",
+            {
+              messageLength: node.smsAction.message?.length ?? 0,
+              recipientType: "trigger-based",
+            },
+            output
+          );
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
           break;
 
         case "ACTION":
@@ -625,24 +822,41 @@ export class WorkflowExecutionEngine {
             status = "SKIPPED";
             output = {
               skipped: true,
-              reason: "Action node has no configured sub-action (email/sms)",
+              reason: "Generic action node has no implementation",
             };
           }
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
           break;
 
         case "TRIGGER":
-          // Trigger nodes just pass through
           output = { triggered: true };
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
           break;
 
-        case "DELAY":
-          if (node.config) {
-            const cfg = (node.config as { delayMs?: number }) ?? {};
-            await this.executeDelay(cfg);
-          }
-          output = { delayed: true };
+        case "DELAY": {
+          const delayConfig = this.parseDelayConfig(node.config);
+          await this.executeDelay(delayConfig);
+          output = { delayed: true, delayMs: delayConfig.delayMs };
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
           break;
+        }
 
+<<<<<<< Updated upstream
         case "CONDITION":
           output = await this.executeConditionNode(node, triggerData);
           await executionLogger.logActionExecution(
@@ -765,10 +979,108 @@ export class WorkflowExecutionEngine {
           break;
 
         default:
+=======
+        case "CONDITION": {
+          const conditionConfig = this.parseConditionConfig(node.config);
+          const conditionResult = this.evaluateConditions(
+            conditionConfig,
+            triggerData,
+            runtimeContext
+          );
+          output = {
+            matched: conditionResult.matched,
+            evaluations: conditionResult.evaluations,
+          };
+          const conditionNodeSnapshot: NodeExecutionResult = {
+            nodeId: node.id,
+            status,
+            output,
+          };
+          nextSteps = this.buildConditionalNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            conditionNodeSnapshot,
+            conditionResult.matched
+          );
+          break;
+        }
+
+        case "LOOP": {
+          const loopConfig = this.parseLoopConfig(node.config);
+          const loopOutcome = await this.executeLoopNode(
+            workflowExecutionId,
+            workflowId,
+            node,
+            triggerData,
+            runtimeContext,
+            connections,
+            loopConfig
+          );
+          output = loopOutcome.output;
+          nextSteps = loopOutcome.nextSteps;
+          break;
+        }
+
+        case "QUERY": {
+          const queryConfig = this.parseQueryConfig(node.config);
+          const queryOutcome = await this.executeQueryNode(
+            queryConfig,
+            triggerData,
+            runtimeContext
+          );
+          output = queryOutcome.output;
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
+          break;
+        }
+
+        case "FILTER": {
+          const filterConfig = this.parseFilterConfig(node.config);
+          const filterOutcome = this.executeFilterNode(
+            filterConfig,
+            triggerData,
+            runtimeContext
+          );
+          output = filterOutcome.output;
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
+          break;
+        }
+
+        case "SCHEDULE": {
+          const scheduleConfig = this.parseScheduleConfig(node.config);
+          const scheduleOutcome = await this.executeScheduleNode(
+            workflowId,
+            node,
+            scheduleConfig,
+            runtimeContext,
+            triggerData
+          );
+          output = scheduleOutcome.output;
+          nextSteps = this.buildDefaultNextSteps(
+            connections,
+            triggerData,
+            runtimeContext,
+            { nodeId: node.id, status, output }
+          );
+          break;
+        }
+
+        default: {
+>>>>>>> Stashed changes
           status = "SKIPPED";
           output = {
             skipped: true,
-            reason: `Node type ${node.type as string} not implemented`,
+            reason: `Node type ${normalizedType} not implemented`,
           };
           await executionLogger.warn(
             {
@@ -777,14 +1089,21 @@ export class WorkflowExecutionEngine {
               source: "node-executor",
               category: "unsupported-node",
             },
-            `Node type ${node.type as string} not implemented`,
-            { nodeType: node.type, nodeName: node.name }
+            `Node type ${normalizedType} not implemented`,
+            { nodeType: normalizedType, nodeName: node.name }
           );
+          nextSteps = [];
+        }
       }
 
       const duration = Date.now() - startTime;
 
-      // Update node execution
+      runtimeContext.nodeOutputs[node.id] = output;
+      const resultKey = this.extractResultKey(node.config);
+      if (resultKey) {
+        runtimeContext.shared[resultKey] = output;
+      }
+
       await db.nodeExecution.update({
         where: { id: nodeExecution.id },
         data: {
@@ -795,44 +1114,42 @@ export class WorkflowExecutionEngine {
         },
       });
 
-      // Log node execution completed
       await executionLogger.logNodeCompleted(
         workflowExecutionId,
         node.id,
-        node.type,
-        node.name ?? `Node ${node.type as string}`,
+        normalizedType,
+        node.name ?? `Node ${normalizedType}`,
         duration,
         output
       );
 
-      return {
+      const nodeResult: NodeExecutionResult = {
         nodeId: node.id,
         status,
         output,
         duration,
+      };
+
+      return {
+        result: nodeResult,
+        nextSteps,
       };
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
 
-      // Log node execution failed
       await executionLogger.logNodeFailed(
         workflowExecutionId,
         node.id,
-        node.type,
-        node.name ?? `Node ${node.type as string}`,
+        normalizedType,
+        node.name ?? `Node ${normalizedType}`,
         error instanceof Error ? error : new Error(errorMessage),
         duration
       );
 
-      // Update node execution as failed
-      await db.nodeExecution.updateMany({
-        where: {
-          workflowExecutionId,
-          nodeId: node.id,
-          status: "RUNNING",
-        },
+      await db.nodeExecution.update({
+        where: { id: nodeExecution.id },
         data: {
           status: "FAILED",
           completedAt: new Date(),
@@ -846,13 +1163,1281 @@ export class WorkflowExecutionEngine {
         },
       });
 
-      return {
+      const failedResult: NodeExecutionResult = {
         nodeId: node.id,
         status: "FAILED",
         error: errorMessage,
         duration,
       };
+
+      return {
+        result: failedResult,
+        nextSteps: [],
+      };
     }
+  }
+
+  private buildDefaultNextSteps(
+    connections: WorkflowConnection[],
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState,
+    nodeResult: NodeExecutionResult
+  ): NextExecutionStep[] {
+    return connections
+      .filter(connection =>
+        this.evaluateConnectionConditions(connection, nodeResult, triggerData)
+      )
+      .map(connection => ({
+        connection,
+        triggerData,
+        runtimeContext,
+      }));
+  }
+
+  private buildConditionalNextSteps(
+    connections: WorkflowConnection[],
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState,
+    nodeResult: NodeExecutionResult,
+    conditionMatched: boolean
+  ): NextExecutionStep[] {
+    const trueConnections = connections.filter(connection =>
+      CONDITION_TRUE_HANDLES.has(
+        this.normalizeHandle(connection.sourceHandle ?? null)
+      )
+    );
+    const falseConnections = connections.filter(connection =>
+      CONDITION_FALSE_HANDLES.has(
+        this.normalizeHandle(connection.sourceHandle ?? null)
+      )
+    );
+    const fallbackConnections = connections.filter(connection => {
+      const handle = this.normalizeHandle(connection.sourceHandle ?? null);
+      return (
+        !CONDITION_TRUE_HANDLES.has(handle) &&
+        !CONDITION_FALSE_HANDLES.has(handle) &&
+        FALLBACK_HANDLES.has(handle)
+      );
+    });
+
+    const defaultConnections = connections.filter(connection => {
+      const handle = this.normalizeHandle(connection.sourceHandle ?? null);
+      return (
+        !CONDITION_TRUE_HANDLES.has(handle) &&
+        !CONDITION_FALSE_HANDLES.has(handle) &&
+        !FALLBACK_HANDLES.has(handle)
+      );
+    });
+
+    const chosenConnections = conditionMatched
+      ? trueConnections.length > 0
+        ? trueConnections
+        : fallbackConnections.length > 0
+          ? fallbackConnections
+          : defaultConnections
+      : falseConnections.length > 0
+        ? falseConnections
+        : fallbackConnections.length > 0
+          ? fallbackConnections
+          : defaultConnections;
+
+    return this.buildDefaultNextSteps(
+      chosenConnections,
+      triggerData,
+      runtimeContext,
+      nodeResult
+    );
+  }
+
+  private parseDelayConfig(config: unknown): DelayNodeConfig {
+    const record = this.toRecord(config);
+    const delayValue = record.delayMs;
+    const parsedDelay =
+      typeof delayValue === "number" &&
+      Number.isFinite(delayValue) &&
+      delayValue >= 0
+        ? delayValue
+        : undefined;
+    const delayMs = parsedDelay ?? 1000;
+
+    return {
+      delayMs,
+      resultKey:
+        typeof record.resultKey === "string" &&
+        record.resultKey.trim().length > 0
+          ? record.resultKey
+          : undefined,
+    };
+  }
+
+  private parseConditionConfig(config: unknown): ConditionNodeConfig {
+    const record = this.toRecord(config);
+    const rawConditions = Array.isArray(record.conditions)
+      ? record.conditions
+      : [];
+    const conditions: QueryFilterConfig[] = rawConditions
+      .map(condition => this.toRecord(condition))
+      .map(condition => {
+        const field =
+          typeof condition.field === "string" &&
+          condition.field.trim().length > 0
+            ? condition.field
+            : "";
+        const operatorValue =
+          typeof condition.operator === "string"
+            ? (condition.operator.toLowerCase() as QueryFilterConfig["operator"])
+            : "equals";
+        const operator: QueryFilterConfig["operator"] = (
+          [
+            "equals",
+            "not_equals",
+            "gt",
+            "gte",
+            "lt",
+            "lte",
+            "contains",
+            "not_contains",
+            "starts_with",
+            "ends_with",
+            "in",
+            "not_in",
+            "between",
+            "is_empty",
+            "is_not_empty",
+          ] as QueryFilterConfig["operator"][]
+        ).includes(operatorValue)
+          ? operatorValue
+          : "equals";
+
+        const values = Array.isArray(condition.values)
+          ? condition.values
+          : undefined;
+
+        return {
+          field,
+          operator,
+          value: condition.value,
+          valueTo: condition.valueTo,
+          values,
+          path:
+            typeof condition.path === "string" &&
+            condition.path.trim().length > 0
+              ? condition.path
+              : undefined,
+          negate:
+            typeof condition.negate === "boolean"
+              ? condition.negate
+              : undefined,
+        } satisfies QueryFilterConfig;
+      })
+      .filter(condition => condition.field.length > 0);
+
+    const logicalOperatorRaw =
+      typeof record.logicalOperator === "string"
+        ? record.logicalOperator.toUpperCase()
+        : "AND";
+    const logicalOperator: LogicalOperator =
+      logicalOperatorRaw === "OR" ? "OR" : "AND";
+
+    const resultKey =
+      typeof record.resultKey === "string" && record.resultKey.trim().length > 0
+        ? record.resultKey
+        : undefined;
+
+    return {
+      conditions,
+      logicalOperator,
+      resultKey,
+    };
+  }
+
+  private parseLoopConfig(config: unknown): LoopNodeConfig {
+    const record = this.toRecord(config);
+    const itemVariable =
+      typeof record.itemVariable === "string" &&
+      record.itemVariable.trim().length > 0
+        ? record.itemVariable
+        : "item";
+    const indexVariable =
+      typeof record.indexVariable === "string" &&
+      record.indexVariable.trim().length > 0
+        ? record.indexVariable
+        : "index";
+    const maxIterations =
+      typeof record.maxIterations === "number" &&
+      Number.isFinite(record.maxIterations)
+        ? record.maxIterations
+        : undefined;
+
+    return {
+      dataSource:
+        typeof record.dataSource === "string" &&
+        record.dataSource.trim().length > 0
+          ? record.dataSource
+          : undefined,
+      sourceKey:
+        typeof record.sourceKey === "string" &&
+        record.sourceKey.trim().length > 0
+          ? record.sourceKey
+          : undefined,
+      itemVariable,
+      indexVariable,
+      maxIterations,
+      resultKey:
+        typeof record.resultKey === "string" &&
+        record.resultKey.trim().length > 0
+          ? record.resultKey
+          : undefined,
+      emptyPathHandle:
+        typeof record.emptyPathHandle === "string" &&
+        record.emptyPathHandle.trim().length > 0
+          ? record.emptyPathHandle
+          : undefined,
+    };
+  }
+
+  private parseQueryConfig(config: unknown): QueryNodeConfig {
+    const record = this.toRecord(config);
+    const rawOrder = Array.isArray(record.orderBy) ? record.orderBy : [];
+
+    const orderBy = rawOrder
+      .map(order => this.toRecord(order))
+      .map(order => {
+        const direction: "asc" | "desc" =
+          typeof order.direction === "string" &&
+          order.direction.toLowerCase() === "desc"
+            ? "desc"
+            : "asc";
+
+        return {
+          field:
+            typeof order.field === "string" && order.field.trim().length > 0
+              ? order.field
+              : "",
+          direction,
+        };
+      })
+      .filter(order => order.field.length > 0);
+
+    const filtersRaw = Array.isArray(record.filters) ? record.filters : [];
+    const filters: QueryFilterConfig[] = filtersRaw
+      .map(filter => this.toRecord(filter))
+      .map(filter => ({
+        field:
+          typeof filter.field === "string" && filter.field.trim().length > 0
+            ? filter.field
+            : "",
+        operator:
+          typeof filter.operator === "string"
+            ? (filter.operator.toLowerCase() as QueryFilterConfig["operator"])
+            : "equals",
+        value:
+          typeof filter.value === "string" ? filter.value.trim() : filter.value,
+        valueTo:
+          typeof filter.valueTo === "string"
+            ? filter.valueTo.trim()
+            : filter.valueTo,
+        values: Array.isArray(filter.values)
+          ? (filter.values as unknown[]).map((item: unknown) =>
+              typeof item === "string" ? item.trim() : item
+            )
+          : undefined,
+        path:
+          typeof filter.path === "string" && filter.path.trim().length > 0
+            ? filter.path
+            : undefined,
+        negate: typeof filter.negate === "boolean" ? filter.negate : undefined,
+      }))
+      .filter(filter => filter.field.length > 0);
+
+    return {
+      model: typeof record.model === "string" ? record.model : "",
+      filters,
+      orderBy,
+      limit:
+        typeof record.limit === "number" && Number.isFinite(record.limit)
+          ? record.limit
+          : undefined,
+      offset:
+        typeof record.offset === "number" && Number.isFinite(record.offset)
+          ? record.offset
+          : undefined,
+      select: Array.isArray(record.select)
+        ? (record.select.filter(
+            (field): field is string => typeof field === "string"
+          ) ?? [])
+        : undefined,
+      include: Array.isArray(record.include)
+        ? (record.include.filter(
+            (field): field is string => typeof field === "string"
+          ) ?? [])
+        : undefined,
+      resultKey:
+        typeof record.resultKey === "string" &&
+        record.resultKey.trim().length > 0
+          ? record.resultKey
+          : undefined,
+      fallbackKey:
+        typeof record.fallbackKey === "string" &&
+        record.fallbackKey.trim().length > 0
+          ? record.fallbackKey
+          : undefined,
+    };
+  }
+
+  private parseFilterConfig(config: unknown): FilterNodeConfig {
+    const record = this.toRecord(config);
+    const conditionsRaw = Array.isArray(record.conditions)
+      ? record.conditions
+      : [];
+    const conditions: QueryFilterConfig[] = conditionsRaw
+      .map(condition => this.toRecord(condition))
+      .map(condition => ({
+        field:
+          typeof condition.field === "string" &&
+          condition.field.trim().length > 0
+            ? condition.field
+            : "",
+        operator:
+          typeof condition.operator === "string"
+            ? (condition.operator.toLowerCase() as QueryFilterConfig["operator"])
+            : "equals",
+        value:
+          typeof condition.value === "string"
+            ? condition.value.trim()
+            : condition.value,
+        valueTo:
+          typeof condition.valueTo === "string"
+            ? condition.valueTo.trim()
+            : condition.valueTo,
+        values: Array.isArray(condition.values)
+          ? (condition.values as unknown[]).map((item: unknown) =>
+              typeof item === "string" ? item.trim() : item
+            )
+          : undefined,
+        path:
+          typeof condition.path === "string" && condition.path.trim().length > 0
+            ? condition.path
+            : undefined,
+        negate:
+          typeof condition.negate === "boolean" ? condition.negate : undefined,
+      }))
+      .filter(condition => condition.field.length > 0);
+
+    const logicalOperatorRaw =
+      typeof record.logicalOperator === "string"
+        ? record.logicalOperator.toUpperCase()
+        : "AND";
+    const logicalOperator: LogicalOperator =
+      logicalOperatorRaw === "OR" ? "OR" : "AND";
+
+    return {
+      sourceKey:
+        typeof record.sourceKey === "string" &&
+        record.sourceKey.trim().length > 0
+          ? record.sourceKey
+          : "",
+      conditions,
+      logicalOperator,
+      resultKey:
+        typeof record.resultKey === "string" &&
+        record.resultKey.trim().length > 0
+          ? record.resultKey
+          : undefined,
+      fallbackKey:
+        typeof record.fallbackKey === "string" &&
+        record.fallbackKey.trim().length > 0
+          ? record.fallbackKey
+          : undefined,
+    };
+  }
+
+  private parseScheduleConfig(config: unknown): ScheduleNodeConfig {
+    const record = this.toRecord(config);
+    return {
+      cron:
+        typeof record.cron === "string" && record.cron.trim().length > 0
+          ? record.cron
+          : undefined,
+      frequency:
+        typeof record.frequency === "string" &&
+        record.frequency.trim().length > 0
+          ? record.frequency
+          : undefined,
+      timezone:
+        typeof record.timezone === "string" && record.timezone.trim().length > 0
+          ? record.timezone
+          : undefined,
+      startAt:
+        typeof record.startAt === "string" && record.startAt.trim().length > 0
+          ? record.startAt
+          : undefined,
+      endAt:
+        typeof record.endAt === "string" && record.endAt.trim().length > 0
+          ? record.endAt
+          : undefined,
+      isActive:
+        typeof record.isActive === "boolean" ? record.isActive : undefined,
+      metadata: this.toRecord(record.metadata),
+      resultKey:
+        typeof record.resultKey === "string" &&
+        record.resultKey.trim().length > 0
+          ? record.resultKey
+          : undefined,
+    };
+  }
+
+  private evaluateConditions(
+    conditionConfig: ConditionNodeConfig,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState,
+    additionalSource?: Record<string, unknown>
+  ): ConditionEvaluationResult {
+    const conditions = conditionConfig.conditions ?? [];
+    const evaluations = conditions.map(condition => {
+      const path = condition.path ?? condition.field;
+      const actual = this.resolveDataPath(
+        path,
+        triggerData,
+        runtimeContext,
+        additionalSource
+      );
+      const evaluation = this.evaluateSingleCondition(condition, actual);
+      const result = condition.negate ? !evaluation : evaluation;
+      return {
+        condition,
+        result,
+        actual,
+      };
+    });
+
+    const matched =
+      conditionConfig.logicalOperator === "OR"
+        ? evaluations.some(evaluation => evaluation.result)
+        : evaluations.every(evaluation => evaluation.result);
+
+    return {
+      matched,
+      evaluations,
+    };
+  }
+
+  private async executeLoopNode(
+    workflowExecutionId: string,
+    workflowId: string,
+    node: WorkflowNode,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState,
+    connections: WorkflowConnection[],
+    loopConfig: LoopNodeConfig
+  ): Promise<LoopExecutionOutcome> {
+    const collection = this.resolveCollection(
+      loopConfig,
+      triggerData,
+      runtimeContext
+    );
+    const items = Array.isArray(collection) ? (collection as unknown[]) : [];
+
+    if (loopConfig.resultKey) {
+      runtimeContext.shared[loopConfig.resultKey] = items;
+    }
+
+    const totalItems = items.length;
+    const maxIterations =
+      loopConfig.maxIterations && loopConfig.maxIterations > 0
+        ? Math.min(loopConfig.maxIterations, totalItems)
+        : totalItems;
+
+    const normalizedHandles = connections.map(connection => ({
+      connection,
+      handle: this.normalizeHandle(connection.sourceHandle ?? null),
+    }));
+
+    const bodyConnections = normalizedHandles
+      .filter(({ handle }) => LOOP_BODY_HANDLES.has(handle))
+      .map(({ connection }) => connection);
+    const emptyConnections = normalizedHandles
+      .filter(({ handle }) => LOOP_EMPTY_HANDLES.has(handle))
+      .map(({ connection }) => connection);
+
+    let afterConnections = normalizedHandles
+      .filter(
+        ({ handle }) =>
+          !LOOP_BODY_HANDLES.has(handle) && !LOOP_EMPTY_HANDLES.has(handle)
+      )
+      .map(({ connection }) => connection);
+
+    if (bodyConnections.length === 0 && connections.length > 0) {
+      const [firstConnection, ...rest] = connections;
+      if (firstConnection) {
+        bodyConnections.push(firstConnection);
+        afterConnections = rest;
+      }
+    }
+
+    const iterationSteps: NextExecutionStep[] = [];
+
+    for (let index = 0; index < maxIterations; index += 1) {
+      const item = items[index];
+      const iterationTrigger = this.createLoopIterationTrigger(
+        triggerData,
+        loopConfig,
+        item,
+        index,
+        totalItems
+      );
+
+      for (const connection of bodyConnections) {
+        iterationSteps.push({
+          connection,
+          triggerData: iterationTrigger,
+          runtimeContext,
+        });
+      }
+    }
+
+    if (items.length === 0 && emptyConnections.length > 0) {
+      const emptyResult: NodeExecutionResult = {
+        nodeId: node.id,
+        status: "COMPLETED",
+        output: {
+          itemsProcessed: 0,
+          empty: true,
+        },
+      };
+
+      const steps = this.buildDefaultNextSteps(
+        emptyConnections,
+        triggerData,
+        runtimeContext,
+        emptyResult
+      );
+
+      return {
+        output: {
+          itemsProcessed: 0,
+          empty: true,
+        },
+        nextSteps: steps,
+      };
+    }
+
+    const afterSteps = this.buildDefaultNextSteps(
+      afterConnections,
+      triggerData,
+      runtimeContext,
+      {
+        nodeId: node.id,
+        status: "COMPLETED",
+        output: {
+          itemsProcessed: maxIterations,
+        },
+      }
+    );
+
+    return {
+      output: {
+        itemsProcessed: maxIterations,
+        totalItems,
+        itemVariable: loopConfig.itemVariable ?? "item",
+      },
+      nextSteps: [...iterationSteps, ...afterSteps],
+    };
+  }
+
+  private createLoopIterationTrigger(
+    triggerData: WorkflowTriggerEvent,
+    loopConfig: LoopNodeConfig,
+    item: unknown,
+    index: number,
+    total: number
+  ): WorkflowTriggerEvent {
+    const itemVariable = loopConfig.itemVariable ?? "item";
+    const indexVariable = loopConfig.indexVariable ?? "index";
+
+    const payload = {
+      ...(triggerData.payload ?? {}),
+      [itemVariable]: item,
+      [indexVariable]: index,
+      loop: {
+        item,
+        index,
+        total,
+      },
+    } as Record<string, unknown>;
+
+    return {
+      ...triggerData,
+      payload,
+    };
+  }
+
+  private resolveCollection(
+    loopConfig: LoopNodeConfig,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState
+  ): unknown {
+    const keys: (string | undefined)[] = [
+      loopConfig.sourceKey,
+      loopConfig.dataSource,
+      loopConfig.resultKey,
+    ];
+
+    for (const key of keys) {
+      if (!key) continue;
+      const resolved = this.resolveDataPath(key, triggerData, runtimeContext);
+      if (Array.isArray(resolved)) {
+        return resolved;
+      }
+      if (resolved !== undefined) {
+        return resolved;
+      }
+    }
+
+    return [];
+  }
+
+  private resolveCollectionFromKey(
+    key: string,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState
+  ): unknown {
+    return this.resolveDataPath(key, triggerData, runtimeContext);
+  }
+
+  private resolveDataPath(
+    rawPath: string,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState,
+    additionalSource?: Record<string, unknown>
+  ): unknown {
+    const path = rawPath.trim();
+    if (path.length === 0) {
+      return undefined;
+    }
+
+    const lowerPath = path.toLowerCase();
+
+    if (path.startsWith("$")) {
+      if (lowerPath.startsWith("$trigger.")) {
+        const subPath = path.slice("$trigger.".length);
+        return this.getValueFromObject(triggerData, subPath);
+      }
+      if (lowerPath.startsWith("$payload.")) {
+        const subPath = path.slice("$payload.".length);
+        return this.getValueFromObject(triggerData.payload ?? {}, subPath);
+      }
+      if (lowerPath.startsWith("$context.")) {
+        const subPath = path.slice("$context.".length);
+        return this.getValueFromObject(runtimeContext.shared, subPath);
+      }
+      if (lowerPath.startsWith("$node.")) {
+        const subPath = path.slice("$node.".length);
+        return this.getValueFromObject(runtimeContext.nodeOutputs, subPath);
+      }
+      if (lowerPath.startsWith("$loop.")) {
+        const subPath = path.slice("$loop.".length);
+        if (additionalSource) {
+          return this.getValueFromObject(additionalSource, subPath);
+        }
+        return this.getValueFromObject(
+          triggerData.payload ?? {},
+          `loop.${subPath}`
+        );
+      }
+      // Unknown prefix; strip the leading symbol and attempt fallback lookup
+      const fallbackPath = path.slice(1);
+      return (
+        this.getValueFromObject(runtimeContext.shared, fallbackPath) ??
+        this.getValueFromObject(runtimeContext.nodeOutputs, fallbackPath) ??
+        this.getValueFromObject(additionalSource ?? {}, fallbackPath) ??
+        this.getValueFromObject(triggerData.payload ?? {}, fallbackPath)
+      );
+    }
+
+    return (
+      this.getValueFromObject(runtimeContext.shared, path) ??
+      this.getValueFromObject(runtimeContext.nodeOutputs, path) ??
+      this.getValueFromObject(additionalSource ?? {}, path) ??
+      this.getValueFromObject(triggerData.payload ?? {}, path)
+    );
+  }
+
+  private getValueFromObject(source: unknown, path: string): unknown {
+    if (source === null || typeof source !== "object") {
+      return undefined;
+    }
+
+    const segments = path
+      .split(".")
+      .map(segment => segment.trim())
+      .filter(segment => segment.length > 0);
+
+    let current: unknown = source;
+    for (const segment of segments) {
+      if (current === null || typeof current !== "object") {
+        return undefined;
+      }
+
+      if (Array.isArray(current)) {
+        const index = Number.parseInt(segment, 10);
+        if (Number.isNaN(index) || index < 0 || index >= current.length) {
+          return undefined;
+        }
+        current = current[index];
+        continue;
+      }
+
+      const record = current as Record<string, unknown>;
+      current = record[segment];
+    }
+
+    return current;
+  }
+
+  private evaluateSingleCondition(
+    condition: QueryFilterConfig,
+    actual: unknown
+  ): boolean {
+    switch (condition.operator) {
+      case "equals":
+        return actual === condition.value;
+      case "not_equals":
+        return actual !== condition.value;
+      case "gt":
+        return this.evaluateComparison(
+          actual,
+          condition.value,
+          (a, b) => a > b
+        );
+      case "gte":
+        return this.evaluateComparison(
+          actual,
+          condition.value,
+          (a, b) => a >= b
+        );
+      case "lt":
+        return this.evaluateComparison(
+          actual,
+          condition.value,
+          (a, b) => a < b
+        );
+      case "lte":
+        return this.evaluateComparison(
+          actual,
+          condition.value,
+          (a, b) => a <= b
+        );
+      case "contains":
+        return this.evaluateContains(actual, condition.value);
+      case "not_contains":
+        return !this.evaluateContains(actual, condition.value);
+      case "starts_with":
+        return this.evaluateStringComparison(actual, condition.value, (a, b) =>
+          a.startsWith(b)
+        );
+      case "ends_with":
+        return this.evaluateStringComparison(actual, condition.value, (a, b) =>
+          a.endsWith(b)
+        );
+      case "in": {
+        const values = Array.isArray(condition.values)
+          ? condition.values
+          : Array.isArray(condition.value)
+            ? (condition.value as unknown[])
+            : [];
+        return values.some(value => value === actual);
+      }
+      case "not_in": {
+        const values = Array.isArray(condition.values)
+          ? condition.values
+          : Array.isArray(condition.value)
+            ? (condition.value as unknown[])
+            : [];
+        return !values.some(value => value === actual);
+      }
+      case "between": {
+        const lower = condition.value;
+        const upper = condition.valueTo;
+        if (lower === undefined || upper === undefined) {
+          return false;
+        }
+        return (
+          this.evaluateComparison(actual, lower, (a, b) => a >= b) &&
+          this.evaluateComparison(actual, upper, (a, b) => a <= b)
+        );
+      }
+      case "is_empty":
+        return actual === null || actual === undefined || actual === "";
+      case "is_not_empty":
+        return !(actual === null || actual === undefined || actual === "");
+      default:
+        return false;
+    }
+  }
+
+  private evaluateComparison(
+    actual: unknown,
+    expected: unknown,
+    comparator: (a: number, b: number) => boolean
+  ): boolean {
+    const actualNumber = this.coerceToNumber(actual);
+    const expectedNumber = this.coerceToNumber(expected);
+    if (actualNumber === null || expectedNumber === null) {
+      return false;
+    }
+    return comparator(actualNumber, expectedNumber);
+  }
+
+  private evaluateContains(actual: unknown, expected: unknown): boolean {
+    if (typeof actual === "string" && typeof expected === "string") {
+      return actual.includes(expected);
+    }
+    if (Array.isArray(actual)) {
+      return actual.some(item => item === expected);
+    }
+    return false;
+  }
+
+  private evaluateStringComparison(
+    actual: unknown,
+    expected: unknown,
+    comparator: (a: string, b: string) => boolean
+  ): boolean {
+    if (typeof actual !== "string" || typeof expected !== "string") {
+      return false;
+    }
+    return comparator(actual, expected);
+  }
+
+  private coerceToNumber(value: unknown): number | null {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string" && value.trim().length > 0) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    if (value instanceof Date) {
+      return value.getTime();
+    }
+    return null;
+  }
+
+  private async executeQueryNode(
+    queryConfig: QueryNodeConfig,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState
+  ): Promise<QueryExecutionOutcome> {
+    if (!queryConfig.model) {
+      throw new Error("Query node requires a model");
+    }
+
+    const delegateInfo = this.getQueryDelegate(queryConfig.model);
+    if (!delegateInfo) {
+      throw new Error(`Unsupported query model: ${queryConfig.model}`);
+    }
+
+    const where = this.buildQueryWhere(
+      queryConfig.filters,
+      triggerData,
+      runtimeContext
+    );
+
+    if (delegateInfo.defaultWhere) {
+      Object.entries(delegateInfo.defaultWhere).forEach(([key, value]) => {
+        this.assignWhere(where, key, value);
+      });
+    }
+
+    this.assignWhere(where, "organizationId", triggerData.organizationId);
+
+    const orderBy = this.buildOrderBy(queryConfig.orderBy);
+
+    const queryArgs: Record<string, unknown> = {
+      where,
+    };
+
+    if (orderBy.length > 0) {
+      queryArgs.orderBy = orderBy;
+    }
+
+    if (typeof queryConfig.limit === "number") {
+      queryArgs.take = queryConfig.limit;
+    }
+
+    if (typeof queryConfig.offset === "number") {
+      queryArgs.skip = queryConfig.offset;
+    }
+
+    const select = this.buildSelect(queryConfig.select);
+    if (select) {
+      queryArgs.select = select;
+    }
+
+    const include = this.buildSelect(queryConfig.include);
+    if (include) {
+      queryArgs.include = include;
+    }
+
+    const delegate = this.getPrismaDelegate(delegateInfo.delegate);
+    const prismaDelegate = delegate as unknown as {
+      findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
+    };
+
+    const records = await prismaDelegate.findMany(queryArgs);
+
+    if (queryConfig.resultKey) {
+      runtimeContext.shared[queryConfig.resultKey] = records;
+    }
+
+    return {
+      output: {
+        records,
+        count: records.length,
+      },
+    };
+  }
+
+  private getQueryDelegate(model: string) {
+    const direct =
+      QUERY_MODEL_MAP[model] ?? QUERY_MODEL_MAP[model.toLowerCase()];
+    if (direct) {
+      return direct;
+    }
+    return QUERY_MODEL_MAP[model.charAt(0).toUpperCase() + model.slice(1)];
+  }
+
+  private buildQueryWhere(
+    filters: QueryFilterConfig[] | undefined,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState
+  ): Record<string, unknown> {
+    const where: Record<string, unknown> = {};
+
+    if (!filters || filters.length === 0) {
+      return where;
+    }
+
+    for (const filter of filters) {
+      if (!filter.field) continue;
+
+      const resolvedValue = this.resolveFilterValue(
+        filter.value,
+        triggerData,
+        runtimeContext
+      );
+
+      const values = Array.isArray(filter.values)
+        ? filter.values.map(value =>
+            this.resolveFilterValue(value, triggerData, runtimeContext)
+          )
+        : undefined;
+
+      const whereCondition = this.createWhereCondition(
+        filter,
+        resolvedValue,
+        values
+      );
+      this.assignWhere(where, filter.field, whereCondition);
+    }
+
+    return where;
+  }
+
+  private resolveFilterValue(
+    value: unknown,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState
+  ): unknown {
+    if (typeof value === "string" && value.startsWith("$")) {
+      return this.resolveDataPath(value, triggerData, runtimeContext);
+    }
+    return value;
+  }
+
+  private createWhereCondition(
+    filter: QueryFilterConfig,
+    value: unknown,
+    values: unknown[] | undefined
+  ): Record<string, unknown> {
+    switch (filter.operator) {
+      case "equals":
+        return { equals: value };
+      case "not_equals":
+        return { not: value };
+      case "gt":
+        return { gt: value };
+      case "gte":
+        return { gte: value };
+      case "lt":
+        return { lt: value };
+      case "lte":
+        return { lte: value };
+      case "contains":
+        return { contains: value };
+      case "not_contains":
+        return { not: { contains: value } };
+      case "starts_with":
+        return { startsWith: value };
+      case "ends_with":
+        return { endsWith: value };
+      case "in":
+        return { in: values ?? (Array.isArray(value) ? value : [value]) };
+      case "not_in":
+        return { notIn: values ?? (Array.isArray(value) ? value : [value]) };
+      case "between":
+        return {
+          gte: value,
+          lte: filter.valueTo ?? value,
+        };
+      case "is_empty":
+        return { equals: null };
+      case "is_not_empty":
+        return { not: null };
+      default:
+        return { equals: value };
+    }
+  }
+
+  private assignWhere(
+    target: Record<string, unknown>,
+    path: string,
+    condition: unknown
+  ): void {
+    const segments = path.split(".").map(segment => segment.trim());
+    let current: Record<string, unknown> = target;
+
+    segments.forEach((segment, index) => {
+      if (index === segments.length - 1) {
+        const existing = current[segment];
+        if (
+          existing &&
+          typeof existing === "object" &&
+          !Array.isArray(existing) &&
+          existing !== null
+        ) {
+          current[segment] = {
+            ...(existing as Record<string, unknown>),
+            ...(condition as Record<string, unknown>),
+          };
+        } else {
+          current[segment] = condition;
+        }
+        return;
+      }
+
+      if (
+        !current[segment] ||
+        typeof current[segment] !== "object" ||
+        current[segment] === null
+      ) {
+        current[segment] = {};
+      }
+
+      current = current[segment] as Record<string, unknown>;
+    });
+  }
+
+  private buildOrderBy(
+    orderConfigs: QueryOrderConfig[] | undefined
+  ): Array<Record<string, Prisma.SortOrder>> {
+    if (!orderConfigs || orderConfigs.length === 0) {
+      return [];
+    }
+
+    return orderConfigs.map(order => ({
+      [order.field]: order.direction === "desc" ? "desc" : "asc",
+    }));
+  }
+
+  private buildSelect(
+    fields: string[] | undefined
+  ): Record<string, true> | undefined {
+    if (!fields || fields.length === 0) {
+      return undefined;
+    }
+
+    return fields.reduce<Record<string, true>>((accumulator, field) => {
+      accumulator[field] = true;
+      return accumulator;
+    }, {});
+  }
+
+  private getPrismaDelegate(delegateKey: PrismaDelegateKey) {
+    const delegate = db[delegateKey];
+    if (!delegate) {
+      throw new Error(`Missing Prisma delegate for ${String(delegateKey)}`);
+    }
+    return delegate;
+  }
+
+  private executeFilterNode(
+    filterConfig: FilterNodeConfig,
+    triggerData: WorkflowTriggerEvent,
+    runtimeContext: WorkflowRuntimeState
+  ): FilterExecutionOutcome {
+    if (!filterConfig.sourceKey) {
+      throw new Error("Filter node requires a source key");
+    }
+
+    const sourceCollection = this.resolveCollectionFromKey(
+      filterConfig.sourceKey,
+      triggerData,
+      runtimeContext
+    );
+
+    if (!Array.isArray(sourceCollection)) {
+      throw new Error(
+        `Filter source ${filterConfig.sourceKey} did not resolve to an array`
+      );
+    }
+
+    const conditionsConfig: ConditionNodeConfig = {
+      conditions: filterConfig.conditions ?? [],
+      logicalOperator: filterConfig.logicalOperator ?? "AND",
+    };
+
+    const filtered = sourceCollection.filter(item => {
+      if (conditionsConfig.conditions?.length === 0) {
+        return true;
+      }
+      const evaluation = this.evaluateConditions(
+        conditionsConfig,
+        triggerData,
+        runtimeContext,
+        this.toRecord(item)
+      );
+      return evaluation.matched;
+    });
+
+    if (filterConfig.resultKey) {
+      runtimeContext.shared[filterConfig.resultKey] = filtered;
+    }
+
+    return {
+      output: {
+        filtered,
+        count: filtered.length,
+        originalCount: sourceCollection.length,
+      },
+    };
+  }
+
+  private async executeScheduleNode(
+    workflowId: string,
+    node: WorkflowNode,
+    scheduleConfig: ScheduleNodeConfig,
+    runtimeContext: WorkflowRuntimeState,
+    triggerData: WorkflowTriggerEvent
+  ): Promise<ScheduleExecutionOutcome> {
+    const metadata = this.toRecord(scheduleConfig.metadata) ?? {};
+    metadata.organizationId = triggerData.organizationId;
+
+    if (!metadata.module && triggerData.module) {
+      metadata.module = triggerData.module;
+    }
+    if (!metadata.entityType && triggerData.entityType) {
+      metadata.entityType = triggerData.entityType;
+    }
+    if (!metadata.eventType && triggerData.eventType) {
+      metadata.eventType = triggerData.eventType;
+    }
+    if (!metadata.userId && triggerData.userId) {
+      metadata.userId = triggerData.userId;
+    }
+
+    const existingPayload = this.toRecord(metadata.payload);
+    if (existingPayload) {
+      metadata.payload = existingPayload;
+    } else {
+      metadata.payload = triggerData.payload;
+    }
+
+    scheduleConfig.metadata = metadata;
+
+    const schedule = await this.scheduler.upsertSchedule(
+      workflowId,
+      node.id,
+      scheduleConfig
+    );
+
+    if (scheduleConfig.resultKey) {
+      runtimeContext.shared[scheduleConfig.resultKey] = schedule;
+    }
+
+    return {
+      output: {
+        scheduled: true,
+        scheduleId: schedule.id,
+        cron: schedule.cron,
+        frequency: schedule.frequency,
+        timezone: schedule.timezone,
+        isActive: schedule.isActive,
+        nextRunAt: schedule.nextRunAt,
+      },
+    };
+  }
+
+  private extractResultKey(config: unknown): string | null {
+    const record = this.toRecord(config);
+    const value = record.resultKey;
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+    return null;
+  }
+
+  private normalizeNodeType(node: WorkflowNode): WorkflowNodeType {
+    if (node.type !== "ACTION") {
+      return node.type;
+    }
+
+    const configRecord = this.toRecord(node.config);
+    const legacyNodeTypeRaw = configRecord.nodeType;
+    if (typeof legacyNodeTypeRaw !== "string") {
+      return node.type;
+    }
+
+    const legacyNodeType = legacyNodeTypeRaw.toUpperCase();
+    switch (legacyNodeType) {
+      case "CONDITION":
+        return "CONDITION";
+      case "LOOP":
+        return "LOOP";
+      case "PARALLEL":
+        return "PARALLEL";
+      case "DELAY":
+        return "DELAY";
+      case "APPROVAL":
+        return "APPROVAL";
+      case "DATA_TRANSFORM":
+        return "DATA_TRANSFORM";
+      case "QUERY":
+      case "DATA_QUERY":
+        return "QUERY";
+      case "FILTER":
+      case "DATA_FILTER":
+        return "FILTER";
+      case "SCHEDULE":
+      case "SCHEDULED":
+        return "SCHEDULE";
+      default:
+        return node.type;
+    }
+  }
+
+  private toRecord(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private normalizeHandle(handle: string | null | undefined): string {
+    return (handle ?? "").toLowerCase();
   }
 
   /**
@@ -988,8 +2573,21 @@ export class WorkflowExecutionEngine {
   private async executeDelay(
     config: WorkflowNodeConfig | null | undefined
   ): Promise<void> {
-    const delayMs = config?.delayMs ?? 1000;
-    return new Promise(resolve => setTimeout(resolve, delayMs));
+    const delayCandidate =
+      config && typeof (config as DelayNodeConfig).delayMs === "number"
+        ? (config as DelayNodeConfig).delayMs
+        : undefined;
+
+    const delayMs =
+      typeof delayCandidate === "number" &&
+      Number.isFinite(delayCandidate) &&
+      delayCandidate >= 0
+        ? delayCandidate
+        : 1000;
+
+    await new Promise<void>(resolve => {
+      setTimeout(() => resolve(), delayMs);
+    });
   }
 
   /**

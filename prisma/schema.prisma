@@ -1567,6 +1567,7 @@ model WorkflowNode {
   dependents        NodeDependency[]     @relation("PrerequisiteNode")
   sourceConnections WorkflowConnection[] @relation("SourceConnections")
   targetConnections WorkflowConnection[] @relation("TargetConnections")
+  schedule          WorkflowSchedule?
 
   // Action Relations (one-to-one)
   emailAction    EmailAction?    @relation("EmailAction")
@@ -1591,6 +1592,9 @@ enum WorkflowNodeType {
   DELAY
   PARALLEL
   LOOP
+  QUERY
+  FILTER
+  SCHEDULE
   SWITCH
   APPROVAL
   EMAIL
@@ -1604,6 +1608,35 @@ enum WorkflowNodeType {
   CREATE_RECORD
   UPDATE_RECORD
   CUSTOM
+}
+
+model WorkflowSchedule {
+  id         String   @id @default(cuid())
+  workflowId String
+  nodeId     String
+
+  // Scheduling configuration
+  cron       String?
+  frequency  String? // e.g., DAILY, WEEKLY when cron is not provided
+  timezone   String   @default("UTC")
+  startAt    DateTime?
+  endAt      DateTime?
+  isActive   Boolean  @default(true)
+  lastRunAt  DateTime?
+  nextRunAt  DateTime?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workflow Workflow    @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  node     WorkflowNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId])
+  @@index([workflowId])
+  @@index([nextRunAt])
+  @@index([isActive])
 }
 
 model WorkflowConnection {

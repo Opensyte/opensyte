@@ -9,6 +9,8 @@ import { db } from "~/server/db";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "@prisma/client";
 import { WorkflowNodeTypeSchema } from "../../../../../../prisma/generated/zod";
+import { parseConfigForType, requiresConfigTypes } from "./node-config-schemas";
+import type { WorkflowNodeType } from "@prisma/client";
 
 // Workflow nodes router that matches actual Prisma schema
 export const nodesRouter = createTRPCRouter({
@@ -120,7 +122,17 @@ export const nodesRouter = createTRPCRouter({
           });
         }
 
+        const validatedConfig = parseConfigForType(input.type, input.config);
+
+        if (requiresConfigTypes.has(input.type) && validatedConfig === null) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `${input.type} nodes require configuration`,
+          });
+        }
+
         // Use upsert to prevent P2002 unique constraint errors
+
         const node = await db.workflowNode.upsert({
           where: {
             workflowId_nodeId: {
@@ -135,7 +147,7 @@ export const nodesRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             position: input.position as Prisma.InputJsonValue,
-            config: input.config as Prisma.InputJsonValue,
+            config: validatedConfig as Prisma.InputJsonValue,
             template: input.template as Prisma.InputJsonValue,
             executionOrder: input.executionOrder,
             isOptional: input.isOptional,
@@ -148,7 +160,7 @@ export const nodesRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             position: input.position as Prisma.InputJsonValue,
-            config: input.config as Prisma.InputJsonValue,
+            config: validatedConfig as Prisma.InputJsonValue,
             template: input.template as Prisma.InputJsonValue,
             executionOrder: input.executionOrder,
             isOptional: input.isOptional,
@@ -160,6 +172,15 @@ export const nodesRouter = createTRPCRouter({
 
         return node;
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        if (error instanceof z.ZodError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.issues[0]?.message ?? "Invalid node configuration",
+          });
+        }
         console.error("Failed to create/update node:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -210,6 +231,15 @@ export const nodesRouter = createTRPCRouter({
           });
         }
 
+        const validatedConfig = parseConfigForType(input.type, input.config);
+
+        if (requiresConfigTypes.has(input.type) && validatedConfig === null) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `${input.type} nodes require configuration`,
+          });
+        }
+
         const node = await db.workflowNode.upsert({
           where: {
             workflowId_nodeId: {
@@ -224,7 +254,7 @@ export const nodesRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             position: input.position as Prisma.InputJsonValue,
-            config: input.config as Prisma.InputJsonValue,
+            config: validatedConfig as Prisma.InputJsonValue,
             template: input.template as Prisma.InputJsonValue,
             executionOrder: input.executionOrder,
             isOptional: input.isOptional,
@@ -237,7 +267,7 @@ export const nodesRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             position: input.position as Prisma.InputJsonValue,
-            config: input.config as Prisma.InputJsonValue,
+            config: validatedConfig as Prisma.InputJsonValue,
             template: input.template as Prisma.InputJsonValue,
             executionOrder: input.executionOrder,
             isOptional: input.isOptional,
@@ -249,6 +279,15 @@ export const nodesRouter = createTRPCRouter({
 
         return node;
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        if (error instanceof z.ZodError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.issues[0]?.message ?? "Invalid node configuration",
+          });
+        }
         console.error("Failed to upsert node:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -303,6 +342,22 @@ export const nodesRouter = createTRPCRouter({
           });
         }
 
+        const nodesWithValidatedConfig = input.nodes.map(node => {
+          const validatedConfig = parseConfigForType(node.type, node.config);
+
+          if (requiresConfigTypes.has(node.type) && validatedConfig === null) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `${node.type} nodes require configuration`,
+            });
+          }
+
+          return {
+            ...node,
+            config: validatedConfig,
+          };
+        });
+
         const result = await db.$transaction(async tx => {
           // Get current nodeIds to determine which to delete
           const currentNodes = await tx.workflowNode.findMany({
@@ -311,7 +366,9 @@ export const nodesRouter = createTRPCRouter({
           });
 
           const currentNodeIds = new Set(currentNodes.map(n => n.nodeId));
-          const newNodeIds = new Set(input.nodes.map(n => n.nodeId));
+          const newNodeIds = new Set(
+            nodesWithValidatedConfig.map(n => n.nodeId)
+          );
 
           // Delete nodes that are no longer present
           const nodesToDelete = [...currentNodeIds].filter(
@@ -328,7 +385,7 @@ export const nodesRouter = createTRPCRouter({
 
           // Upsert all provided nodes
           const upsertedNodes = await Promise.all(
-            input.nodes.map(node =>
+            nodesWithValidatedConfig.map(node =>
               tx.workflowNode.upsert({
                 where: {
                   workflowId_nodeId: {
@@ -373,6 +430,15 @@ export const nodesRouter = createTRPCRouter({
 
         return result;
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        if (error instanceof z.ZodError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.issues[0]?.message ?? "Invalid node configuration",
+          });
+        }
         console.error("Failed to sync nodes:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

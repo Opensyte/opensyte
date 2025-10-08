@@ -19,12 +19,15 @@
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
     "start": "next start",
+<<<<<<< Updated upstream
     "scheduler": "bun run scripts/run-scheduler.ts",
     "test": "vitest run src/__tests__/basic.test.ts src/__tests__/variable-store.test.ts src/__tests__/simple-integration.test.ts",
     "test:all": "vitest run src/__tests__/",
     "test:watch": "vitest src/__tests__/basic.test.ts src/__tests__/variable-store.test.ts src/__tests__/simple-integration.test.ts",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
+=======
+>>>>>>> Stashed changes
     "typecheck": "node --max-old-space-size=8096 ./node_modules/typescript/bin/tsc --noEmit",
     "shadcn": "bunx --bun shadcn@latest"
   },
@@ -68,8 +71,10 @@
     "better-auth": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cron-parser": "^5.0.4",
     "date-fns": "^4.1.0",
     "decimal.js": "^10.4.3",
+    "entities": "6.0.0",
     "jotai": "^2.12.5",
     "lodash.throttle": "^4.1.1",
     "lucide-react": "^0.535.0",

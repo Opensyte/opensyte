@@ -9,12 +9,38 @@ import {
 } from "@xyflow/react";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
+import type { WorkflowNodeType } from "@prisma/client";
+
+type ReactFlowNodeType =
+  | "trigger"
+  | "action"
+  | "delay"
+  | "loop"
+  | "query"
+  | "filter"
+  | "schedule";
+
+const workflowToReactFlowTypeMap: Partial<
+  Record<WorkflowNodeType, ReactFlowNodeType>
+> = {
+  TRIGGER: "trigger",
+  ACTION: "action",
+  DELAY: "delay",
+  LOOP: "loop",
+  QUERY: "query",
+  FILTER: "filter",
+  SCHEDULE: "schedule",
+};
+
+const toReactFlowType = (type: WorkflowNodeType): ReactFlowNodeType => {
+  return workflowToReactFlowTypeMap[type] ?? "action";
+};
 
 export interface WorkflowCanvasNode extends Node {
   data: {
     dbId?: string; // Primary key in DB: WorkflowNode.id
     nodeId: string;
-    type: "TRIGGER" | "ACTION";
+    type: WorkflowNodeType;
     name: string;
     description?: string;
     config?: Record<string, unknown>;
@@ -29,6 +55,28 @@ export interface WorkflowCanvasNode extends Node {
     triggerType?: string;
     actionType?: string;
     module?: string;
+    resultKey?: string;
+    cron?: string;
+    delayMs?: number;
+    dataSource?: string;
+    sourceKey?: string;
+    itemVariable?: string;
+    indexVariable?: string;
+    maxIterations?: number;
+    emptyPathHandle?: string;
+    model?: string;
+    filters?: Array<Record<string, unknown>>;
+    orderBy?: Array<Record<string, unknown>>;
+    limit?: number;
+    offset?: number;
+    fallbackKey?: string;
+    logicalOperator?: string;
+    frequency?: string;
+    timezone?: string;
+    startAt?: string;
+    endAt?: string;
+    isActive?: boolean;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -156,24 +204,147 @@ export function useWorkflowCanvas({
       if (!serverNodes) return [];
 
       return serverNodes.map(node => ({
-        id: node.nodeId, // React Flow ID
-        type: node.type === "TRIGGER" ? "trigger" : "action",
+        id: node.nodeId,
+        type: toReactFlowType(node.type),
         position: node.position as { x: number; y: number },
-        data: {
-          dbId: node.id,
-          nodeId: node.nodeId,
-          type: node.type === "TRIGGER" ? "TRIGGER" : "ACTION",
-          name: node.name,
-          description: node.description ?? undefined,
-          config: (node.config as Record<string, unknown>) ?? {},
-          template: (node.template as Record<string, unknown>) ?? {},
-          executionOrder: node.executionOrder ?? undefined,
-          isOptional: node.isOptional,
-          retryLimit: node.retryLimit,
-          timeout: node.timeout ?? undefined,
-          conditions: (node.conditions as Record<string, unknown>) ?? {},
-          label: node.name,
-        },
+        data: (() => {
+          const config = (node.config as Record<string, unknown>) ?? {};
+          const derived: Partial<WorkflowCanvasNode["data"]> = {};
+
+          switch (node.type) {
+            case "DELAY": {
+              const delayMs = config.delayMs;
+              if (typeof delayMs === "number") {
+                derived.delayMs = delayMs;
+              }
+              if (typeof config.resultKey === "string") {
+                derived.resultKey = config.resultKey;
+              }
+              break;
+            }
+            case "LOOP": {
+              if (typeof config.dataSource === "string") {
+                derived.dataSource = config.dataSource;
+              }
+              if (typeof config.sourceKey === "string") {
+                derived.sourceKey = config.sourceKey;
+              }
+              if (typeof config.itemVariable === "string") {
+                derived.itemVariable = config.itemVariable;
+              }
+              if (typeof config.indexVariable === "string") {
+                derived.indexVariable = config.indexVariable;
+              }
+              if (typeof config.maxIterations === "number") {
+                derived.maxIterations = config.maxIterations;
+              }
+              if (typeof config.resultKey === "string") {
+                derived.resultKey = config.resultKey;
+              }
+              if (typeof config.emptyPathHandle === "string") {
+                derived.emptyPathHandle = config.emptyPathHandle;
+              }
+              break;
+            }
+            case "QUERY": {
+              if (typeof config.model === "string") {
+                derived.model = config.model;
+              }
+              if (Array.isArray(config.filters)) {
+                derived.filters = config.filters as Array<
+                  Record<string, unknown>
+                >;
+              }
+              if (Array.isArray(config.orderBy)) {
+                derived.orderBy = config.orderBy as Array<
+                  Record<string, unknown>
+                >;
+              }
+              if (typeof config.limit === "number") {
+                derived.limit = config.limit;
+              }
+              if (typeof config.offset === "number") {
+                derived.offset = config.offset;
+              }
+              if (typeof config.resultKey === "string") {
+                derived.resultKey = config.resultKey;
+              }
+              if (typeof config.fallbackKey === "string") {
+                derived.fallbackKey = config.fallbackKey;
+              }
+              break;
+            }
+            case "FILTER": {
+              if (typeof config.sourceKey === "string") {
+                derived.sourceKey = config.sourceKey;
+              }
+              if (Array.isArray(config.conditions)) {
+                derived.filters = config.conditions as Array<
+                  Record<string, unknown>
+                >;
+              }
+              if (typeof config.logicalOperator === "string") {
+                derived.logicalOperator = config.logicalOperator;
+              }
+              if (typeof config.resultKey === "string") {
+                derived.resultKey = config.resultKey;
+              }
+              if (typeof config.fallbackKey === "string") {
+                derived.fallbackKey = config.fallbackKey;
+              }
+              break;
+            }
+            case "SCHEDULE": {
+              if (typeof config.cron === "string") {
+                derived.cron = config.cron;
+              }
+              if (typeof config.frequency === "string") {
+                derived.frequency = config.frequency;
+              }
+              if (typeof config.timezone === "string") {
+                derived.timezone = config.timezone;
+              }
+              if (typeof config.startAt === "string") {
+                derived.startAt = config.startAt;
+              }
+              if (typeof config.endAt === "string") {
+                derived.endAt = config.endAt;
+              }
+              if (typeof config.isActive === "boolean") {
+                derived.isActive = config.isActive;
+              }
+              if (typeof config.resultKey === "string") {
+                derived.resultKey = config.resultKey;
+              }
+              if (config.metadata && typeof config.metadata === "object") {
+                derived.metadata = config.metadata as Record<string, unknown>;
+              }
+              break;
+            }
+            default: {
+              if (typeof config.resultKey === "string") {
+                derived.resultKey = config.resultKey;
+              }
+            }
+          }
+
+          return {
+            dbId: node.id,
+            nodeId: node.nodeId,
+            type: node.type,
+            name: node.name,
+            description: node.description ?? undefined,
+            config,
+            template: (node.template as Record<string, unknown>) ?? {},
+            executionOrder: node.executionOrder ?? undefined,
+            isOptional: node.isOptional,
+            retryLimit: node.retryLimit,
+            timeout: node.timeout ?? undefined,
+            conditions: (node.conditions as Record<string, unknown>) ?? {},
+            label: node.name,
+            ...derived,
+          };
+        })(),
       }));
     },
     []
@@ -414,7 +585,7 @@ export function useWorkflowCanvas({
       const nodeId = `node-${Date.now()}`;
       const newNode: WorkflowCanvasNode = {
         id: nodeId,
-        type: nodeData.type?.toLowerCase() ?? "action",
+        type: nodeData.type ? toReactFlowType(nodeData.type) : "action",
         position,
         data: {
           nodeId,
@@ -446,7 +617,11 @@ export function useWorkflowCanvas({
       setNodes(nds =>
         nds.map(node =>
           node.id === nodeId
-            ? { ...node, data: { ...node.data, ...updates } }
+            ? {
+                ...node,
+                data: { ...node.data, ...updates },
+                type: updates.type ? toReactFlowType(updates.type) : node.type,
+              }
             : node
         )
       );

@@ -65,6 +65,12 @@ import { toast } from "sonner";
 import { api } from "~/trpc/react";
 import { WorkflowTriggerTypeSchema } from "../../../prisma/generated/zod";
 import { z } from "zod";
+import { DelayNodeForm } from "./node-config-forms/delay-node-form";
+import { LoopNodeForm } from "./node-config-forms/loop-node-form";
+import { QueryNodeForm } from "./node-config-forms/query-node-form";
+import { ConditionNodeForm } from "./node-config-forms/condition-node-form";
+import { ScheduleNodeForm } from "./node-config-forms/schedule-node-form";
+import { FilterNodeForm } from "./node-config-forms/filter-node-form";
 
 // Add a narrow type for templates we render in the select
 type ActionTemplateSummary = {
@@ -759,6 +765,40 @@ export function WorkflowConfigSheet({
   const [actionConfigOpen, setActionConfigOpen] = useState(true);
   const [variablesOpen, setVariablesOpen] = useState(false);
 
+  const specializedType = selectedNode?.data.type;
+  const sharedFormProps = selectedNode
+    ? {
+        node: selectedNode,
+        onNodeUpdate,
+        ensureNodeExists,
+        onClose: () => onOpenChange(false),
+        workflowId: workflow?.id,
+        organizationId,
+      }
+    : null;
+
+  const specializedForm = sharedFormProps
+    ? (() => {
+        const { node } = sharedFormProps;
+        switch (node.data.type) {
+          case "DELAY":
+            return <DelayNodeForm key={node.id} {...sharedFormProps} />;
+          case "LOOP":
+            return <LoopNodeForm key={node.id} {...sharedFormProps} />;
+          case "QUERY":
+            return <QueryNodeForm key={node.id} {...sharedFormProps} />;
+          case "CONDITION":
+            return <ConditionNodeForm key={node.id} {...sharedFormProps} />;
+          case "FILTER":
+            return <FilterNodeForm key={node.id} {...sharedFormProps} />;
+          case "SCHEDULE":
+            return <ScheduleNodeForm key={node.id} {...sharedFormProps} />;
+          default:
+            return null;
+        }
+      })()
+    : null;
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -1279,6 +1319,32 @@ export function WorkflowConfigSheet({
       if (actionType === "sms") return t.type === "SMS";
       return false;
     }) ?? [];
+
+  if (isOpen && selectedNode && specializedForm) {
+    return (
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <SheetContent className="overflow-hidden p-0 w-full sm:max-w-xl">
+          <ScrollArea className="h-full">
+            <div className="space-y-6 p-6">
+              <SheetHeader className="space-y-2">
+                <SheetTitle className="text-xl font-semibold">
+                  Configure{" "}
+                  {selectedNode.data.name ?? selectedNode.data.label ?? "Node"}
+                </SheetTitle>
+                {specializedType && (
+                  <SheetDescription>
+                    Adjust the settings for this {specializedType.toLowerCase()}{" "}
+                    node.
+                  </SheetDescription>
+                )}
+              </SheetHeader>
+              {specializedForm}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
