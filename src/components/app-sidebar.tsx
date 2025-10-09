@@ -105,6 +105,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: "Sales Pipeline",
             url: "/[orgId]/crm/pipeline",
           },
+          {
+            title: "Import",
+            url: "/[orgId]/crm/import",
+          },
         ],
       });
     }
