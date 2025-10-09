@@ -123,6 +123,156 @@ model Organization {
   templateShares      TemplateShare[]
   templateShareImports TemplateShareImport[]
   uiConfigs           OrganizationUiConfig[]
+  importSessions      ImportSession[]
+  importTemplates     ImportTemplate[]
+}
+
+enum ImportModule {
+  CRM
+  HR
+  FINANCE
+  PROJECTS
+}
+
+enum ImportEntityType {
+  CONTACT
+  ORGANIZATION
+  DEAL
+}
+
+enum ImportStatus {
+  DRAFT
+  UPLOADING
+  DETECTING
+  MAPPING_REVIEW
+  VALIDATING
+  VALIDATION_FAILED
+  READY_TO_IMPORT
+  IMPORTING
+  COMPLETED
+  IMPORT_FAILED
+  CANCELLED
+  RETRY_QUEUED
+}
+
+enum DedupeMode {
+  SKIP
+  UPDATE
+  CREATE
+}
+
+enum RowStatus {
+  PENDING
+  VALIDATED
+  IMPORTED
+  FAILED
+  SKIPPED
+}
+
+enum IssueSeverity {
+  ERROR
+  WARNING
+}
+
+model ImportSession {
+  id              String        @id @default(cuid())
+  organizationId  String
+  createdByUserId String
+  fileName        String
+  fileSize        Int
+  fileType        String?
+  module          ImportModule
+  entityType      ImportEntityType
+  status          ImportStatus   @default(DRAFT)
+  dedupeMode      DedupeMode     @default(SKIP)
+  mappingConfig   Json?
+  summary         Json?
+  rowCount        Int?
+  processedCount  Int            @default(0)
+  successCount    Int            @default(0)
+  failureCount    Int            @default(0)
+  skippedCount    Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  startedAt       DateTime?
+  completedAt     DateTime?
+  appliedTemplateId String?
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("CreatedImportSessions", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  rows         ImportRow[]
+  issues       ImportRowIssue[]
+  appliedTemplate ImportTemplate? @relation(fields: [appliedTemplateId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdByUserId])
+  @@index([appliedTemplateId])
+}
+
+model ImportTemplate {
+  id               String          @id @default(cuid())
+  organizationId   String
+  createdByUserId  String
+  name             String
+  module           ImportModule
+  entityType       ImportEntityType
+  mappingConfig    Json
+  columnSignature  Json
+  usageCount       Int             @default(0)
+  lastUsedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // Relations
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation("CreatedImportTemplates", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  sessions    ImportSession[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([module, entityType])
+  @@index([createdByUserId])
+}
+
+model ImportRow {
+  id         String     @id @default(cuid())
+  sessionId  String
+  rowNumber  Int
+  rawData    Json
+  mappedData Json?
+  status     RowStatus  @default(PENDING)
+  dedupeHint String?
+  score      Int? // reserved for future confidence scoring
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // Relations
+  session ImportSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  issues  ImportRowIssue[]
+
+  @@index([sessionId])
+  @@unique([sessionId, rowNumber])
+}
+
+model ImportRowIssue {
+  id        String        @id @default(cuid())
+  sessionId String
+  rowId     String
+  field     String?
+  severity  IssueSeverity
+  message   String
+  hint      String?
+  value     String?
+  createdAt DateTime       @default(now())
+
+  // Relations
+  session ImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  row     ImportRow     @relation(fields: [rowId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([rowId])
 }
 
 model UserOrganization {
@@ -1033,6 +1183,8 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  createdImportSessions ImportSession[] @relation("CreatedImportSessions")
+  createdImportTemplates ImportTemplate[] @relation("CreatedImportTemplates")
 
   @@unique([email])
   @@map("user")
