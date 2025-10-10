@@ -13,6 +13,9 @@ const config = {
   typescript: {
     ignoreBuildErrors: true, // due to heap memory issues
   },
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
 };
 
 export default config;
