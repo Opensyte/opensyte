@@ -115,6 +115,7 @@ model Organization {
   customRoles         CustomRole[]
   financialReports    FinancialReport[]
   workflows           Workflow[]
+  prebuiltWorkflowConfigs PrebuiltWorkflowConfig[]
   actionTemplates     ActionTemplate[]
   variableDefinitions VariableDefinition[]
   integrationConfigs  IntegrationConfig[]
@@ -1185,6 +1186,7 @@ model User {
   accounts      Account[]
   createdImportSessions ImportSession[] @relation("CreatedImportSessions")
   createdImportTemplates ImportTemplate[] @relation("CreatedImportTemplates")
+  updatedPrebuiltWorkflowConfigs PrebuiltWorkflowConfig[] @relation("PrebuiltWorkflowConfigUpdatedBy")
 
   @@unique([email])
   @@map("user")
@@ -1565,6 +1567,26 @@ model Workflow {
   @@index([status])
   @@index([category])
   @@index([createdById])
+}
+
+model PrebuiltWorkflowConfig {
+  id              String   @id @default(cuid())
+  organizationId  String
+  workflowKey     String
+  enabled         Boolean  @default(false)
+  emailSubject    String
+  emailBody       String
+  templateVersion Int      @default(1)
+  updatedByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy    User         @relation("PrebuiltWorkflowConfigUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, workflowKey])
+  @@index([organizationId])
+  @@index([workflowKey])
 }
 
 // ==============================

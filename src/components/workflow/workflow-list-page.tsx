@@ -1,10 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { api } from "~/trpc/react";
+import { useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Sparkles,
+  Handshake,
+  ClipboardList,
+  Receipt,
+  RefreshCw,
+  BarChart3,
+  AlertTriangle,
+  Loader2,
+  Mail,
+} from "lucide-react";
 import { toast } from "sonner";
+import { api, type RouterOutputs } from "~/trpc/react";
 import {
   Card,
   CardContent,
@@ -12,20 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import {
-  Plus,
-  Play,
-  Pause,
-  Edit,
-  Trash2,
-  GitBranch,
-  MoreVertical,
-  Loader2,
-  AlertTriangle,
-} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,197 +32,181 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "~/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Label } from "~/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { ClientPermissionGuard } from "~/components/shared/client-permission-guard";
 import { PERMISSIONS } from "~/lib/rbac";
-import type { RouterOutputs } from "~/trpc/react";
 
-type WorkflowType =
-  RouterOutputs["workflows"]["workflow"]["getWorkflows"]["workflows"][0];
+type WorkflowSummary = RouterOutputs["workflows"]["prebuilt"]["list"]["workflows"][number];
+type WorkflowDetail = RouterOutputs["workflows"]["prebuilt"]["detail"];
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  Sparkles,
+  Handshake,
+  ClipboardList,
+  Receipt,
+  RefreshCw,
+  BarChart3,
+};
+
+function getIconComponent(icon: string): LucideIcon {
+  return ICON_MAP[icon] ?? Sparkles;
+}
 
 interface WorkflowListPageProps {
   organizationId: string;
 }
 
 export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
-  const router = useRouter();
   const utils = api.useUtils();
+  const [selectedKey, setSelectedKey] = useState<WorkflowSummary["key"] | null>(
+    null
+  );
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [subjectDraft, setSubjectDraft] = useState("");
+  const [bodyDraft, setBodyDraft] = useState("");
+  const [isTemplateDirty, setIsTemplateDirty] = useState(false);
+  const [pendingToggleKey, setPendingToggleKey] = useState<string | null>(null);
 
-  // tRPC queries and mutations
   const {
     data: workflowsData,
     isLoading: isLoadingWorkflows,
     error: workflowsError,
-  } = api.workflows.workflow.getWorkflows.useQuery(
+  } = api.workflows.prebuilt.list.useQuery(
+    { organizationId },
+    { enabled: organizationId.length > 0 }
+  );
+
+  const detailQuery = api.workflows.prebuilt.detail.useQuery(
     {
       organizationId,
-      limit: 50,
-      offset: 0,
+      workflowKey: (selectedKey ?? "lead-to-client") as WorkflowSummary["key"],
     },
     {
-      enabled: !!organizationId,
+      enabled: isDialogOpen && selectedKey !== null,
     }
   );
 
-  const createWorkflowMutation =
-    api.workflows.workflow.createWorkflow.useMutation({
-      onSuccess: data => {
-        toast.success("Workflow created successfully");
-        // Navigate to the workflow designer
-        router.push(`/${organizationId}/workflows/${data.id}`);
-        setIsCreateDialogOpen(false);
-        setNewWorkflow({ name: "", description: "", category: "" });
-        void utils.workflows.workflow.getWorkflows.invalidate();
-      },
-      onError: err => {
-        toast.error("Failed to create workflow", {
-          description: err.message,
+  const toggleWorkflowMutation = api.workflows.prebuilt.toggle.useMutation({
+    onMutate: variables => {
+      setPendingToggleKey(variables.workflowKey);
+    },
+    onSuccess: (result, variables) => {
+      toast.success(result.enabled ? "Workflow enabled" : "Workflow disabled");
+      void utils.workflows.prebuilt.list.invalidate({ organizationId });
+      if (variables.workflowKey === selectedKey) {
+        void utils.workflows.prebuilt.detail.invalidate({
+          organizationId,
+          workflowKey: variables.workflowKey,
         });
-      },
-    });
-
-  const updateWorkflowMutation =
-    api.workflows.workflow.updateWorkflow.useMutation({
-      onSuccess: () => {
-        toast.success("Workflow updated successfully");
-        void utils.workflows.workflow.getWorkflows.invalidate();
-      },
-      onError: err => {
-        toast.error("Failed to update workflow", {
-          description: err.message,
-        });
-      },
-    });
-
-  const deleteWorkflowMutation =
-    api.workflows.workflow.deleteWorkflow.useMutation({
-      onSuccess: () => {
-        toast.success("Workflow deleted successfully");
-        setIsDeleteDialogOpen(false);
-        setSelectedWorkflow(null);
-        void utils.workflows.workflow.getWorkflows.invalidate();
-      },
-      onError: err => {
-        toast.error("Failed to delete workflow", {
-          description: err.message,
-        });
-      },
-    });
-
-  // Component state
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowType | null>(
-    null
-  );
-  const [newWorkflow, setNewWorkflow] = useState({
-    name: "",
-    description: "",
-    category: "",
+      }
+    },
+    onError: error => {
+      toast.error("Unable to update workflow", {
+        description: error.message,
+      });
+    },
+    onSettled: () => {
+      setPendingToggleKey(null);
+    },
   });
-  const [editWorkflow, setEditWorkflow] = useState({
-    name: "",
-    description: "",
-    category: "",
-  });
+
+  const updateTemplateMutation =
+    api.workflows.prebuilt.updateTemplate.useMutation({
+      onSuccess: (_result, variables) => {
+        toast.success("Template updated");
+        setIsTemplateDirty(false);
+        void Promise.all([
+          utils.workflows.prebuilt.detail.invalidate({
+            organizationId,
+            workflowKey: variables.workflowKey,
+          }),
+          utils.workflows.prebuilt.list.invalidate({ organizationId }),
+        ]);
+      },
+      onError: error => {
+        toast.error("Unable to save template", {
+          description: error.message,
+        });
+      },
+    });
 
   const workflows = workflowsData?.workflows ?? [];
+  const detailData = detailQuery.data;
 
-  const handleCreateWorkflow = () => {
-    if (!newWorkflow.name.trim()) return;
+  useEffect(() => {
+    if (!detailData || !isDialogOpen) {
+      return;
+    }
+    setSubjectDraft(detailData.emailTemplate.subject);
+    setBodyDraft(detailData.emailTemplate.body);
+    setIsTemplateDirty(false);
+  }, [detailData?.emailTemplate.subject, detailData?.emailTemplate.body, isDialogOpen]);
 
-    createWorkflowMutation.mutate({
+  const handleToggle = (workflow: WorkflowSummary) => {
+    if (!workflow.canToggle) {
+      toast.error("You do not have permission to update this workflow");
+      return;
+    }
+
+    toggleWorkflowMutation.mutate({
       organizationId,
-      name: newWorkflow.name,
-      description: newWorkflow.description || undefined,
-      category: newWorkflow.category || undefined,
+      workflowKey: workflow.key,
+      enabled: !workflow.enabled,
     });
   };
 
-  const handleEditWorkflow = (workflow: WorkflowType) => {
-    setSelectedWorkflow(workflow);
-    setEditWorkflow({
-      name: workflow.name,
-      description: workflow.description ?? "",
-      category: workflow.category ?? "",
-    });
-    setIsEditDialogOpen(true);
+  const handleOpenDetail = (workflow: WorkflowSummary) => {
+    setSelectedKey(workflow.key);
+    setIsDialogOpen(true);
   };
 
-  const handleUpdateWorkflow = () => {
-    if (!selectedWorkflow || !editWorkflow.name.trim()) return;
+  const handleDialogChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setSelectedKey(null);
+      setIsTemplateDirty(false);
+    }
+  };
 
-    updateWorkflowMutation.mutate({
-      id: selectedWorkflow.id,
+  const handleSaveTemplate = () => {
+    if (!selectedKey) {
+      return;
+    }
+
+    const subject = subjectDraft.trim();
+    const body = bodyDraft.trim();
+
+    if (!subject || !body) {
+      toast.error("Subject and body are required");
+      return;
+    }
+
+    updateTemplateMutation.mutate({
       organizationId,
-      name: editWorkflow.name,
-      description: editWorkflow.description || undefined,
-      category: editWorkflow.category || undefined,
-    });
-
-    setIsEditDialogOpen(false);
-    setSelectedWorkflow(null);
-    setEditWorkflow({ name: "", description: "", category: "" });
-  };
-
-  const handleDeleteWorkflow = (workflow: WorkflowType) => {
-    setSelectedWorkflow(workflow);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteWorkflow = () => {
-    if (!selectedWorkflow) return;
-
-    deleteWorkflowMutation.mutate({
-      id: selectedWorkflow.id,
-      organizationId,
+      workflowKey: selectedKey,
+      subject,
+      body,
     });
   };
 
-  const toggleWorkflowStatus = (workflowId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+  const handleResetTemplate = () => {
+    if (!detailData) {
+      return;
+    }
 
-    updateWorkflowMutation.mutate({
-      id: workflowId,
-      organizationId,
-      status: newStatus,
-    });
+    setSubjectDraft(detailData.emailTemplate.defaultSubject);
+    setBodyDraft(detailData.emailTemplate.defaultBody);
+    setIsTemplateDirty(true);
   };
 
-  // Loading state
   if (isLoadingWorkflows) {
     return <WorkflowListSkeleton />;
   }
 
-  // Error state
   if (workflowsError) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -237,8 +220,10 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
               {workflowsError.message}
             </CardDescription>
             <Button
-              onClick={() => utils.workflows.workflow.getWorkflows.invalidate()}
               variant="outline"
+              onClick={() =>
+                void utils.workflows.prebuilt.list.invalidate({ organizationId })
+              }
             >
               Try Again
             </Button>
@@ -260,11 +245,11 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
           <Card className="p-8 text-center max-w-md">
             <CardContent>
               <div className="text-muted-foreground mb-4">
-                <GitBranch className="h-8 w-8 mx-auto" />
+                <Sparkles className="h-8 w-8 mx-auto" />
               </div>
               <CardTitle className="mb-2">Access Denied</CardTitle>
               <CardDescription>
-                You don&apos;t have permission to view workflows.
+                You do not have permission to view workflows.
               </CardDescription>
             </CardContent>
           </Card>
@@ -272,472 +257,238 @@ export function WorkflowListPage({ organizationId }: WorkflowListPageProps) {
       }
     >
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Workflows</h2>
-            <p className="text-muted-foreground">
-              Manage and create automated workflows for your organization
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <ClientPermissionGuard
-              requiredAnyPermissions={[
-                PERMISSIONS.WORKFLOWS_READ,
-                PERMISSIONS.WORKFLOWS_WRITE,
-                PERMISSIONS.WORKFLOWS_ADMIN,
-              ]}
-              fallback={null}
-            >
-              <Link href={`/${organizationId}/workflows/message-templates`}>
-                <Button variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Message Templates
-                </Button>
-              </Link>
-            </ClientPermissionGuard>
-            <ClientPermissionGuard
-              requiredAnyPermissions={[
-                PERMISSIONS.WORKFLOWS_WRITE,
-                PERMISSIONS.WORKFLOWS_ADMIN,
-              ]}
-              fallback={null}
-            >
-              <Dialog
-                open={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Workflow
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Create New Workflow</DialogTitle>
-                    <DialogDescription>
-                      Create a new automated workflow to streamline your
-                      processes.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="workflow-name">Workflow Name *</Label>
-                      <Input
-                        id="workflow-name"
-                        placeholder="Enter workflow name"
-                        value={newWorkflow.name}
-                        onChange={e =>
-                          setNewWorkflow({
-                            ...newWorkflow,
-                            name: e.target.value,
-                          })
-                        }
-                      />
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Prebuilt Workflows</h2>
+          <p className="text-muted-foreground">
+            Enable curated automations and customize the outgoing email messages for your team.
+          </p>
+        </div>
+        <Alert className="border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-100">
+          <Mail className="h-4 w-4" />
+          <AlertTitle>Email automation only</AlertTitle>
+          <AlertDescription>
+            SMS, Slack, and webhook channels are temporarily disabled while we transition to the new prebuilt experience.
+          </AlertDescription>
+        </Alert>
+        <div className="grid gap-4 md:grid-cols-2">
+          {workflows.map(workflow => {
+            const Icon = getIconComponent(workflow.icon);
+            const isTogglePending = pendingToggleKey === workflow.key;
+            return (
+              <Card key={workflow.key} className="flex flex-col justify-between">
+                <CardHeader className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-lg bg-primary/10 p-2">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <CardTitle className="text-lg leading-tight">
+                          {workflow.title}
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                          {workflow.shortDescription}
+                        </CardDescription>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="workflow-description">Description</Label>
-                      <Textarea
-                        id="workflow-description"
-                        placeholder="Describe what this workflow does"
-                        value={newWorkflow.description}
-                        onChange={e =>
-                          setNewWorkflow({
-                            ...newWorkflow,
-                            description: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="workflow-category">Category</Label>
-                      <Select
-                        value={newWorkflow.category}
-                        onValueChange={value =>
-                          setNewWorkflow({ ...newWorkflow, category: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category (optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CRM">CRM</SelectItem>
-                          <SelectItem value="HR">HR</SelectItem>
-                          <SelectItem value="Finance">Finance</SelectItem>
-                          <SelectItem value="Projects">Projects</SelectItem>
-                          <SelectItem value="Marketing">Marketing</SelectItem>
-                          <SelectItem value="Operations">Operations</SelectItem>
-                          <SelectItem value="Customer Service">
-                            Customer Service
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Badge variant={workflow.enabled ? "default" : "secondary"}>
+                      {workflow.enabled ? "Enabled" : "Disabled"}
+                    </Badge>
                   </div>
-                  <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
+                  <div className="flex flex-wrap gap-1">
+                    {workflow.moduleDependencies.map(module => (
+                      <Badge key={module} variant="outline">
+                        {module}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">{workflow.highlight}</p>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium">Email preview:</span> {workflow.emailPreview}
+                  </p>
+                  {workflow.missingPermissions.length > 0 && (
+                    <Alert variant="destructive" className="text-sm">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Additional permissions required</AlertTitle>
+                      <AlertDescription>
+                        {workflow.missingPermissions.join(", ")}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:gap-0 sm:space-x-2">
                     <Button
-                      variant="outline"
-                      onClick={() => setIsCreateDialogOpen(false)}
                       className="w-full sm:w-auto"
+                      onClick={() => handleToggle(workflow)}
+                      disabled={!workflow.canToggle || isTogglePending}
                     >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleCreateWorkflow}
-                      disabled={
-                        !newWorkflow.name.trim() ||
-                        createWorkflowMutation.isPending
-                      }
-                      className="w-full sm:w-auto"
-                    >
-                      {createWorkflowMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
+                      {isTogglePending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : workflow.enabled ? (
+                        "Disable"
                       ) : (
-                        "Create & Design"
+                        "Enable"
                       )}
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </ClientPermissionGuard>
-          </div>
-        </div>{" "}
-        {/* Edit Workflow Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Workflow</DialogTitle>
-              <DialogDescription>
-                Update the details of your workflow.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-workflow-name">Workflow Name *</Label>
-                <Input
-                  id="edit-workflow-name"
-                  placeholder="Enter workflow name"
-                  value={editWorkflow.name}
-                  onChange={e =>
-                    setEditWorkflow({ ...editWorkflow, name: e.target.value })
-                  }
-                />
+                    <Button
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      onClick={() => handleOpenDetail(workflow)}
+                    >
+                      View details
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          {detailQuery.isFetching && !detailData ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : detailData ? (
+            <>
+              <DialogHeader className="space-y-2">
+                <DialogTitle>{detailData.title}</DialogTitle>
+                <DialogDescription>{detailData.shortDescription}</DialogDescription>
+                <div className="flex flex-wrap gap-2">
+                  {detailData.moduleDependencies.map(module => (
+                    <Badge key={module} variant="outline">
+                      {module}
+                    </Badge>
+                  ))}
+                </div>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <section className="space-y-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">Trigger</h3>
+                  <p className="text-sm text-foreground">{detailData.trigger}</p>
+                </section>
+                <section className="space-y-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">What happens</h3>
+                  <ul className="list-disc space-y-1 pl-5 text-sm">
+                    {detailData.actions.map(action => (
+                      <li key={action}>{action}</li>
+                    ))}
+                  </ul>
+                </section>
+                {detailData.missingPermissions.length > 0 && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Enable blocked</AlertTitle>
+                    <AlertDescription>
+                      {detailData.missingPermissions.join(", ")}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <section className="space-y-3">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold uppercase text-muted-foreground">Email template</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Customize the subject and message sent when this workflow runs. Placeholders use double curly braces.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="prebuilt-workflow-subject">Subject</Label>
+                      <Input
+                        id="prebuilt-workflow-subject"
+                        value={subjectDraft}
+                        onChange={event => {
+                          setSubjectDraft(event.target.value);
+                          setIsTemplateDirty(true);
+                        }}
+                        disabled={!detailData.canEditTemplate || updateTemplateMutation.isPending}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="prebuilt-workflow-body">Message</Label>
+                      <Textarea
+                        id="prebuilt-workflow-body"
+                        value={bodyDraft}
+                        onChange={event => {
+                          setBodyDraft(event.target.value);
+                          setIsTemplateDirty(true);
+                        }}
+                        rows={10}
+                        disabled={!detailData.canEditTemplate || updateTemplateMutation.isPending}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <span className="font-medium">Placeholders:</span> {detailData.emailTemplate.variables.map(variable => `{{${variable.token}}}`).join(", ")}
+                    </div>
+                  </div>
+                </section>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-workflow-description">Description</Label>
-                <Textarea
-                  id="edit-workflow-description"
-                  placeholder="Describe what this workflow does"
-                  value={editWorkflow.description}
-                  onChange={e =>
-                    setEditWorkflow({
-                      ...editWorkflow,
-                      description: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-workflow-category">Category</Label>
-                <Select
-                  value={editWorkflow.category}
-                  onValueChange={value =>
-                    setEditWorkflow({ ...editWorkflow, category: value })
+              <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:gap-0 sm:space-x-2">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => handleResetTemplate()}
+                  disabled={!detailData.canEditTemplate || updateTemplateMutation.isPending}
+                >
+                  Reset to default
+                </Button>
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={handleSaveTemplate}
+                  disabled={
+                    !detailData.canEditTemplate ||
+                    !isTemplateDirty ||
+                    updateTemplateMutation.isPending
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CRM">CRM</SelectItem>
-                    <SelectItem value="HR">HR</SelectItem>
-                    <SelectItem value="Finance">Finance</SelectItem>
-                    <SelectItem value="Projects">Projects</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                    <SelectItem value="Operations">Operations</SelectItem>
-                    <SelectItem value="Customer Service">
-                      Customer Service
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  {updateTemplateMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              Unable to load workflow details.
             </div>
-            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpdateWorkflow}
-                disabled={
-                  !editWorkflow.name.trim() || updateWorkflowMutation.isPending
-                }
-                className="w-full sm:w-auto"
-              >
-                {updateWorkflowMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        {/* Delete Workflow Confirmation Dialog */}
-        <AlertDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Workflow</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete &ldquo;{selectedWorkflow?.name}
-                &rdquo;? This action cannot be undone and will permanently
-                remove the workflow and all its configurations.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDeleteWorkflow}
-                disabled={deleteWorkflowMutation.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteWorkflowMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete Workflow"
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {workflows.map(workflow => (
-            <Card
-              key={workflow.id}
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                    <GitBranch className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg truncate">
-                      {workflow.name}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge
-                        variant={
-                          workflow.status === "ACTIVE" ? "default" : "secondary"
-                        }
-                      >
-                        {workflow.status === "ACTIVE" ? (
-                          <>
-                            <Play className="h-3 w-3 mr-1" />
-                            Active
-                          </>
-                        ) : workflow.status === "DRAFT" ? (
-                          <>
-                            <Edit className="h-3 w-3 mr-1" />
-                            Draft
-                          </>
-                        ) : (
-                          <>
-                            <Pause className="h-3 w-3 mr-1" />
-                            {workflow.status.charAt(0) +
-                              workflow.status.slice(1).toLowerCase()}
-                          </>
-                        )}
-                      </Badge>
-                      {workflow.category && (
-                        <Badge variant="outline" className="text-xs">
-                          {workflow.category}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="mb-4 line-clamp-2">
-                  {workflow.description ?? "No description provided"}
-                </CardDescription>
-
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  <span>{workflow.totalExecutions} executions</span>
-                  <span>
-                    Updated {new Date(workflow.updatedAt).toLocaleDateString()}
-                  </span>
-                </div>
-
-                <div className="flex gap-2">
-                  <Link
-                    href={`/${organizationId}/workflows/${workflow.id}`}
-                    className="flex-1"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-2"
-                    >
-                      <GitBranch className="h-4 w-4" />
-                      Design
-                    </Button>
-                  </Link>
-                  <ClientPermissionGuard
-                    requiredAnyPermissions={[
-                      PERMISSIONS.WORKFLOWS_WRITE,
-                      PERMISSIONS.WORKFLOWS_ADMIN,
-                    ]}
-                    fallback={null}
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        toggleWorkflowStatus(workflow.id, workflow.status)
-                      }
-                      disabled={updateWorkflowMutation.isPending}
-                    >
-                      {updateWorkflowMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : workflow.status === "ACTIVE" ? (
-                        <Pause className="h-4 w-4" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </ClientPermissionGuard>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <ClientPermissionGuard
-                        requiredAnyPermissions={[
-                          PERMISSIONS.WORKFLOWS_WRITE,
-                          PERMISSIONS.WORKFLOWS_ADMIN,
-                        ]}
-                        fallback={null}
-                      >
-                        <DropdownMenuItem
-                          onClick={() => handleEditWorkflow(workflow)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Details
-                        </DropdownMenuItem>
-                      </ClientPermissionGuard>
-                      <ClientPermissionGuard
-                        requiredPermissions={[PERMISSIONS.WORKFLOWS_ADMIN]}
-                        fallback={null}
-                      >
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteWorkflow(workflow)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </ClientPermissionGuard>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        {workflows.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl flex items-center justify-center mb-6">
-              <GitBranch className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-              No workflows yet
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-8">
-              Get started by creating your first automated workflow to
-              streamline your business processes
-            </p>
-            <ClientPermissionGuard
-              requiredAnyPermissions={[
-                PERMISSIONS.WORKFLOWS_WRITE,
-                PERMISSIONS.WORKFLOWS_ADMIN,
-              ]}
-              fallback={
-                <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-dashed">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <span className="font-medium">Permission Required</span>
-                  </div>
-                  You need workflow write permissions to create workflows.
-                </div>
-              }
-            >
-              <Button
-                onClick={() => setIsCreateDialogOpen(true)}
-                size="lg"
-                className="gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                Create Your First Workflow
-              </Button>
-            </ClientPermissionGuard>
-          </div>
-        )}
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </ClientPermissionGuard>
   );
 }
 
-// Loading skeleton component
 function WorkflowListSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <Skeleton className="h-10 w-32" />
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-80" />
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Skeleton className="h-8 w-8 rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-16" />
+      <Skeleton className="h-14 w-full max-w-xl" />
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index} className="p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-56" />
               </div>
+              <Skeleton className="h-6 w-20" />
             </div>
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-3/4 mb-4" />
-            <div className="flex justify-between items-center mb-4">
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-3 w-20" />
-            </div>
+            <Skeleton className="h-3 w-3/4" />
             <div className="flex gap-2">
-              <Skeleton className="h-8 flex-1" />
-              <Skeleton className="h-8 w-8" />
-              <Skeleton className="h-8 w-8" />
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-6 w-16" />
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-0 sm:space-x-2">
+              <Skeleton className="h-9 w-full sm:w-24" />
+              <Skeleton className="h-9 w-full sm:w-24" />
             </div>
           </Card>
         ))}
