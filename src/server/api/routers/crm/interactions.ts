@@ -4,7 +4,7 @@ import {
   createPermissionProcedure,
   createAnyPermissionProcedure,
 } from "~/server/api/trpc";
-import { CustomerInteractionUpdateInputSchema } from "prisma/generated/zod";
+import type { Prisma } from "@prisma/client";
 import { db } from "~/server/db";
 import { PERMISSIONS } from "~/lib/rbac";
 
@@ -12,6 +12,9 @@ import {
   InteractionTypeSchema,
   InteractionMediumSchema,
 } from "../../../../../prisma/generated/zod";
+
+const CustomerInteractionUpdateInputSchema =
+  z.custom<Prisma.CustomerInteractionUpdateInput>();
 
 export const interactionsRouter = createTRPCRouter({
   // Fetch all interactions for an organization

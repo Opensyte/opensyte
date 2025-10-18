@@ -1,38 +1,54 @@
 // Finance-related types and helpers leveraging generated Zod schemas.
-// We re-export Prisma-generated Zod types to maintain consistency.
-import type {
-  Invoice,
-  InvoiceItem,
-  Payment,
-  InvoiceStatusType,
-} from "../../prisma/generated/zod";
-export {
-  // Core entities
-  type Invoice,
+// We re-export Prisma-generated Zod types to maintain consistency while
+// providing local fallbacks for create/update input schemas that are no longer generated.
+import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+import {
   InvoiceSchema,
-  type InvoiceItem,
   InvoiceItemSchema,
-  type Payment,
   PaymentSchema,
-  // Enums
-  type InvoiceStatusType,
   InvoiceStatusSchema,
   PaymentMethodSchema,
   PaymentStatusSchema,
-  // Input schemas
-  InvoiceCreateInputSchema,
-  InvoiceUncheckedCreateInputSchema,
-  InvoiceUpdateInputSchema,
-  InvoiceUncheckedUpdateInputSchema,
-  InvoiceItemCreateInputSchema,
-  InvoiceItemUncheckedCreateInputSchema,
-  InvoiceItemUpdateInputSchema,
-  InvoiceItemUncheckedUpdateInputSchema,
-  PaymentCreateInputSchema,
-  PaymentUncheckedCreateInputSchema,
-  PaymentUpdateInputSchema,
-  PaymentUncheckedUpdateInputSchema,
+  type Invoice,
+  type InvoiceItem,
+  type Payment,
+  type InvoiceStatusType,
 } from "../../prisma/generated/zod";
+
+export type { Invoice, InvoiceItem, Payment, InvoiceStatusType };
+
+export {
+  InvoiceSchema,
+  InvoiceItemSchema,
+  PaymentSchema,
+  InvoiceStatusSchema,
+  PaymentMethodSchema,
+  PaymentStatusSchema,
+};
+
+export const InvoiceCreateInputSchema = z.custom<Prisma.InvoiceCreateInput>();
+export const InvoiceUncheckedCreateInputSchema =
+  z.custom<Prisma.InvoiceUncheckedCreateInput>();
+export const InvoiceUpdateInputSchema = z.custom<Prisma.InvoiceUpdateInput>();
+export const InvoiceUncheckedUpdateInputSchema =
+  z.custom<Prisma.InvoiceUncheckedUpdateInput>();
+
+export const InvoiceItemCreateInputSchema =
+  z.custom<Prisma.InvoiceItemCreateInput>();
+export const InvoiceItemUncheckedCreateInputSchema =
+  z.custom<Prisma.InvoiceItemUncheckedCreateInput>();
+export const InvoiceItemUpdateInputSchema =
+  z.custom<Prisma.InvoiceItemUpdateInput>();
+export const InvoiceItemUncheckedUpdateInputSchema =
+  z.custom<Prisma.InvoiceItemUncheckedUpdateInput>();
+
+export const PaymentCreateInputSchema = z.custom<Prisma.PaymentCreateInput>();
+export const PaymentUncheckedCreateInputSchema =
+  z.custom<Prisma.PaymentUncheckedCreateInput>();
+export const PaymentUpdateInputSchema = z.custom<Prisma.PaymentUpdateInput>();
+export const PaymentUncheckedUpdateInputSchema =
+  z.custom<Prisma.PaymentUncheckedUpdateInput>();
 
 // UI labels & colors for statuses
 export const invoiceStatusLabels: Record<InvoiceStatusType, string> = {

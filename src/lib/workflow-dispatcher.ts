@@ -11,6 +11,10 @@ import {
   type WorkflowTriggerEvent,
 } from "./workflow-engine";
 import { executionLogger } from "./services/execution-logger";
+import {
+  prebuiltWorkflowExecutor,
+  type PrebuiltWorkflowExecutionSummary,
+} from "~/workflows/prebuilt/executor";
 import type {
   WorkflowTriggerType,
   WorkflowTrigger as PrismaWorkflowTrigger,
@@ -25,6 +29,7 @@ export interface DispatchResult {
     success: boolean;
     error?: string;
   }>;
+  prebuiltExecutions: PrebuiltWorkflowExecutionSummary[];
 }
 
 export class WorkflowDispatcher {
@@ -34,7 +39,16 @@ export class WorkflowDispatcher {
    * Main dispatch method - finds and triggers matching workflows
    */
   async dispatch(event: WorkflowTriggerEvent): Promise<DispatchResult> {
+    let prebuiltExecutions: PrebuiltWorkflowExecutionSummary[] = [];
+
     try {
+      try {
+        prebuiltExecutions = await prebuiltWorkflowExecutor.execute(event);
+      } catch (prebuiltError) {
+        console.error("Prebuilt workflow execution failed:", prebuiltError);
+        prebuiltExecutions = [];
+      }
+
       // Find matching workflows
       const matchingWorkflows = await this.findMatchingWorkflows(event);
 
@@ -53,6 +67,7 @@ export class WorkflowDispatcher {
         return {
           triggeredWorkflows: 0,
           executionResults: [],
+          prebuiltExecutions,
         };
       }
 
@@ -106,12 +121,14 @@ export class WorkflowDispatcher {
       return {
         triggeredWorkflows: matchingWorkflows.length,
         executionResults: results,
+        prebuiltExecutions,
       };
     } catch (error) {
       console.error("Workflow dispatch failed:", error);
       return {
         triggeredWorkflows: 0,
         executionResults: [],
+        prebuiltExecutions,
       };
     }
   }

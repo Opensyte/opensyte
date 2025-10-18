@@ -1,62 +1,83 @@
-// HR-related types using generated Zod schemas from Prisma
-import type { Employee } from "../../prisma/generated/zod";
-
-export {
-  // Employee types
-  type Employee,
+// HR-related types using generated Zod schemas from Prisma.
+// We re-export base model schemas while providing local fallbacks for create/update inputs.
+import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+import {
   EmployeeSchema,
-  type EmployeeStatusType,
   EmployeeStatusSchema,
-
-  // Employee input schemas for forms
-  EmployeeCreateInputSchema,
-  EmployeeUncheckedCreateInputSchema,
-  EmployeeUpdateInputSchema,
-  EmployeeUncheckedUpdateInputSchema,
-
-  // Payroll types
-  type Payroll,
   PayrollSchema,
-  type PayrollStatusType,
   PayrollStatusSchema,
-
-  // Payroll input schemas
-  PayrollCreateInputSchema,
-  PayrollUncheckedCreateInputSchema,
-  PayrollUpdateInputSchema,
-  PayrollUncheckedUpdateInputSchema,
-
-  // Time Off types
-  type TimeOff,
   TimeOffSchema,
-  type TimeOffTypeType,
   TimeOffTypeSchema,
-  type TimeOffStatusType,
   TimeOffStatusSchema,
-
-  // Time Off input schemas
-  TimeOffCreateInputSchema,
-  TimeOffUncheckedCreateInputSchema,
-  TimeOffUpdateInputSchema,
-  TimeOffUncheckedUpdateInputSchema,
-
-  // Performance Review types
-  type PerformanceReview,
   PerformanceReviewSchema,
-  type ReviewStatusType,
   ReviewStatusSchema,
-
-  // Performance Review input schemas
-  PerformanceReviewCreateInputSchema,
-  PerformanceReviewUncheckedCreateInputSchema,
-  PerformanceReviewUpdateInputSchema,
-  PerformanceReviewUncheckedUpdateInputSchema,
+  type Employee,
+  type EmployeeStatusType,
+  type Payroll,
+  type PayrollStatusType,
+  type TimeOff,
+  type TimeOffTypeType,
+  type TimeOffStatusType,
+  type PerformanceReview,
+  type ReviewStatusType,
 } from "../../prisma/generated/zod";
 
-// Additional HR utility types and constants
+export type {
+  Employee,
+  EmployeeStatusType,
+  Payroll,
+  PayrollStatusType,
+  TimeOff,
+  TimeOffTypeType,
+  TimeOffStatusType,
+  PerformanceReview,
+  ReviewStatusType,
+};
 
-// Form validation schemas and types
-import { z } from "zod";
+export {
+  EmployeeSchema,
+  EmployeeStatusSchema,
+  PayrollSchema,
+  PayrollStatusSchema,
+  TimeOffSchema,
+  TimeOffTypeSchema,
+  TimeOffStatusSchema,
+  PerformanceReviewSchema,
+  ReviewStatusSchema,
+};
+
+export const EmployeeCreateInputSchema = z.custom<Prisma.EmployeeCreateInput>();
+export const EmployeeUncheckedCreateInputSchema =
+  z.custom<Prisma.EmployeeUncheckedCreateInput>();
+export const EmployeeUpdateInputSchema = z.custom<Prisma.EmployeeUpdateInput>();
+export const EmployeeUncheckedUpdateInputSchema =
+  z.custom<Prisma.EmployeeUncheckedUpdateInput>();
+
+export const PayrollCreateInputSchema = z.custom<Prisma.PayrollCreateInput>();
+export const PayrollUncheckedCreateInputSchema =
+  z.custom<Prisma.PayrollUncheckedCreateInput>();
+export const PayrollUpdateInputSchema = z.custom<Prisma.PayrollUpdateInput>();
+export const PayrollUncheckedUpdateInputSchema =
+  z.custom<Prisma.PayrollUncheckedUpdateInput>();
+
+export const TimeOffCreateInputSchema = z.custom<Prisma.TimeOffCreateInput>();
+export const TimeOffUncheckedCreateInputSchema =
+  z.custom<Prisma.TimeOffUncheckedCreateInput>();
+export const TimeOffUpdateInputSchema = z.custom<Prisma.TimeOffUpdateInput>();
+export const TimeOffUncheckedUpdateInputSchema =
+  z.custom<Prisma.TimeOffUncheckedUpdateInput>();
+
+export const PerformanceReviewCreateInputSchema =
+  z.custom<Prisma.PerformanceReviewCreateInput>();
+export const PerformanceReviewUncheckedCreateInputSchema =
+  z.custom<Prisma.PerformanceReviewUncheckedCreateInput>();
+export const PerformanceReviewUpdateInputSchema =
+  z.custom<Prisma.PerformanceReviewUpdateInput>();
+export const PerformanceReviewUncheckedUpdateInputSchema =
+  z.custom<Prisma.PerformanceReviewUncheckedUpdateInput>();
+
+// Additional HR utility types and constants
 
 // TimeOff enum types (since not in Prisma yet)
 export const TIME_OFF_TYPES = [

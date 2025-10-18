@@ -3,6 +3,7 @@
  * for Docker builds.
  */
 import "./src/env.js";
+import bundleAnalyzer from "@next/bundle-analyzer";
 /** @type {import("next").NextConfig} */
 const config = {
   output: "standalone",
@@ -15,7 +16,11 @@ const config = {
   },
   experimental: {
     webpackMemoryOptimizations: true,
+    optimizePackageImports: ['twilio']
   },
 };
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
-export default config;
+export default withBundleAnalyzer(config);
