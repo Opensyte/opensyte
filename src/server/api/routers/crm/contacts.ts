@@ -4,13 +4,15 @@ import {
   createPermissionProcedure,
   createAnyPermissionProcedure,
 } from "../../trpc";
-import {
-  CustomerUncheckedCreateInputSchema,
-  CustomerUpdateInputSchema,
-} from "prisma/generated/zod";
+import type { Prisma } from "@prisma/client";
 import { db } from "~/server/db";
 import { PERMISSIONS } from "~/lib/rbac";
 import { WorkflowEvents } from "~/lib/workflow-dispatcher";
+
+const CustomerUncheckedCreateInputSchema =
+  z.custom<Prisma.CustomerUncheckedCreateInput>();
+
+const CustomerUpdateInputSchema = z.custom<Prisma.CustomerUpdateInput>();
 
 export const contactsCrmRoutes = createTRPCRouter({
   // Create a new contact

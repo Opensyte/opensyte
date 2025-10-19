@@ -2,6 +2,7 @@
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { Badge } from "~/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,6 +24,7 @@ interface NavItem {
   url: string;
   icon?: LucideIcon;
   isActive?: boolean;
+  badge?: string;
   action?: {
     icon: LucideIcon;
     onClick: () => void;
@@ -73,6 +75,14 @@ export function NavMain({ items }: { items: NavItem[] }) {
                     <Link href={itemUrl}>
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
+                      {item.badge && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-auto h-5 text-xs font-normal"
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                   {item.action && (
@@ -111,6 +121,14 @@ export function NavMain({ items }: { items: NavItem[] }) {
                     >
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
+                      {item.badge && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-2 h-5 text-xs font-normal"
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
                       <ChevronRight className="ml-auto transition-transform duration-200 opacity-0 group-hover/item:opacity-100 group-data-[state=open]/collapsible:rotate-90 group-data-[state=open]/collapsible:opacity-100" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Customer, Prisma } from "@prisma/client";
 import {
   createTRPCRouter,
   createPermissionProcedure,
@@ -8,6 +9,30 @@ import { ProjectStatusSchema } from "../../../../../prisma/generated/zod/index";
 import { PERMISSIONS } from "~/lib/rbac";
 import { WorkflowEvents } from "~/lib/workflow-dispatcher";
 
+type CustomerPreview = Pick<
+  Customer,
+  "id" | "firstName" | "lastName" | "email" | "company"
+>;
+
+type ProjectWithCustomer = Prisma.ProjectGetPayload<{
+  include: {
+    customer: {
+      select: {
+        id: true;
+        firstName: true;
+        lastName: true;
+        email: true;
+        company: true;
+      };
+    };
+    _count: {
+      select: {
+        tasks: true;
+      };
+    };
+  };
+}>;
+
 export const projectRouter = createTRPCRouter({
   // Get all projects for an organization
   getAll: createAnyPermissionProcedure([
@@ -15,12 +40,33 @@ export const projectRouter = createTRPCRouter({
     PERMISSIONS.PROJECTS_WRITE,
     PERMISSIONS.PROJECTS_ADMIN,
   ])
-    .input(z.object({ organizationId: z.string().cuid() }))
+    .input(
+      z.object({
+        organizationId: z.string().cuid(),
+        customerId: z.string().cuid().optional(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       await ctx.requireAnyPermission(input.organizationId);
+
+      if (input.customerId) {
+        const customerRecord = await ctx.db.customer.findFirst({
+          where: {
+            id: input.customerId,
+            organizationId: input.organizationId,
+          },
+          select: { id: true },
+        });
+
+        if (!customerRecord) {
+          throw new Error("Customer not found or access denied");
+        }
+      }
+
       return ctx.db.project.findMany({
         where: {
           organizationId: input.organizationId,
+          ...(input.customerId ? { customerId: input.customerId } : {}),
         },
         orderBy: {
           createdAt: "desc",
@@ -29,6 +75,15 @@ export const projectRouter = createTRPCRouter({
           _count: {
             select: {
               tasks: true,
+            },
+          },
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              company: true,
             },
           },
         },
@@ -66,6 +121,15 @@ export const projectRouter = createTRPCRouter({
               tasks: true,
             },
           },
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              company: true,
+            },
+          },
         },
       });
     }),
@@ -83,11 +147,34 @@ export const projectRouter = createTRPCRouter({
         budget: z.number().min(0).optional(),
         currency: z.string().default("USD"),
         createdById: z.string().optional(),
+        customerId: z.string().cuid().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.requirePermission(input.organizationId);
-      const project = await ctx.db.project.create({
+      let customerDetails: CustomerPreview | null = null;
+
+      if (input.customerId) {
+        customerDetails = await ctx.db.customer.findFirst({
+          where: {
+            id: input.customerId,
+            organizationId: input.organizationId,
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            company: true,
+          },
+        });
+
+        if (!customerDetails) {
+          throw new Error("Customer not found or access denied");
+        }
+      }
+
+      const project: ProjectWithCustomer = await ctx.db.project.create({
         data: {
           organizationId: input.organizationId,
           name: input.name,
@@ -98,8 +185,18 @@ export const projectRouter = createTRPCRouter({
           budget: input.budget,
           currency: input.currency,
           createdById: input.createdById,
+          customerId: input.customerId,
         },
         include: {
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              company: true,
+            },
+          },
           _count: {
             select: {
               tasks: true,
@@ -107,6 +204,9 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
+
+      const resolvedCustomer: CustomerPreview | null =
+        customerDetails ?? project.customer ?? null;
 
       // Trigger workflow events
       try {
@@ -127,6 +227,10 @@ export const projectRouter = createTRPCRouter({
             organizationId: project.organizationId,
             createdAt: project.createdAt,
             updatedAt: project.updatedAt,
+            customerId: project.customerId,
+            customerName: deriveCustomerName(resolvedCustomer),
+            customerEmail: resolvedCustomer?.email ?? undefined,
+            customerCompany: resolvedCustomer?.company ?? undefined,
           },
           ctx.user.id
         );
@@ -151,6 +255,7 @@ export const projectRouter = createTRPCRouter({
         status: ProjectStatusSchema.optional(),
         budget: z.number().min(0).optional(),
         currency: z.string().optional(),
+        customerId: z.string().cuid().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -163,13 +268,44 @@ export const projectRouter = createTRPCRouter({
         select: { status: true },
       });
 
-      const updated = await ctx.db.project.update({
+      let customer: CustomerPreview | null = null;
+
+      if (updateData.customerId) {
+        customer = await ctx.db.customer.findFirst({
+          where: {
+            id: updateData.customerId,
+            organizationId,
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            company: true,
+          },
+        });
+
+        if (!customer) {
+          throw new Error("Customer not found or access denied");
+        }
+      }
+
+      const updated: ProjectWithCustomer = await ctx.db.project.update({
         where: {
           id,
           organizationId,
         },
         data: updateData,
         include: {
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              company: true,
+            },
+          },
           _count: {
             select: {
               tasks: true,
@@ -177,6 +313,9 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
+
+      const updatedCustomer: CustomerPreview | null =
+        customer ?? updated.customer ?? null;
 
       // Trigger workflow events
       try {
@@ -199,6 +338,10 @@ export const projectRouter = createTRPCRouter({
             currency: updated.currency,
             organizationId: updated.organizationId,
             updatedAt: updated.updatedAt,
+            customerId: updated.customerId,
+            customerName: deriveCustomerName(updatedCustomer),
+            customerEmail: updatedCustomer?.email ?? undefined,
+            customerCompany: updatedCustomer?.company ?? undefined,
             ...(statusChanged ? { previousStatus: existing?.status } : {}),
           },
           ctx.user.id
@@ -274,3 +417,34 @@ export const projectRouter = createTRPCRouter({
       };
     }),
 });
+
+function deriveCustomerName(
+  customer: CustomerPreview | null
+): string | undefined {
+  if (!customer) {
+    return undefined;
+  }
+
+  const first = customer.firstName?.trim();
+  const last = customer.lastName?.trim();
+  const parts = [first, last].filter((part): part is string => {
+    if (!part) {
+      return false;
+    }
+    return part.length > 0;
+  });
+
+  if (parts.length > 0) {
+    const fullName = parts.join(" ").trim();
+    if (fullName.length > 0) {
+      return fullName;
+    }
+  }
+
+  const company = customer.company?.trim();
+  if (company && company.length > 0) {
+    return company;
+  }
+
+  return undefined;
+}

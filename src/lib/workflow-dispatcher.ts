@@ -11,6 +11,10 @@ import {
   type WorkflowTriggerEvent,
 } from "./workflow-engine";
 import { executionLogger } from "./services/execution-logger";
+import {
+  prebuiltWorkflowExecutor,
+  type PrebuiltWorkflowExecutionSummary,
+} from "~/workflows/prebuilt/executor";
 import type {
   WorkflowTriggerType,
   WorkflowTrigger as PrismaWorkflowTrigger,
@@ -25,6 +29,7 @@ export interface DispatchResult {
     success: boolean;
     error?: string;
   }>;
+  prebuiltExecutions: PrebuiltWorkflowExecutionSummary[];
 }
 
 export class WorkflowDispatcher {
@@ -34,14 +39,34 @@ export class WorkflowDispatcher {
    * Main dispatch method - finds and triggers matching workflows
    */
   async dispatch(event: WorkflowTriggerEvent): Promise<DispatchResult> {
+    let prebuiltExecutions: PrebuiltWorkflowExecutionSummary[] = [];
+    const triggerDescriptor = `${event.module}.${event.entityType}.${event.eventType}`;
+
     try {
+      try {
+        prebuiltExecutions = await prebuiltWorkflowExecutor.execute(event);
+      } catch (prebuiltError) {
+        console.error("Prebuilt workflow execution failed:", prebuiltError);
+        prebuiltExecutions = [];
+      }
+
+      try {
+        await executionLogger.logPrebuiltExecutionSummary(
+          event.organizationId,
+          triggerDescriptor,
+          prebuiltExecutions
+        );
+      } catch (logError) {
+        console.warn("Failed to log prebuilt workflow summary", logError);
+      }
+
       // Find matching workflows
       const matchingWorkflows = await this.findMatchingWorkflows(event);
 
       // Log trigger matching results
       await executionLogger.logTriggerMatching(
         event.organizationId,
-        `${event.module}.${event.entityType}.${event.eventType}`,
+        triggerDescriptor,
         event.payload,
         matchingWorkflows.map(({ workflow }) => ({
           workflowId: workflow.id,
@@ -53,6 +78,7 @@ export class WorkflowDispatcher {
         return {
           triggeredWorkflows: 0,
           executionResults: [],
+          prebuiltExecutions,
         };
       }
 
@@ -106,12 +132,14 @@ export class WorkflowDispatcher {
       return {
         triggeredWorkflows: matchingWorkflows.length,
         executionResults: results,
+        prebuiltExecutions,
       };
     } catch (error) {
       console.error("Workflow dispatch failed:", error);
       return {
         triggeredWorkflows: 0,
         executionResults: [],
+        prebuiltExecutions,
       };
     }
   }

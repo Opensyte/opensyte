@@ -55,6 +55,7 @@ const updateProjectSchema = z.object({
     .optional()
     .or(z.string().transform(val => (val ? parseFloat(val) : undefined))),
   currency: z.string().optional().default("USD"),
+  customerId: z.string().cuid().nullable().optional(),
 });
 
 type UpdateProjectForm = z.infer<typeof updateProjectSchema>;
@@ -68,6 +69,14 @@ interface Project {
   endDate: Date | null;
   budget: number | null;
   currency: string | null;
+  customerId?: string | null;
+  customer?: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    company: string | null;
+    email: string | null;
+  } | null;
   createdAt: Date;
   _count: {
     tasks: number;
@@ -107,6 +116,7 @@ export function ProjectEditDialog({
       currency: project.currency ?? "USD",
       startDate: project.startDate ?? undefined,
       endDate: project.endDate ?? undefined,
+      customerId: project.customer?.id ?? project.customerId ?? undefined,
     },
   });
 
@@ -125,6 +135,7 @@ export function ProjectEditDialog({
       currency: project.currency ?? "USD",
       startDate: project.startDate ?? undefined,
       endDate: project.endDate ?? undefined,
+      customerId: project.customer?.id ?? project.customerId ?? undefined,
     });
   }, [project, form]);
 
@@ -157,8 +168,22 @@ export function ProjectEditDialog({
       status: data.status,
       budget: data.budget,
       currency: data.currency,
+      customerId: data.customerId ?? undefined,
     });
   };
+
+  const { data: contactsData, isLoading: isLoadingContacts } =
+    api.contactsCrm.getContactsByOrganization.useQuery(
+      { organizationId },
+      {
+        enabled: open,
+      }
+    );
+
+  const customerOptions = (contactsData ?? []).filter(
+    contact =>
+      (contact.type as string | undefined)?.toUpperCase() === "CUSTOMER"
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,6 +227,50 @@ export function ProjectEditDialog({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Customer */}
+            <FormField
+              control={form.control}
+              name="customerId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer</FormLabel>
+                  <Select
+                    onValueChange={value =>
+                      field.onChange(value === "none" ? undefined : value)
+                    }
+                    value={field.value ?? "none"}
+                    disabled={isLoadingContacts}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select customer" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No customer</SelectItem>
+                      {customerOptions.map(customer => {
+                        const fullName = [
+                          customer.firstName ?? undefined,
+                          customer.lastName ?? undefined,
+                        ]
+                          .filter(Boolean)
+                          .join(" ");
+                        const label =
+                          (fullName || customer.company) ?? "Customer";
+                        return (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {label}
+                            {customer.email ? ` · ${customer.email}` : ""}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

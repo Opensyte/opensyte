@@ -1,38 +1,57 @@
 // Expense-related types and helpers leveraging generated Zod schemas.
-// We re-export Prisma-generated Zod types to maintain consistency.
-import type {
+// We re-export Prisma-generated Zod types to maintain consistency while
+// providing local fallbacks for create/update input schemas that are no longer generated.
+import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+import {
+  ExpenseSchema,
+  ExpenseCategorySchema,
+  ExpenseTagSchema,
+  ExpenseStatusSchema,
+  PaymentMethodSchema,
+  type Expense,
+  type ExpenseCategory,
+  type ExpenseTag,
+  type ExpenseStatusType,
+  type PaymentMethodType,
+} from "../../prisma/generated/zod";
+
+export type {
   Expense,
   ExpenseCategory,
   ExpenseTag,
   ExpenseStatusType,
   PaymentMethodType,
-} from "../../prisma/generated/zod";
+};
 
 export {
-  // Core entities
-  type Expense,
   ExpenseSchema,
-  type ExpenseCategory,
   ExpenseCategorySchema,
-  type ExpenseTag,
   ExpenseTagSchema,
-  // Enums
-  type ExpenseStatusType,
   ExpenseStatusSchema,
-  type PaymentMethodType,
   PaymentMethodSchema,
-  // Input schemas
-  ExpenseCreateInputSchema,
-  ExpenseUncheckedCreateInputSchema,
-  ExpenseUpdateInputSchema,
-  ExpenseUncheckedUpdateInputSchema,
-  ExpenseCategoryCreateInputSchema,
-  ExpenseCategoryUncheckedCreateInputSchema,
-  ExpenseCategoryUpdateInputSchema,
-  ExpenseCategoryUncheckedUpdateInputSchema,
-  ExpenseTagCreateInputSchema,
-  ExpenseTagUncheckedCreateInputSchema,
-} from "../../prisma/generated/zod";
+};
+
+export const ExpenseCreateInputSchema = z.custom<Prisma.ExpenseCreateInput>();
+export const ExpenseUncheckedCreateInputSchema =
+  z.custom<Prisma.ExpenseUncheckedCreateInput>();
+export const ExpenseUpdateInputSchema = z.custom<Prisma.ExpenseUpdateInput>();
+export const ExpenseUncheckedUpdateInputSchema =
+  z.custom<Prisma.ExpenseUncheckedUpdateInput>();
+
+export const ExpenseCategoryCreateInputSchema =
+  z.custom<Prisma.ExpenseCategoryCreateInput>();
+export const ExpenseCategoryUncheckedCreateInputSchema =
+  z.custom<Prisma.ExpenseCategoryUncheckedCreateInput>();
+export const ExpenseCategoryUpdateInputSchema =
+  z.custom<Prisma.ExpenseCategoryUpdateInput>();
+export const ExpenseCategoryUncheckedUpdateInputSchema =
+  z.custom<Prisma.ExpenseCategoryUncheckedUpdateInput>();
+
+export const ExpenseTagCreateInputSchema =
+  z.custom<Prisma.ExpenseTagCreateInput>();
+export const ExpenseTagUncheckedCreateInputSchema =
+  z.custom<Prisma.ExpenseTagUncheckedCreateInput>();
 
 // UI labels & colors for expense statuses
 export const expenseStatusLabels: Record<ExpenseStatusType, string> = {

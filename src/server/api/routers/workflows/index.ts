@@ -9,9 +9,11 @@ import { variablesRouter } from "./variables";
 import { workflowAnalyticsRouter } from "./analytics";
 import { nodesRouter } from "./components/nodes";
 import { connectionsRouter } from "./connections";
+import { prebuiltWorkflowsRouter } from "./prebuilt";
 
 export const workflowsRouter = createTRPCRouter({
   workflow: workflowRouter,
+  prebuilt: prebuiltWorkflowsRouter,
   triggers: triggersRouter,
   actions: actionsRouter,
   actionSystem: actionSystemRouter,

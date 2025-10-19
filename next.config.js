@@ -15,6 +15,7 @@ const config = {
   },
   experimental: {
     webpackMemoryOptimizations: true,
+    optimizePackageImports: ["twilio"],
   },
 };
 

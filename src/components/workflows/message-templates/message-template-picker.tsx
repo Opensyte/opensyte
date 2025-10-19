@@ -47,6 +47,7 @@ interface MessageTemplatePickerProps {
   ) => void;
   placeholder?: string;
   disabled?: boolean;
+  showCreateButton?: boolean;
 }
 
 export function MessageTemplatePicker({
@@ -56,6 +57,7 @@ export function MessageTemplatePicker({
   onChange,
   placeholder = "Select a template...",
   disabled = false,
+  showCreateButton = true,
 }: MessageTemplatePickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -155,7 +157,9 @@ export function MessageTemplatePicker({
               Select {channel ? channel.toLowerCase() : "message"} template
             </DialogTitle>
             <DialogDescription>
-              Choose from available templates or create a new one
+              {showCreateButton
+                ? "Choose from available templates or create a new one"
+                : "Choose from available templates"}
             </DialogDescription>
           </DialogHeader>
 
@@ -258,21 +262,23 @@ export function MessageTemplatePicker({
             </ScrollArea>
 
             {/* Create New Template Link */}
-            <div className="border-t pt-4">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setOpen(false);
-                  // Navigate to create template page
-                  const url = `/${organizationId}/workflows/message-templates/create${channel ? `?type=${channel}` : ""}`;
-                  window.open(url, "_blank");
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create New Template
-              </Button>
-            </div>
+            {showCreateButton && (
+              <div className="border-t pt-4">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setOpen(false);
+                    // Navigate to create template page
+                    const url = `/${organizationId}/workflows/message-templates/create${channel ? `?type=${channel}` : ""}`;
+                    window.open(url, "_blank");
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create New Template
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

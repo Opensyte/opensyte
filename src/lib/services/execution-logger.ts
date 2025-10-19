@@ -378,6 +378,51 @@ export class ExecutionLogger {
     });
   }
 
+  async logPrebuiltExecutionSummary(
+    organizationId: string,
+    triggerType: string,
+    executions: Array<{
+      workflowKey: string;
+      matched: boolean;
+      executed: boolean;
+      success: boolean;
+      runId?: string;
+      error?: string;
+    }>
+  ): Promise<void> {
+    const tempContext = {
+      workflowExecutionId: `prebuilt_${Date.now()}`,
+      source: "prebuilt-workflow-executor",
+      category: "prebuilt-execution",
+    };
+
+    const matchedCount = executions.filter(
+      execution => execution.matched
+    ).length;
+    const executedCount = executions.filter(
+      execution => execution.executed
+    ).length;
+    const successCount = executions.filter(
+      execution => execution.executed && execution.success
+    ).length;
+
+    await this.info(tempContext, "Prebuilt workflows evaluated", {
+      organizationId,
+      triggerType,
+      matchedWorkflowCount: matchedCount,
+      executedWorkflowCount: executedCount,
+      successfulWorkflowCount: successCount,
+      executions: executions.map(execution => ({
+        workflowKey: execution.workflowKey,
+        matched: execution.matched,
+        executed: execution.executed,
+        success: execution.success,
+        runId: execution.runId,
+        error: execution.error,
+      })),
+    });
+  }
+
   /**
    * Core logging method
    */
@@ -401,7 +446,8 @@ export class ExecutionLogger {
       if (
         !logContext.workflowExecutionId ||
         (typeof logContext.workflowExecutionId === "string" &&
-          logContext.workflowExecutionId.startsWith("trigger_"))
+          (logContext.workflowExecutionId.startsWith("trigger_") ||
+            logContext.workflowExecutionId.startsWith("prebuilt_")))
       ) {
         // Dev console logging only
         if (process.env.NODE_ENV === "development") {
