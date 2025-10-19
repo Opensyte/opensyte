@@ -1597,6 +1597,7 @@ model PrebuiltWorkflowConfig {
   emailBody       String
   templateVersion Int      @default(1)
   updatedByUserId String
+  messageTemplateId String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1606,6 +1607,7 @@ model PrebuiltWorkflowConfig {
   @@unique([organizationId, workflowKey])
   @@index([organizationId])
   @@index([workflowKey])
+  @@index([messageTemplateId])
 }
 
 model PrebuiltWorkflowRun {

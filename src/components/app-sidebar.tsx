@@ -135,6 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: "Workflows",
       url: "/[orgId]/workflows",
       icon: GitBranch,
+      badge: "Beta",
       items: [],
     });
 

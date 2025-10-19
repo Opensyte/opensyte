@@ -40,6 +40,7 @@ export class WorkflowDispatcher {
    */
   async dispatch(event: WorkflowTriggerEvent): Promise<DispatchResult> {
     let prebuiltExecutions: PrebuiltWorkflowExecutionSummary[] = [];
+    const triggerDescriptor = `${event.module}.${event.entityType}.${event.eventType}`;
 
     try {
       try {
@@ -49,13 +50,23 @@ export class WorkflowDispatcher {
         prebuiltExecutions = [];
       }
 
+      try {
+        await executionLogger.logPrebuiltExecutionSummary(
+          event.organizationId,
+          triggerDescriptor,
+          prebuiltExecutions
+        );
+      } catch (logError) {
+        console.warn("Failed to log prebuilt workflow summary", logError);
+      }
+
       // Find matching workflows
       const matchingWorkflows = await this.findMatchingWorkflows(event);
 
       // Log trigger matching results
       await executionLogger.logTriggerMatching(
         event.organizationId,
-        `${event.module}.${event.entityType}.${event.eventType}`,
+        triggerDescriptor,
         event.payload,
         matchingWorkflows.map(({ workflow }) => ({
           workflowId: workflow.id,

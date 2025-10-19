@@ -178,7 +178,7 @@ export const TemplateInstallItemScalarFieldEnumSchema = z.enum(['id','installati
 
 export const WorkflowScalarFieldEnumSchema = z.enum(['id','organizationId','name','description','version','status','isTemplate','category','canvasData','retryConfig','timeoutConfig','totalExecutions','successfulExecutions','failedExecutions','lastExecutedAt','createdById','updatedById','publishedAt','publishedById','archivedAt','createdAt','updatedAt']);
 
-export const PrebuiltWorkflowConfigScalarFieldEnumSchema = z.enum(['id','organizationId','workflowKey','enabled','emailSubject','emailBody','templateVersion','updatedByUserId','createdAt','updatedAt']);
+export const PrebuiltWorkflowConfigScalarFieldEnumSchema = z.enum(['id','organizationId','workflowKey','enabled','emailSubject','emailBody','templateVersion','updatedByUserId','messageTemplateId','createdAt','updatedAt']);
 
 export const PrebuiltWorkflowRunScalarFieldEnumSchema = z.enum(['id','organizationId','workflowKey','status','triggerModule','triggerEntity','triggerEvent','triggeredAt','startedAt','completedAt','durationMs','emailRecipient','emailSubject','context','result','error','createdAt','updatedAt']);
 
@@ -1537,6 +1537,7 @@ export const PrebuiltWorkflowConfigSchema = z.object({
   emailBody: z.string(),
   templateVersion: z.number().int(),
   updatedByUserId: z.string(),
+  messageTemplateId: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

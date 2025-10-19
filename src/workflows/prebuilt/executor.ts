@@ -167,7 +167,19 @@ export class PrebuiltWorkflowExecutor {
   ): Promise<PrebuiltWorkflowExecutionSummary[]> {
     const summaries: PrebuiltWorkflowExecutionSummary[] = [];
 
+    console.log("[PrebuiltWorkflowExecutor] Evaluating event:", {
+      module: event.module,
+      entityType: event.entityType,
+      eventType: event.eventType,
+      payload: event.payload,
+    });
+
     const handlers = HANDLERS.filter(handler => handler.matches(event));
+    console.log(
+      `[PrebuiltWorkflowExecutor] Matched ${handlers.length} handler(s):`,
+      handlers.map(h => h.key)
+    );
+
     if (handlers.length === 0) {
       return summaries;
     }
@@ -217,7 +229,15 @@ export class PrebuiltWorkflowExecutor {
         persistedConfig: storedConfig,
       };
 
+      console.log(`[PrebuiltWorkflowExecutor] Workflow "${handler.key}":`, {
+        enabled: config.enabled,
+        hasConfig: !!storedConfig,
+      });
+
       if (!config.enabled) {
+        console.log(
+          `[PrebuiltWorkflowExecutor] Skipping disabled workflow: ${handler.key}`
+        );
         summaries.push({
           workflowKey: handler.key,
           matched: true,
@@ -238,6 +258,9 @@ export class PrebuiltWorkflowExecutor {
       const runStartedAt = Date.now();
 
       try {
+        console.log(
+          `[PrebuiltWorkflowExecutor] Executing workflow: ${handler.key}`
+        );
         const context: ExecutionContext = {
           event,
           definition,
@@ -250,6 +273,10 @@ export class PrebuiltWorkflowExecutor {
         };
 
         const result = await handler.execute(context);
+        console.log(
+          `[PrebuiltWorkflowExecutor] Workflow "${handler.key}" completed:`,
+          result
+        );
         const durationMs = Date.now() - runStartedAt;
 
         await runDelegate.update({
@@ -274,6 +301,10 @@ export class PrebuiltWorkflowExecutor {
       } catch (error) {
         const durationMs = Date.now() - runStartedAt;
         const message = error instanceof Error ? error.message : String(error);
+        console.error(
+          `[PrebuiltWorkflowExecutor] Workflow "${handler.key}" failed:`,
+          error
+        );
 
         await runDelegate.update({
           where: { id: runRecord.id },
@@ -342,28 +373,50 @@ export class PrebuiltWorkflowExecutor {
 const leadToClientHandler: PrebuiltWorkflowHandler = {
   key: "lead-to-client",
   matches: event => {
-    const moduleMatches = event.module.toLowerCase() === "crm";
-    const entityMatches = event.entityType.toLowerCase() === "deal";
-    if (!moduleMatches || !entityMatches) {
+    if (event.module.toLowerCase() !== "crm") {
       return false;
     }
 
+    const entity = event.entityType.toLowerCase();
     const normalizedEventType = event.eventType.toLowerCase();
-    if (
-      !(
-        "status_changed" === normalizedEventType ||
-        "converted" === normalizedEventType
-      )
-    ) {
+    const payload = event.payload ?? {};
+
+    let statusCandidate: string | undefined;
+
+    if (entity === "deal") {
+      if (
+        !(
+          normalizedEventType === "status_changed" ||
+          normalizedEventType === "converted"
+        )
+      ) {
+        return false;
+      }
+
+      statusCandidate =
+        extractString(payload.status) ??
+        extractString(payload.newStatus) ??
+        extractString(payload.stage) ??
+        extractString(payload.pipelineStatus);
+    } else if (entity === "contact") {
+      if (
+        !(
+          normalizedEventType === "created" ||
+          normalizedEventType === "updated" ||
+          normalizedEventType === "status_changed"
+        )
+      ) {
+        return false;
+      }
+
+      statusCandidate =
+        extractString(payload.status) ??
+        extractString(payload.newStatus) ??
+        extractString(payload.stage) ??
+        extractString(payload.pipelineStatus);
+    } else {
       return false;
     }
-
-    const payload = event.payload ?? {};
-    const statusCandidate =
-      extractString(payload.status) ??
-      extractString(payload.newStatus) ??
-      extractString(payload.stage) ??
-      extractString(payload.pipelineStatus);
 
     if (!statusCandidate) {
       return false;
@@ -371,6 +424,7 @@ const leadToClientHandler: PrebuiltWorkflowHandler = {
 
     const normalizedStatus = statusCandidate.toUpperCase();
     return (
+      normalizedStatus === LeadStatus.QUALIFIED ||
       normalizedStatus === LeadStatus.CLOSED_WON ||
       normalizedStatus === "CLIENT" ||
       normalizedStatus === "CUSTOMER"
@@ -390,7 +444,10 @@ const leadToClientHandler: PrebuiltWorkflowHandler = {
 
     const payload = event.payload ?? {};
     const customerId =
-      extractString(payload.customerId) ?? extractString(payload.clientId);
+      extractString(payload.customerId) ??
+      extractString(payload.clientId) ??
+      extractString(payload.contactId) ??
+      extractString(payload.id);
 
     if (!customerId) {
       throw new Error("Lead conversion event missing customerId");
@@ -400,21 +457,6 @@ const leadToClientHandler: PrebuiltWorkflowHandler = {
       db,
       organizationId: event.organizationId,
       customerId,
-    });
-
-    const project = await ensureOnboardingProject({
-      db,
-      organizationId: event.organizationId,
-      customerId,
-      projectName:
-        extractString(payload.projectName) ?? `${organizationName} Onboarding`,
-      startDate:
-        extractDate(payload.projectStartDate) ?? extractDate(payload.startDate),
-      createdById: event.userId,
-      dealValue: payload.value,
-      currency: extractString(payload.currency),
-      description:
-        extractString(payload.summary) ?? extractString(payload.notes),
     });
 
     const customer = await db.customer.findUnique({
@@ -431,6 +473,30 @@ const leadToClientHandler: PrebuiltWorkflowHandler = {
     if (!customer) {
       throw new Error("Converted customer record not found");
     }
+
+    const customerDisplayName =
+      ([customer.firstName, customer.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+        customer.company) ??
+      "Client";
+
+    const project = await ensureOnboardingProject({
+      db,
+      organizationId: event.organizationId,
+      customerId,
+      projectName:
+        extractString(payload.projectName) ??
+        `${customerDisplayName} - Onboarding`,
+      startDate:
+        extractDate(payload.projectStartDate) ?? extractDate(payload.startDate),
+      createdById: event.userId,
+      dealValue: payload.value,
+      currency: extractString(payload.currency),
+      description:
+        extractString(payload.summary) ?? extractString(payload.notes),
+    });
 
     const recipient =
       extractString(customer.email) ?? extractString(payload.customerEmail);
@@ -478,82 +544,6 @@ const leadToClientHandler: PrebuiltWorkflowHandler = {
         workflow: definition.key,
         promotion,
         project,
-      },
-    } satisfies HandlerResult;
-  },
-};
-
-const clientOnboardingHandler: PrebuiltWorkflowHandler = {
-  key: "client-onboarding",
-  matches: event =>
-    event.module.toLowerCase() === "crm" &&
-    event.entityType.toLowerCase() === "customer" &&
-    event.eventType.toLowerCase() === "created",
-  async execute(context) {
-    const {
-      event,
-      definition,
-      config,
-      emailService,
-      organizationName,
-      appUrl,
-      triggeringUser,
-      db,
-    } = context;
-
-    const payload = event.payload ?? {};
-    const recipient =
-      extractString(payload.email) ?? extractString(payload.customerEmail);
-
-    if (!recipient) {
-      throw new Error("Client onboarding workflow requires a customer email");
-    }
-
-    const customerId = extractString(payload.customerId);
-    let provisionedProject: ProjectProvisionResult | undefined;
-
-    if (customerId) {
-      provisionedProject = await ensureOnboardingProject({
-        db,
-        organizationId: event.organizationId,
-        customerId,
-        projectName:
-          extractString(payload.projectName) ??
-          `${organizationName} Onboarding`,
-        createdById: event.userId,
-        description: extractString(payload.description),
-      });
-    }
-
-    const variables = buildClientOnboardingVariables({
-      organizationName,
-      payload,
-      triggeringUser,
-      appUrl,
-    });
-
-    const subject = renderTemplate(config.emailSubject, variables);
-    const body = renderTemplate(config.emailBody, variables);
-
-    const emailResult = await emailService.sendEmail({
-      to: recipient,
-      subject,
-      htmlBody: convertToHtml(body),
-    });
-
-    if (!emailResult.success) {
-      throw new Error(emailResult.error ?? "Failed to send onboarding email");
-    }
-
-    return {
-      recipient,
-      subject,
-      email: emailResult,
-      details: {
-        workflow: definition.key,
-        recipient,
-        messageId: emailResult.messageId,
-        provisionedProject,
       },
     } satisfies HandlerResult;
   },
@@ -663,15 +653,48 @@ const projectLifecycleHandler: PrebuiltWorkflowHandler = {
         ? (project.customer as { email?: unknown }).email
         : undefined;
 
-    const recipient = extractString(customerEmail);
+    const payloadCustomerId =
+      extractString(payload.customerId) ??
+      extractString(payload.clientId) ??
+      extractString(payload.contactId);
+
+    let resolvedCustomer = project.customer ?? null;
+    if (!resolvedCustomer && payloadCustomerId) {
+      resolvedCustomer = await db.customer.findUnique({
+        where: { id: payloadCustomerId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          company: true,
+          email: true,
+        },
+      });
+    }
+
+    const recipient =
+      extractString(customerEmail) ??
+      extractString(resolvedCustomer?.email) ??
+      extractString(payload.customerEmail) ??
+      extractString(payload.primaryContactEmail) ??
+      extractFirstEmail(payload.customerEmails) ??
+      extractString(triggeringUser?.email);
+
+    console.log(
+      `[Project Lifecycle] Project ${project.id}, recipient: ${recipient ?? "none"}, has customer: ${!!resolvedCustomer}`
+    );
 
     if (!recipient) {
+      console.log(
+        `[Project Lifecycle] Skipping email - no customer email for project ${project.id}`
+      );
       return {
         details: {
           workflow: definition.key,
           projectId: project.id,
           seededTaskCount,
           skippedNotification: true,
+          reason: "No customer email available",
         },
       } satisfies HandlerResult;
     }
@@ -687,6 +710,10 @@ const projectLifecycleHandler: PrebuiltWorkflowHandler = {
     const subject = renderTemplate(config.emailSubject, variables);
     const body = renderTemplate(config.emailBody, variables);
 
+    console.log(
+      `[Project Lifecycle] Sending email to ${recipient} with subject: ${subject}`
+    );
+
     const emailResult = await emailService.sendEmail({
       to: recipient,
       subject,
@@ -694,10 +721,17 @@ const projectLifecycleHandler: PrebuiltWorkflowHandler = {
     });
 
     if (!emailResult.success) {
+      console.error(
+        `[Project Lifecycle] Email send failed: ${emailResult.error}`
+      );
       throw new Error(
         emailResult.error ?? "Failed to send project update email"
       );
     }
+
+    console.log(
+      `[Project Lifecycle] Email sent successfully, messageId: ${emailResult.messageId}`
+    );
 
     return {
       recipient,
@@ -708,6 +742,7 @@ const projectLifecycleHandler: PrebuiltWorkflowHandler = {
         projectId: project.id,
         seededTaskCount,
         status: normalizedStatus,
+        emailSent: true,
       },
     } satisfies HandlerResult;
   },
@@ -716,27 +751,25 @@ const projectLifecycleHandler: PrebuiltWorkflowHandler = {
 const invoiceTrackingHandler: PrebuiltWorkflowHandler = {
   key: "invoice-tracking",
   matches: event => {
-    if (event.module.toLowerCase() !== "finance") {
+    // Listen for project completion events
+    if (event.module.toLowerCase() !== "projects") {
       return false;
     }
-    if (event.entityType.toLowerCase() !== "invoice") {
+    if (event.entityType.toLowerCase() !== "project") {
       return false;
     }
 
     const normalizedEventType = event.eventType.toLowerCase();
-    if (normalizedEventType === "created") {
-      return true;
+    if (normalizedEventType !== "status_changed") {
+      return false;
     }
 
-    if (normalizedEventType === "status_changed") {
-      const statusCandidate =
-        extractString(event.payload.status) ??
-        extractString(event.payload.newStatus) ??
-        extractString(event.payload.currentStatus);
-      return Boolean(statusCandidate);
-    }
+    // Check if project was marked as completed
+    const statusCandidate =
+      extractString(event.payload.status) ??
+      extractString(event.payload.newStatus);
 
-    return false;
+    return statusCandidate?.toUpperCase() === ProjectStatus.COMPLETED;
   },
   async execute(context) {
     const {
@@ -751,65 +784,126 @@ const invoiceTrackingHandler: PrebuiltWorkflowHandler = {
     } = context;
 
     const payload = event.payload ?? {};
-    const invoiceId =
-      extractString(payload.invoiceId) ?? extractString(payload.id);
+    const projectId =
+      extractString(payload.id) ?? extractString(payload.projectId);
 
-    const statusValue = (
-      extractString(payload.status) ??
-      extractString(payload.newStatus) ??
-      extractString(payload.currentStatus)
-    )?.toUpperCase();
+    if (!projectId) {
+      throw new Error("Invoice tracking workflow requires a project ID");
+    }
 
-    const recipient = await resolveInvoiceRecipient({
-      db,
-      invoiceId,
-      fallbackEmail: extractString(payload.customerEmail),
+    console.log(
+      `[Invoice Tracking] Evaluating project ${projectId} for organization ${event.organizationId}`
+    );
+
+    // Load the completed project details
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            company: true,
+            address: true,
+            phone: true,
+          },
+        },
+      },
     });
 
-    const variables = await buildInvoiceTrackingVariables({
-      organizationName,
-      payload,
-      appUrl,
+    if (!project) {
+      throw new Error("Project not found for invoice generation");
+    }
+
+    const payloadCustomerId =
+      extractString(payload.customerId) ??
+      extractString(payload.clientId) ??
+      extractString(payload.contactId);
+
+    let customerRecord = project.customer ?? null;
+    const effectiveCustomerId = project.customerId ?? payloadCustomerId;
+
+    if (!customerRecord && effectiveCustomerId) {
+      customerRecord = await db.customer.findUnique({
+        where: { id: effectiveCustomerId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          company: true,
+          address: true,
+          phone: true,
+        },
+      });
+    }
+
+    if (!customerRecord) {
+      console.warn(
+        `[Invoice Tracking] Skipping invoice - no customer found for project ${projectId}`
+      );
+      return {
+        details: {
+          workflow: definition.key,
+          projectId,
+          skippedNotification: true,
+          reason: "No customer record",
+        },
+      } satisfies HandlerResult;
+    }
+
+    const recipient =
+      extractString(customerRecord.email) ??
+      extractString(payload.customerEmail) ??
+      extractString(payload.primaryContactEmail);
+
+    if (!recipient) {
+      console.warn(
+        `[Invoice Tracking] Skipping email - missing recipient for project ${projectId}`
+      );
+      return {
+        details: {
+          workflow: definition.key,
+          projectId,
+          skippedNotification: true,
+          reason: "No customer email available",
+        },
+      } satisfies HandlerResult;
+    }
+
+    // Create the invoice for the completed project
+    const invoice = await createProjectInvoice({
       db,
-      invoiceId,
+      organizationId: event.organizationId,
+      project: {
+        id: project.id,
+        name: project.name,
+        budget: project.budget,
+        currency: project.currency,
+        customer: customerRecord,
+      },
+      customer: customerRecord,
+      createdById: event.userId,
+    });
+
+    console.log(
+      `[Invoice Tracking] Generated invoice ${invoice.invoiceNumber} (${invoice.id}) for project ${projectId}`
+    );
+
+    // Build variables for the email template
+    const variables = buildInvoiceTrackingVariablesFromProject({
+      organizationName,
+      project,
+      invoice,
+      customer: customerRecord,
+      appUrl,
       triggeringUser,
     });
 
     const subject = renderTemplate(config.emailSubject, variables);
     const body = renderTemplate(config.emailBody, variables);
-
-    if (!recipient) {
-      return {
-        details: {
-          workflow: definition.key,
-          invoiceId,
-          status: statusValue,
-          skippedNotification: true,
-        },
-      } satisfies HandlerResult;
-    }
-
-    if (
-      statusValue === InvoiceStatus.PAID ||
-      statusValue === InvoiceStatus.CANCELLED
-    ) {
-      await updateInvoiceReminderMetadata({
-        db,
-        invoiceId,
-        statusValue,
-      });
-
-      return {
-        recipient,
-        subject,
-        details: {
-          workflow: definition.key,
-          invoiceId,
-          status: statusValue,
-          notificationSkipped: true,
-        },
-      } satisfies HandlerResult;
-    }
 
     const emailResult = await emailService.sendEmail({
       to: recipient,
@@ -818,14 +912,15 @@ const invoiceTrackingHandler: PrebuiltWorkflowHandler = {
     });
 
     if (!emailResult.success) {
+      console.error(
+        `[Invoice Tracking] Email send failed for project ${projectId}: ${emailResult.error}`
+      );
       throw new Error(emailResult.error ?? "Failed to send invoice email");
     }
 
-    await updateInvoiceReminderMetadata({
-      db,
-      invoiceId,
-      statusValue,
-    });
+    console.log(
+      `[Invoice Tracking] Email sent to ${recipient} (messageId: ${emailResult.messageId})`
+    );
 
     return {
       recipient,
@@ -833,9 +928,11 @@ const invoiceTrackingHandler: PrebuiltWorkflowHandler = {
       email: emailResult,
       details: {
         workflow: definition.key,
-        invoiceId,
-        status: statusValue,
+        projectId,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
         messageId: emailResult.messageId,
+        invoiceCreated: true,
       },
     } satisfies HandlerResult;
   },
@@ -890,7 +987,9 @@ const contractRenewalHandler: PrebuiltWorkflowHandler = {
     const customerId =
       extractString(payload.customerId) ??
       extractString(payload.contractCustomerId) ??
-      extractString(payload.clientId);
+      extractString(payload.clientId) ??
+      extractString(payload.contactId) ??
+      extractString(payload.id);
 
     if (!customerId) {
       throw new Error("Contract renewal workflow requires a customerId");
@@ -1089,7 +1188,6 @@ const internalHealthHandler: PrebuiltWorkflowHandler = {
 
 const HANDLERS: PrebuiltWorkflowHandler[] = [
   leadToClientHandler,
-  clientOnboardingHandler,
   projectLifecycleHandler,
   invoiceTrackingHandler,
   contractRenewalHandler,
@@ -1115,17 +1213,6 @@ function extractDate(value: unknown): Date | undefined {
   if (typeof value === "number") {
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-  }
-  return undefined;
-}
-
-function extractNumber(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
 }
@@ -1196,43 +1283,6 @@ function convertToHtml(content: string): string {
     .map(paragraph => paragraph.replace(/\n/g, "<br />"));
 
   return paragraphs.map(p => `<p>${p}</p>`).join("");
-}
-
-function buildClientOnboardingVariables(args: {
-  organizationName: string;
-  payload: Record<string, unknown>;
-  triggeringUser?: { name?: string | null; email?: string | null } | null;
-  appUrl: string;
-}) {
-  const { organizationName, payload, triggeringUser, appUrl } = args;
-  const firstName = extractString(payload.firstName);
-  const lastName = extractString(payload.lastName);
-  const company = extractString(payload.company);
-  const composedName = [firstName, lastName]
-    .filter((part): part is string => Boolean(part))
-    .join(" ");
-  const fullName =
-    (composedName.length > 0 ? composedName : undefined) ?? company ?? "Client";
-
-  return {
-    clientName: fullName,
-    contractLink: extractString(payload.contractLink) ?? `${appUrl}/contracts`,
-    documentPortalLink:
-      extractString(payload.documentPortalLink) ?? `${appUrl}/documents`,
-    paymentSetupLink:
-      extractString(payload.paymentSetupLink) ?? `${appUrl}/billing`,
-    onboardingOwnerName:
-      triggeringUser?.name ??
-      extractString(payload.onboardingOwnerName) ??
-      "Your team",
-    companyName: organizationName,
-    accountManagerName:
-      triggeringUser?.name ??
-      extractString(payload.accountManagerName) ??
-      "Account manager",
-    accountManagerEmail:
-      triggeringUser?.email ?? extractString(payload.accountManagerEmail) ?? "",
-  } satisfies Record<string, unknown>;
 }
 
 function buildLeadToClientVariables(args: {
@@ -1333,67 +1383,176 @@ function buildProjectLifecycleVariables(args: {
   } satisfies Record<string, unknown>;
 }
 
-async function buildInvoiceTrackingVariables(args: {
-  organizationName: string;
-  payload: Record<string, unknown>;
-  appUrl: string;
+async function createProjectInvoice(args: {
   db: PrismaClient;
-  invoiceId?: string;
-  triggeringUser?: { name?: string | null; email?: string | null } | null;
-}): Promise<Record<string, unknown>> {
-  const { organizationName, payload, appUrl, db, invoiceId, triggeringUser } =
-    args;
+  organizationId: string;
+  project: {
+    id: string;
+    name: string;
+    budget: Prisma.Decimal | null;
+    currency: string;
+    customer: {
+      id: string;
+      firstName: string | null;
+      lastName: string | null;
+      email: string | null;
+      company: string | null;
+      address: string | null;
+      phone: string | null;
+    };
+  };
+  customer: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    company: string | null;
+    address: string | null;
+    phone: string | null;
+  };
+  createdById?: string;
+}): Promise<{
+  id: string;
+  invoiceNumber: string;
+  totalAmount: Prisma.Decimal;
+  dueDate: Date | null;
+  status: InvoiceStatus;
+  currency: string;
+}> {
+  const { db, organizationId, project, customer, createdById } = args;
 
-  const invoiceRecord = invoiceId
-    ? await db.invoice.findUnique({
-        where: { id: invoiceId },
-        select: {
-          invoiceNumber: true,
-          totalAmount: true,
-          currency: true,
-          dueDate: true,
-          customerName: true,
-          customerEmail: true,
-        },
-      })
-    : null;
+  // Check if invoice already exists for this project
+  const existing = await db.invoice.findFirst({
+    where: {
+      organizationId,
+      notes: {
+        contains: `Project ID: ${project.id}`,
+      },
+    },
+    select: {
+      id: true,
+      invoiceNumber: true,
+      totalAmount: true,
+      dueDate: true,
+      status: true,
+      currency: true,
+    },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  // Use project budget or default amount
+  const totalAmount = project.budget ?? new Prisma.Decimal(0);
+  const currency = project.currency ?? "USD";
+
+  const customerName =
+    resolveCustomerDisplayName(customer) ?? customer.company ?? "Client";
+
+  const issueDate = new Date();
+  const dueDate = addDays(issueDate, 30);
+
+  const invoiceCount = await db.invoice.count({
+    where: { organizationId },
+  });
+  const invoiceNumber = `INV-${issueDate.getFullYear()}${String(
+    issueDate.getMonth() + 1
+  ).padStart(2, "0")}-${invoiceCount + 1}`;
+
+  const invoice = await db.invoice.create({
+    data: {
+      organizationId,
+      customerId: customer.id,
+      customerName,
+      customerEmail: customer.email ?? "",
+      customerAddress: customer.address,
+      customerPhone: customer.phone,
+      status: InvoiceStatus.DRAFT,
+      currency,
+      issueDate,
+      dueDate,
+      totalAmount,
+      subtotal: totalAmount,
+      taxAmount: new Prisma.Decimal(0),
+      discountAmount: new Prisma.Decimal(0),
+      shippingAmount: new Prisma.Decimal(0),
+      paidAmount: new Prisma.Decimal(0),
+      notes: `Invoice for project: ${project.name}\nProject ID: ${project.id}`,
+      invoiceNumber,
+      createdById: createdById ?? undefined,
+      items: {
+        create: [
+          {
+            description: `Project: ${project.name}`,
+            quantity: new Prisma.Decimal(1),
+            unitPrice: totalAmount,
+            subtotal: totalAmount,
+          },
+        ],
+      },
+    },
+  });
+
+  return {
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    totalAmount: invoice.totalAmount,
+    dueDate: invoice.dueDate,
+    status: invoice.status,
+    currency: invoice.currency,
+  };
+}
+
+function buildInvoiceTrackingVariablesFromProject(args: {
+  organizationName: string;
+  project: {
+    id: string;
+    name: string;
+  };
+  invoice: {
+    id: string;
+    invoiceNumber: string;
+    totalAmount: Prisma.Decimal;
+    dueDate: Date | null;
+    status: InvoiceStatus;
+    currency: string;
+  };
+  customer: {
+    firstName: string | null;
+    lastName: string | null;
+    company: string | null;
+    email: string | null;
+  };
+  appUrl: string;
+  triggeringUser?: { name?: string | null; email?: string | null } | null;
+}): Record<string, unknown> {
+  const {
+    organizationName,
+    project,
+    invoice,
+    customer,
+    appUrl,
+    triggeringUser,
+  } = args;
 
   const clientName =
-    extractString(payload.customerName) ??
-    invoiceRecord?.customerName ??
-    "Client";
+    resolveCustomerDisplayName(customer) ?? customer.company ?? "Client";
 
-  const dueDate =
-    extractDate(payload.dueDate) ?? invoiceRecord?.dueDate ?? undefined;
-
-  const amountDecimal =
-    coerceDecimal(payload.totalAmount) ??
-    invoiceRecord?.totalAmount ??
-    undefined;
-
-  const currency =
-    extractString(payload.currency) ?? invoiceRecord?.currency ?? "USD";
+  const invoiceStatusLabel =
+    invoice.status.charAt(0).toUpperCase() +
+    invoice.status.slice(1).toLowerCase();
 
   return {
     clientName,
     companyName: organizationName,
-    projectName:
-      extractString(payload.projectName) ??
-      extractString(payload.contextProjectName) ??
-      "your project",
-    invoiceNumber:
-      extractString(payload.invoiceNumber) ??
-      invoiceRecord?.invoiceNumber ??
-      "Invoice",
-    invoiceAmount: formatCurrency(amountDecimal, currency),
-    invoiceDueDate: dueDate?.toLocaleDateString() ?? "Soon",
-    invoicePaymentLink:
-      extractString(payload.paymentLink) ?? `${appUrl}/billing`,
-    reminderDays: extractNumber(payload.reminderDays) ?? 5,
-    financeOwnerName:
-      triggeringUser?.name ??
-      extractString(payload.financeOwnerName) ??
-      "Finance team",
+    projectName: project.name,
+    invoiceNumber: invoice.invoiceNumber,
+    invoiceAmount: formatCurrency(invoice.totalAmount, invoice.currency),
+    invoiceDueDate: invoice.dueDate?.toLocaleDateString() ?? "Upon receipt",
+    invoiceStatus: invoiceStatusLabel,
+    invoiceLink: `${appUrl}/finance/invoices/${invoice.id}`,
+    financeOwnerName: triggeringUser?.name ?? "Finance team",
   } satisfies Record<string, unknown>;
 }
 
@@ -1808,7 +1967,7 @@ async function promoteCustomerToClient(args: {
 
   if (
     existing.type === CustomerType.CUSTOMER &&
-    existing.status === LeadStatus.CLOSED_WON
+    existing.status === LeadStatus.QUALIFIED
   ) {
     return {
       customerId,
@@ -1821,7 +1980,6 @@ async function promoteCustomerToClient(args: {
     where: { id: customerId },
     data: {
       type: CustomerType.CUSTOMER,
-      status: LeadStatus.CLOSED_WON,
     },
   });
 
@@ -1976,63 +2134,6 @@ async function ensureProjectOwnerResource(args: {
       allocation: 100,
     },
   });
-}
-
-async function resolveInvoiceRecipient(args: {
-  db: PrismaClient;
-  invoiceId?: string;
-  fallbackEmail?: string;
-}): Promise<string | undefined> {
-  const { db, invoiceId, fallbackEmail } = args;
-  if (fallbackEmail) {
-    return fallbackEmail;
-  }
-
-  if (!invoiceId) {
-    return undefined;
-  }
-
-  const invoice = await db.invoice.findUnique({
-    where: { id: invoiceId },
-    select: { customerEmail: true },
-  });
-
-  return extractString(invoice?.customerEmail);
-}
-
-async function updateInvoiceReminderMetadata(args: {
-  db: PrismaClient;
-  invoiceId?: string;
-  statusValue?: string;
-}) {
-  const { db, invoiceId, statusValue } = args;
-  if (!invoiceId || !statusValue) {
-    return;
-  }
-
-  if (statusValue === InvoiceStatus.OVERDUE) {
-    await db.invoice
-      .update({
-        where: { id: invoiceId },
-        data: {
-          lastReminder: new Date(),
-          status: InvoiceStatus.OVERDUE,
-        },
-      })
-      .catch(() => undefined);
-  }
-
-  if (statusValue === InvoiceStatus.SENT) {
-    await db.invoice
-      .update({
-        where: { id: invoiceId },
-        data: {
-          sentAt: new Date(),
-          status: InvoiceStatus.SENT,
-        },
-      })
-      .catch(() => undefined);
-  }
 }
 
 function addDays(date: Date, days: number): Date {
