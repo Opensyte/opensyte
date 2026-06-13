@@ -27,7 +27,12 @@ COPY . .
 
 # ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN SKIP_ENV_VALIDATION=1 bun run build
+ENV SKIP_ENV_VALIDATION=1
+# Placeholder so import-time clients (e.g. Resend) don't throw during the build.
+# Build-only; the runner stage is a separate image and supplies real values at runtime.
+ENV RESEND_API_KEY="re_placeholder_build_only"
+
+RUN bun run build
 
 ##### RUNNER
 
