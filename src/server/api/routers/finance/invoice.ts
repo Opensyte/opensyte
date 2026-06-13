@@ -491,7 +491,7 @@ export const invoiceRouter = createTRPCRouter({
 
       const resend = new Resend(env.RESEND_API_KEY);
       await resend.emails.send({
-        from: "Acme <onboarding@resend.dev>",
+        from: `${env.RESEND_FROM_NAME} <${env.RESEND_FROM_EMAIL}>`,
         to: invoice.customerEmail,
         subject: `Invoice ${invoice.invoiceNumber}`,
         html: emailHtml,
