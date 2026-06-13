@@ -21,6 +21,11 @@ FROM --platform=linux/amd64 oven/bun:1-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 ARG DATABASE_URL
 ARG NEXT_PUBLIC_CLIENTVAR
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time, so they
+# must be present during `bun run build`. Railway exposes service variables as
+# build args automatically; promote it to an ENV so Next.js picks it up.
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
