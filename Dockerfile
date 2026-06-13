@@ -1,41 +1,52 @@
-FROM oven/bun:1-alpine AS base
-# Prisma needs OpenSSL on Alpine
-RUN apk add --no-cache openssl
+##### DEPENDENCIES
 
-# Install dependencies
-FROM base AS deps
+FROM --platform=linux/amd64 oven/bun:1-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
-COPY package.json bun.lock* ./
-# Prisma schema is required by the postinstall `prisma generate` script
+
+# Install Prisma Client - remove if not using Prisma
+# Copied before install so the `prisma generate` postinstall script can run.
+
 COPY prisma ./prisma
+
+# Install dependencies based on the bun lockfile
+
+COPY package.json bun.lock ./
+
 RUN bun install --frozen-lockfile
 
-# Build the app
-FROM base AS builder
+##### BUILDER
+
+FROM --platform=linux/amd64 oven/bun:1-alpine AS builder
+RUN apk add --no-cache libc6-compat openssl
+ARG DATABASE_URL
+ARG NEXT_PUBLIC_CLIENTVAR
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Skip env validation during build (no runtime secrets available here)
-ENV SKIP_ENV_VALIDATION=1
-RUN bun run build
 
-# Production image
-FROM base AS runner
+# ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN SKIP_ENV_VALIDATION=1 bun run build
+
+##### RUNNER
+
+FROM --platform=linux/amd64 oven/bun:1-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# ENV NEXT_TELEMETRY_DISABLED 1
 
+COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/package.json ./package.json
 
-USER nextjs
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
 
 CMD ["bun", "server.js"]
