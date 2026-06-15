@@ -60,21 +60,25 @@ export const interactionTypeLabels = {
 
 // Lead Status Colors
 export const leadStatusColors = {
-  NEW: "bg-blue-100 text-blue-800",
-  CONTACTED: "bg-yellow-100 text-yellow-800",
-  QUALIFIED: "bg-green-100 text-green-800",
-  PROPOSAL: "bg-purple-100 text-purple-800",
-  NEGOTIATION: "bg-orange-100 text-orange-800",
-  CLOSED_WON: "bg-emerald-100 text-emerald-800",
-  CLOSED_LOST: "bg-red-100 text-red-800",
+  IDENTIFIED: "bg-blue-100 text-blue-800",
+  CONNECTION_SENT: "bg-sky-100 text-sky-800",
+  CONNECTED: "bg-indigo-100 text-indigo-800",
+  MESSAGED: "bg-violet-100 text-violet-800",
+  IN_CONVERSATION: "bg-purple-100 text-purple-800",
+  CALL_BOOKED: "bg-amber-100 text-amber-800",
+  PROPOSAL_SENT: "bg-orange-100 text-orange-800",
+  WON: "bg-emerald-100 text-emerald-800",
+  LOST: "bg-red-100 text-red-800",
 } as const;
 
 export const leadStatusLabels = {
-  NEW: "New",
-  CONTACTED: "Contacted",
-  QUALIFIED: "Qualified",
-  PROPOSAL: "Proposal",
-  NEGOTIATION: "Negotiation",
-  CLOSED_WON: "Closed Won",
-  CLOSED_LOST: "Closed Lost",
+  IDENTIFIED: "Identified",
+  CONNECTION_SENT: "Connection Sent",
+  CONNECTED: "Connected",
+  MESSAGED: "Messaged",
+  IN_CONVERSATION: "In Conversation",
+  CALL_BOOKED: "Call Booked",
+  PROPOSAL_SENT: "Proposal Sent",
+  WON: "Won",
+  LOST: "Lost",
 } as const;

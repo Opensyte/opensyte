@@ -113,7 +113,7 @@ export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
     title: "",
     customerId: "",
     value: 0,
-    status: "NEW",
+    status: "IDENTIFIED",
     probability: 50,
     description: "",
   };
@@ -130,13 +130,15 @@ export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
       title: data.title,
       value: data.value,
       status: data.status as
-        | "NEW"
-        | "CONTACTED"
-        | "QUALIFIED"
-        | "PROPOSAL"
-        | "NEGOTIATION"
-        | "CLOSED_WON"
-        | "CLOSED_LOST",
+        | "IDENTIFIED"
+        | "CONNECTION_SENT"
+        | "CONNECTED"
+        | "MESSAGED"
+        | "IN_CONVERSATION"
+        | "CALL_BOOKED"
+        | "PROPOSAL_SENT"
+        | "WON"
+        | "LOST",
       stage: getStageFromStatus(data.status),
       probability: data.probability,
       currency: "USD",
@@ -149,13 +151,15 @@ export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
   // Note: Stage must be at least 1 to match backend validation
   const getStageFromStatus = (status: string): number => {
     const stageMap: Record<string, number> = {
-      NEW: 1, // Changed from 0 to 1
-      CONTACTED: 2, // Incremented all stages by 1
-      QUALIFIED: 3,
-      PROPOSAL: 4,
-      NEGOTIATION: 5,
-      CLOSED_WON: 6,
-      CLOSED_LOST: 7,
+      IDENTIFIED: 1,
+      CONNECTION_SENT: 2,
+      CONNECTED: 3,
+      MESSAGED: 4,
+      IN_CONVERSATION: 5,
+      CALL_BOOKED: 6,
+      PROPOSAL_SENT: 7,
+      WON: 8,
+      LOST: 9,
     };
     return stageMap[status] ?? 1; // Default to 1 instead of 0
   };
@@ -258,13 +262,21 @@ export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="NEW">New Lead</SelectItem>
-                        <SelectItem value="CONTACTED">Contacted</SelectItem>
-                        <SelectItem value="QUALIFIED">Qualified</SelectItem>
-                        <SelectItem value="PROPOSAL">Proposal</SelectItem>
-                        <SelectItem value="NEGOTIATION">Negotiation</SelectItem>
-                        <SelectItem value="CLOSED_WON">Closed Won</SelectItem>
-                        <SelectItem value="CLOSED_LOST">Closed Lost</SelectItem>
+                        <SelectItem value="IDENTIFIED">Identified</SelectItem>
+                        <SelectItem value="CONNECTION_SENT">
+                          Connection Sent
+                        </SelectItem>
+                        <SelectItem value="CONNECTED">Connected</SelectItem>
+                        <SelectItem value="MESSAGED">Messaged</SelectItem>
+                        <SelectItem value="IN_CONVERSATION">
+                          In Conversation
+                        </SelectItem>
+                        <SelectItem value="CALL_BOOKED">Call Booked</SelectItem>
+                        <SelectItem value="PROPOSAL_SENT">
+                          Proposal Sent
+                        </SelectItem>
+                        <SelectItem value="WON">Won</SelectItem>
+                        <SelectItem value="LOST">Lost</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

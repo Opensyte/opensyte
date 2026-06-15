@@ -498,11 +498,13 @@ export const organizationRouter = createTRPCRouter({
               },
               status: {
                 in: [
-                  "NEW",
-                  "CONTACTED",
-                  "QUALIFIED",
-                  "PROPOSAL",
-                  "NEGOTIATION",
+                  "IDENTIFIED",
+                  "CONNECTION_SENT",
+                  "CONNECTED",
+                  "MESSAGED",
+                  "IN_CONVERSATION",
+                  "CALL_BOOKED",
+                  "PROPOSAL_SENT",
                 ],
               },
             },

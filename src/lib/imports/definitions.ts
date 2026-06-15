@@ -41,7 +41,7 @@ export const CRM_CONTACT_FIELDS = [
   {
     key: "status",
     label: "Lead Status",
-    description: "Pipeline status (e.g. NEW, QUALIFIED)",
+    description: "Pipeline status (e.g. IDENTIFIED, IN_CONVERSATION)",
     required: false,
   },
   {
@@ -144,13 +144,15 @@ export const CRM_SUPPORTED_CONTACT_TYPES: CustomerType[] = [
 ];
 
 export const CRM_SUPPORTED_LEAD_STATUS: LeadStatus[] = [
-  LeadStatus.NEW,
-  LeadStatus.CONTACTED,
-  LeadStatus.QUALIFIED,
-  LeadStatus.PROPOSAL,
-  LeadStatus.NEGOTIATION,
-  LeadStatus.CLOSED_WON,
-  LeadStatus.CLOSED_LOST,
+  LeadStatus.IDENTIFIED,
+  LeadStatus.CONNECTION_SENT,
+  LeadStatus.CONNECTED,
+  LeadStatus.MESSAGED,
+  LeadStatus.IN_CONVERSATION,
+  LeadStatus.CALL_BOOKED,
+  LeadStatus.PROPOSAL_SENT,
+  LeadStatus.WON,
+  LeadStatus.LOST,
 ];
 
 export const CRM_SUPPORTED_LEAD_SOURCES: LeadSource[] = [

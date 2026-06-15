@@ -148,7 +148,7 @@ const templateVariables = [
     description: "Deal status",
     variableName: "deal_status",
     category: "deal",
-    sampleValue: "QUALIFIED",
+    sampleValue: "IN_CONVERSATION",
   },
   // Finance - Invoice
   {
@@ -921,7 +921,7 @@ export function MessageTemplateForm({
                       // Deal variables
                       deal_title: "Enterprise Plan",
                       deal_value: "$1,999",
-                      deal_status: "QUALIFIED",
+                      deal_status: "IN_CONVERSATION",
                       // Invoice variables
                       invoice_number: "INV-202501-12",
                       invoice_amount: "$4,500",

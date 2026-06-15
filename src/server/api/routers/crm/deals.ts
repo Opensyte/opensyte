@@ -62,7 +62,7 @@ export const dealsCrmRoutes = createTRPCRouter({
         title: z.string().min(1, "Title is required"),
         value: z.number().min(0, "Value must be positive"),
         status: LeadStatusSchema,
-        stage: z.number().min(1).max(5),
+        stage: z.number().min(1).max(9),
         probability: z.number().min(0).max(100).optional(),
         currency: z.string().default("USD"),
         expectedCloseDate: z.date().optional(),

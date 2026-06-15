@@ -7,6 +7,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { DealCard } from "./deal-card";
+import { Badge } from "~/components/ui/badge";
+import { cn } from "~/lib/utils";
 import type { DealWithCustomer } from "~/types/crm";
 
 interface PipelineColumnProps {
@@ -40,42 +42,41 @@ export function PipelineColumn({
 
   return (
     <div
-      className={`border-border bg-card flex w-72 flex-none flex-col rounded-lg border shadow-sm ${
-        isOver ? "ring-primary ring-2" : ""
-      }`}
       ref={setNodeRef}
+      className={cn(
+        "bg-muted/40 flex w-72 flex-none flex-col rounded-xl border transition-colors",
+        isOver && "border-primary/50 bg-primary/5 ring-2 ring-primary/30"
+      )}
     >
-      <div className="sticky top-0 z-20 flex items-center justify-between rounded-t-lg border-b p-3">
-        <div className="flex items-center gap-2">
-          <div className={`h-3 w-3 rounded-full ${color}`} />
-          <h3 className="font-medium">{title}</h3>
-          <div className="bg-muted rounded-full px-2 py-0.5 text-xs font-medium">
-            {deals.length}
-          </div>
+      <div className="bg-card/95 sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-xl border-b px-3 py-2.5 backdrop-blur">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", color)} />
+          <h3 className="truncate text-sm font-semibold">{title}</h3>
         </div>
+        <Badge variant="secondary" className="shrink-0 tabular-nums">
+          {deals.length}
+        </Badge>
       </div>
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2">
         <SortableContext
           id={columnId}
           items={dealIds}
           strategy={verticalListSortingStrategy}
         >
-          <div className="flex flex-col gap-2">
-            {deals.map(deal => (
-              <DealCard
-                key={deal.id}
-                deal={deal}
-                organizationId={organizationId}
-                userId={userId}
-              />
-            ))}
+          {deals.map(deal => (
+            <DealCard
+              key={deal.id}
+              deal={deal}
+              organizationId={organizationId}
+              userId={userId}
+            />
+          ))}
 
-            {deals.length === 0 && (
-              <div className="text-muted-foreground flex h-20 items-center justify-center rounded-md border border-dashed p-4 text-center text-sm">
-                No deals in this stage
-              </div>
-            )}
-          </div>
+          {deals.length === 0 && (
+            <div className="text-muted-foreground flex min-h-24 items-center justify-center rounded-lg border border-dashed p-4 text-center text-xs">
+              Drop a deal here
+            </div>
+          )}
         </SortableContext>
       </div>
     </div>

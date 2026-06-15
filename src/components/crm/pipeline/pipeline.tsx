@@ -48,14 +48,43 @@ export function Pipeline({ organizationId }: PipelineProps) {
   );
 
   const updateDeal = api.dealsCrm.updateDeal.useMutation({
-    onSuccess: async () => {
-      toast.success("Deal updated successfully");
-      await utils.dealsCrm.invalidate();
+    // Optimistically move the card in the cache so the UI updates instantly,
+    // without waiting for the server round-trip.
+    onMutate: async variables => {
+      // Cancel any in-flight fetches so they can't clobber our optimistic write.
+      await utils.dealsCrm.getDealsByOrganization.cancel({ organizationId });
+
+      const previousDeals =
+        utils.dealsCrm.getDealsByOrganization.getData({ organizationId });
+
+      utils.dealsCrm.getDealsByOrganization.setData(
+        { organizationId },
+        old =>
+          old?.map(deal =>
+            deal.id === variables.id
+              ? { ...deal, status: variables.status, stage: variables.stage }
+              : deal
+          )
+      );
+
+      // Passed to onError/onSettled for rollback.
+      return { previousDeals };
     },
-    onError: error => {
-      toast.error("Failed to update deal", {
+    onError: (error, _variables, context) => {
+      // Request failed — roll the board back to its pre-drag state.
+      if (context?.previousDeals) {
+        utils.dealsCrm.getDealsByOrganization.setData(
+          { organizationId },
+          context.previousDeals
+        );
+      }
+      toast.error("Failed to move deal", {
         description: error.message,
       });
+    },
+    onSettled: () => {
+      // Re-sync with the server (confirms success or reconciles after rollback).
+      void utils.dealsCrm.getDealsByOrganization.invalidate({ organizationId });
     },
   });
 
@@ -102,7 +131,7 @@ export function Pipeline({ organizationId }: PipelineProps) {
   // Calculate pipeline metrics
   const totalValue = deals.reduce((sum, deal) => sum + Number(deal.value), 0);
   const totalDeals = deals.length;
-  const wonDeals = deals.filter(deal => deal.status === "CLOSED_WON");
+  const wonDeals = deals.filter(deal => deal.status === "WON");
   const wonValue = wonDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
 
   // No transformation needed - deals already have correct type from API
