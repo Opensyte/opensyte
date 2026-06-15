@@ -424,8 +424,8 @@ const leadToClientHandler: PrebuiltWorkflowHandler = {
 
     const normalizedStatus = statusCandidate.toUpperCase();
     return (
-      normalizedStatus === LeadStatus.QUALIFIED ||
-      normalizedStatus === LeadStatus.CLOSED_WON ||
+      normalizedStatus === LeadStatus.IN_CONVERSATION ||
+      normalizedStatus === LeadStatus.WON ||
       normalizedStatus === "CLIENT" ||
       normalizedStatus === "CUSTOMER"
     );
@@ -1967,7 +1967,7 @@ async function promoteCustomerToClient(args: {
 
   if (
     existing.type === CustomerType.CUSTOMER &&
-    existing.status === LeadStatus.QUALIFIED
+    existing.status === LeadStatus.WON
   ) {
     return {
       customerId,

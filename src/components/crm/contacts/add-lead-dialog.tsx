@@ -73,7 +73,7 @@ export default function AddLeadDialog({
       phone: "",
       company: "",
       position: "",
-      status: LeadStatus.NEW,
+      status: LeadStatus.IDENTIFIED,
       source: LeadSource.WEBSITE,
       notes: "",
       address: "",

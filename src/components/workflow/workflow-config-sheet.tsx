@@ -633,7 +633,7 @@ const templateVariables = [
     description: "Deal status",
     variableName: "deal_status",
     category: "deal",
-    sampleValue: "QUALIFIED",
+    sampleValue: "IN_CONVERSATION",
   },
   {
     id: 33,

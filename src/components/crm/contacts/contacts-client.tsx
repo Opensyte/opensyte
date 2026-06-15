@@ -328,6 +328,7 @@ export function ContactsClient() {
             leads={filteredLeads}
             onDeleteLead={handleDeleteLead}
             onEditLead={openEditDialog}
+            onAddLead={() => setAddDialogOpen(true)}
             isDeleting={deleteContactMutation.isPending}
             organizationId={orgId}
             userId={session?.user.id ?? ""}

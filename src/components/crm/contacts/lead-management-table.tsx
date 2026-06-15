@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Table,
   TableBody,
@@ -10,8 +10,20 @@ import {
 } from "~/components/ui/table";
 
 import { Button } from "~/components/ui/button";
-import { Avatar } from "~/components/ui/avatar";
-import { Eye, MoreHorizontal, Pencil, Phone, Mail, Trash2 } from "lucide-react";
+import { Avatar, AvatarFallback } from "~/components/ui/avatar";
+import {
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  Eye,
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,8 +40,6 @@ import { leadStatusColors, leadStatusLabels } from "~/types/crm";
 import { cn } from "~/lib/utils";
 import { WithPermissions } from "~/components/shared/permission-button";
 
-// Extended Customer type for the CRM leads
-
 // Helper function to get source icon
 const getSourceIcon = (source: string) => {
   const sourceIconMap = {
@@ -44,21 +54,24 @@ const getSourceIcon = (source: string) => {
   return sourceIconMap[source as keyof typeof sourceIconMap] ?? "❓";
 };
 
+type SortKey = "name" | "company" | "status" | "source" | "created";
+type SortDir = "asc" | "desc";
+
 interface LeadManagementTableProps {
   leads: Customer[];
   onDeleteLead: (id: string) => void;
   onEditLead: (lead: Customer) => void;
+  onAddLead?: () => void;
   isDeleting?: boolean;
   organizationId: string;
   userId: string;
 }
 
-// Color maps and icon maps are now centralized in ~/types/crm and handled by helper functions
-
 export default function LeadManagementTable({
   leads,
   onDeleteLead,
   onEditLead,
+  onAddLead,
   isDeleting = false,
   organizationId,
   userId,
@@ -66,6 +79,44 @@ export default function LeadManagementTable({
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Customer | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("created");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(prev => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "created" ? "desc" : "asc");
+    }
+  };
+
+  const sortedLeads = useMemo(() => {
+    const getValue = (lead: Customer): string | number => {
+      switch (sortKey) {
+        case "name":
+          return `${lead.firstName ?? ""} ${lead.lastName ?? ""}`
+            .trim()
+            .toLowerCase();
+        case "company":
+          return (lead.company ?? "").toLowerCase();
+        case "status":
+          return (lead.status ?? "").toLowerCase();
+        case "source":
+          return (lead.source ?? "").toLowerCase();
+        case "created":
+          return new Date(lead.createdAt).getTime();
+      }
+    };
+
+    return [...leads].sort((a, b) => {
+      const av = getValue(a);
+      const bv = getValue(b);
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [leads, sortKey, sortDir]);
 
   const handleViewLead = (lead: Customer) => {
     setSelectedLead(lead);
@@ -97,48 +148,101 @@ export default function LeadManagementTable({
     }).format(date);
   };
 
+  const SortIcon = ({ column }: { column: SortKey }) => {
+    if (sortKey !== column)
+      return (
+        <ChevronsUpDown className="text-muted-foreground/50 ml-1 inline h-3.5 w-3.5" />
+      );
+    return sortDir === "asc" ? (
+      <ChevronUp className="ml-1 inline h-3.5 w-3.5" />
+    ) : (
+      <ChevronDown className="ml-1 inline h-3.5 w-3.5" />
+    );
+  };
+
+  const SortableHead = ({
+    column,
+    children,
+    className,
+  }: {
+    column: SortKey;
+    children: ReactNode;
+    className?: string;
+  }) => (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => handleSort(column)}
+        className="hover:text-foreground -mx-1 flex items-center rounded px-1 py-0.5 font-medium transition-colors"
+      >
+        {children}
+        <SortIcon column={column} />
+      </button>
+    </TableHead>
+  );
+
   return (
     <>
-      <div className="rounded-md border">
+      <div className="max-h-[65vh] overflow-auto rounded-md border">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
+          <TableHeader className="bg-card sticky top-0 z-10 shadow-[inset_0_-1px_0_var(--border)]">
+            <TableRow className="hover:bg-transparent">
+              <SortableHead column="name">Name</SortableHead>
               <TableHead>Contact</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Created</TableHead>
+              <SortableHead column="company">Company</SortableHead>
+              <SortableHead column="status">Status</SortableHead>
+              <SortableHead column="source">Source</SortableHead>
+              <SortableHead column="created">Created</SortableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leads.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-muted-foreground py-8 text-center"
-                >
-                  No leads found. Add your first lead to get started.
+            {sortedLeads.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={7} className="h-64">
+                  <div className="flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+                      <Users className="text-muted-foreground h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium">No leads yet</p>
+                      <p className="text-muted-foreground text-sm">
+                        Add your first lead to start building your pipeline.
+                      </p>
+                    </div>
+                    {onAddLead && (
+                      <WithPermissions
+                        userId={userId}
+                        organizationId={organizationId}
+                        requiredPermission="write"
+                        module="crm"
+                      >
+                        <Button size="sm" onClick={onAddLead} className="mt-1">
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Add New Lead
+                        </Button>
+                      </WithPermissions>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
-              leads.map(lead => (
-                <TableRow key={lead.id} className="group hover:bg-muted/50">
+              sortedLeads.map(lead => (
+                <TableRow key={lead.id} className="group">
                   <TableCell className="py-2.5">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
-                        <div className="bg-muted flex h-full w-full items-center justify-center">
+                        <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
                           {lead.firstName?.charAt(0)}
                           {lead.lastName?.charAt(0)}
-                        </div>
+                        </AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="min-w-0">
                         <div className="font-medium">
-                          {`${lead.firstName ?? ""} ${lead.lastName ?? ""}`}
+                          {`${lead.firstName ?? ""} ${lead.lastName ?? ""}`.trim()}
                         </div>
-                        <div className="text-muted-foreground text-sm">
-                          {lead.position ?? "N/A"}
+                        <div className="text-muted-foreground truncate text-sm">
+                          {lead.position ?? "—"}
                         </div>
                       </div>
                     </div>
@@ -147,10 +251,10 @@ export default function LeadManagementTable({
                     <div className="flex flex-col gap-1">
                       {lead.email && (
                         <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <Mail className="text-muted-foreground h-4 w-4 flex-shrink-0" />
                           <a
                             href={`mailto:${lead.email}`}
-                            className="text-sm hover:underline truncate max-w-[200px]"
+                            className="max-w-[200px] truncate text-sm hover:underline"
                             title={lead.email}
                           >
                             {lead.email}
@@ -159,10 +263,10 @@ export default function LeadManagementTable({
                       )}
                       {lead.phone && (
                         <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <Phone className="text-muted-foreground h-4 w-4 flex-shrink-0" />
                           <a
                             href={`tel:${lead.phone}`}
-                            className="text-sm hover:underline truncate"
+                            className="truncate text-sm hover:underline"
                             title={lead.phone}
                           >
                             {lead.phone}
@@ -170,24 +274,24 @@ export default function LeadManagementTable({
                         </div>
                       )}
                       {!lead.email && !lead.phone && (
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-muted-foreground text-sm">
                           No contact info
                         </span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-2.5">
-                    {lead.company ?? "-"}
+                  <TableCell className="text-muted-foreground py-2.5">
+                    {lead.company ?? "—"}
                   </TableCell>
                   <TableCell className="py-2.5">
                     <Badge
+                      variant="secondary"
                       className={cn(
-                        "px-2 py-0.5 font-medium",
-                        lead.status
-                          ? leadStatusColors[
-                              lead.status as keyof typeof leadStatusColors
-                            ]
-                          : "bg-gray-100 text-gray-800 border-gray-200"
+                        "font-medium",
+                        lead.status &&
+                          leadStatusColors[
+                            lead.status as keyof typeof leadStatusColors
+                          ]
                       )}
                     >
                       {lead.status
@@ -202,12 +306,13 @@ export default function LeadManagementTable({
                       <span className="text-base">
                         {lead.source ? getSourceIcon(lead.source) : "❓"}
                       </span>
-                      <span className="capitalize text-sm">
-                        {lead.source ?? "Unknown"}
+                      <span className="text-sm capitalize">
+                        {lead.source?.replace(/_/g, " ").toLowerCase() ??
+                          "Unknown"}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="py-2.5 text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground py-2.5 text-sm">
                     {formatDate(lead.createdAt)}
                   </TableCell>
                   <TableCell className="py-2.5 text-right">
@@ -215,9 +320,11 @@ export default function LeadManagementTable({
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                         onClick={() => handleViewLead(lead)}
                       >
                         <Eye className="h-4 w-4" />
+                        <span className="sr-only">View lead</span>
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -232,9 +339,7 @@ export default function LeadManagementTable({
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleViewLead(lead)}
-                          >
+                          <DropdownMenuItem onClick={() => handleViewLead(lead)}>
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
                           <WithPermissions
@@ -258,7 +363,7 @@ export default function LeadManagementTable({
                             module="crm"
                           >
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-destructive focus:text-destructive"
                               onClick={() => handleDeleteLead(lead)}
                               disabled={isDeleting}
                             >

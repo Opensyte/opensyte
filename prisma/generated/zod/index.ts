@@ -276,7 +276,7 @@ export const CustomerTypeSchema = z.enum(['LEAD','PROSPECT','CUSTOMER','FORMER']
 
 export type CustomerTypeType = `${z.infer<typeof CustomerTypeSchema>}`
 
-export const LeadStatusSchema = z.enum(['NEW','CONTACTED','QUALIFIED','PROPOSAL','NEGOTIATION','CLOSED_WON','CLOSED_LOST']);
+export const LeadStatusSchema = z.enum(['IDENTIFIED','CONNECTION_SENT','CONNECTED','MESSAGED','IN_CONVERSATION','CALL_BOOKED','PROPOSAL_SENT','WON','LOST']);
 
 export type LeadStatusType = `${z.infer<typeof LeadStatusSchema>}`
 

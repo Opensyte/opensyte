@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -25,13 +25,15 @@ interface Column {
 }
 
 const COLUMNS: Column[] = [
-  { id: "NEW", title: "New Leads", color: "bg-blue-500" },
-  { id: "CONTACTED", title: "Contacted", color: "bg-purple-500" },
-  { id: "QUALIFIED", title: "Qualified", color: "bg-indigo-500" },
-  { id: "PROPOSAL", title: "Proposal", color: "bg-yellow-500" },
-  { id: "NEGOTIATION", title: "Negotiation", color: "bg-orange-500" },
-  { id: "CLOSED_WON", title: "Closed Won", color: "bg-green-500" },
-  { id: "CLOSED_LOST", title: "Closed Lost", color: "bg-red-500" },
+  { id: "IDENTIFIED", title: "Identified", color: "bg-blue-500" },
+  { id: "CONNECTION_SENT", title: "Connection Sent", color: "bg-sky-500" },
+  { id: "CONNECTED", title: "Connected", color: "bg-indigo-500" },
+  { id: "MESSAGED", title: "Messaged", color: "bg-violet-500" },
+  { id: "IN_CONVERSATION", title: "In Conversation", color: "bg-purple-500" },
+  { id: "CALL_BOOKED", title: "Call Booked", color: "bg-amber-500" },
+  { id: "PROPOSAL_SENT", title: "Proposal Sent", color: "bg-orange-500" },
+  { id: "WON", title: "Won", color: "bg-green-500" },
+  { id: "LOST", title: "Lost", color: "bg-red-500" },
 ];
 
 interface DealBoardProps {
@@ -50,23 +52,16 @@ export function DealBoard({
   onDealUpdate,
 }: DealBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  // Local deals state for optimistic UI updates
-  const [localDeals, setLocalDeals] = useState<DealWithCustomer[]>(deals);
 
-  // Update local deals when props change (only if not currently dragging)
-  useEffect(() => {
-    if (!activeId) {
-      setLocalDeals(deals);
-    }
-  }, [deals, activeId]);
-  // Apply filters to deals (using localDeals for optimistic UI)
+  // Deals come from the react-query cache, which the parent updates
+  // optimistically on drop — so we render straight from props.
   const filteredDeals = useMemo(() => {
     // Early return if no filters applied
     if (!filters.searchQuery && !filters.probability) {
-      return localDeals;
+      return deals;
     }
 
-    return localDeals.filter(deal => {
+    return deals.filter(deal => {
       // Apply search filter with early return
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
@@ -92,7 +87,7 @@ export function DealBoard({
 
       return true;
     });
-  }, [localDeals, filters]);
+  }, [deals, filters]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -132,8 +127,7 @@ export function DealBoard({
       const activeId = active.id as string;
       const overId = over.id as string;
 
-      // Find the active deal from localDeals for current UI state
-      const activeDeal = localDeals.find(deal => deal.id === activeId);
+      const activeDeal = deals.find(deal => deal.id === activeId);
       if (!activeDeal) {
         return;
       }
@@ -150,7 +144,7 @@ export function DealBoard({
         newStatus = overId as typeof activeDeal.status;
       } else if (overType === "deal") {
         // Find the target deal and use its status
-        const overDeal = localDeals.find(deal => deal.id === overId);
+        const overDeal = deals.find(deal => deal.id === overId);
         if (overDeal) {
           newStatus = overDeal.status;
         }
@@ -161,22 +155,15 @@ export function DealBoard({
         return;
       }
 
-      // Create updated deal object
-      const updatedDeal = {
+      // Hand off to the parent, which updates the react-query cache
+      // optimistically (instant move) and rolls back if the request fails.
+      onDealUpdate({
         ...activeDeal,
         status: newStatus,
         updatedAt: new Date(),
-      };
-
-      // INSTANT OPTIMISTIC UPDATE: Update local state immediately for instant visual feedback
-      setLocalDeals(prevDeals =>
-        prevDeals.map(deal => (deal.id === activeId ? updatedDeal : deal))
-      );
-
-      // Then call API in background
-      onDealUpdate(updatedDeal);
+      });
     },
-    [localDeals, onDealUpdate]
+    [deals, onDealUpdate]
   );
 
   const handleDragCancel = useCallback(() => {
@@ -186,7 +173,7 @@ export function DealBoard({
   const getDragOverlay = useCallback(() => {
     if (!activeId) return null;
 
-    const deal = localDeals.find(deal => deal.id === activeId);
+    const deal = deals.find(deal => deal.id === activeId);
     if (!deal) return null;
 
     return (
@@ -197,7 +184,7 @@ export function DealBoard({
         userId={userId}
       />
     );
-  }, [activeId, localDeals, organizationId, userId]);
+  }, [activeId, deals, organizationId, userId]);
 
   return (
     <DndContext
@@ -209,7 +196,7 @@ export function DealBoard({
       modifiers={[restrictToWindowEdges]}
     >
       <div className="hide-scrollbar flex h-auto min-h-[calc(100vh-350px)] overflow-x-auto pb-4">
-        <div className="flex flex-wrap gap-4">
+        <div className="flex items-stretch gap-4">
           {COLUMNS.map(column => {
             const columnDeals = getColumnDeals(column.id);
             return (
