@@ -60,4 +60,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["sh", "-c", "bunx prisma migrate deploy && bun server.js"]
+CMD ["sh", "-c", "bun run db:migrate && bun server.js"]
