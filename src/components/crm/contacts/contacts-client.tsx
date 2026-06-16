@@ -74,6 +74,12 @@ export function ContactsClient() {
     },
   });
 
+  const deleteContactsMutation = api.contactsCrm.deleteContacts.useMutation({
+    onSuccess: () => {
+      void utils.contactsCrm.getContactsByOrganization.invalidate();
+    },
+  });
+
   // Filter leads based on filters
   const filteredLeads = useMemo(() => {
     if (!contacts) return [];
@@ -169,6 +175,21 @@ export function ContactsClient() {
       toast.success("Lead has been deleted.");
     } catch {
       toast.error("Failed to delete lead. Please try again.");
+    }
+  };
+
+  const handleBulkDeleteLeads = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    try {
+      const result = await deleteContactsMutation.mutateAsync({
+        ids,
+        organizationId: orgId,
+      });
+      toast.success(
+        `${result.deletedCount} lead${result.deletedCount === 1 ? "" : "s"} deleted.`
+      );
+    } catch {
+      toast.error("Failed to delete the selected leads. Please try again.");
     }
   };
 
@@ -327,9 +348,13 @@ export function ContactsClient() {
           <LeadManagementTable
             leads={filteredLeads}
             onDeleteLead={handleDeleteLead}
+            onBulkDeleteLeads={handleBulkDeleteLeads}
             onEditLead={openEditDialog}
             onAddLead={() => setAddDialogOpen(true)}
-            isDeleting={deleteContactMutation.isPending}
+            isDeleting={
+              deleteContactMutation.isPending ||
+              deleteContactsMutation.isPending
+            }
             organizationId={orgId}
             userId={session?.user.id ?? ""}
           />
