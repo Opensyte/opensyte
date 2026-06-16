@@ -271,6 +271,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         */
       }
 
+      // Invoicing configuration (defaults, branding, numbering, email templates)
+      if (permissions.canViewFinance) {
+        settingsItems.push({
+          title: "Invoicing",
+          url: "/[orgId]/settings/invoicing",
+        });
+      }
+
       // Templates entry under Settings (links to Templates gallery page)
       // Templates link visible when user can view templates
       if (userPermissions?.permissions?.canViewTemplates) {

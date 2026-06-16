@@ -7,6 +7,9 @@ import "./src/env.js";
 const config = {
   output: "standalone",
   reactStrictMode: true,
+  // Keep @react-pdf/renderer out of the server bundle; it renders invoice PDFs
+  // to a Buffer (renderToBuffer) on the Node runtime.
+  serverExternalPackages: ["@react-pdf/renderer"],
   eslint: {
     ignoreDuringBuilds: true,
   },

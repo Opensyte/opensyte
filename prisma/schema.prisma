@@ -120,6 +120,7 @@ model Organization {
   projects            Project[]
   tasks               Task[]
   invoices            Invoice[]
+  invoiceSettings     InvoiceSettings?
   expenses            Expense[]
   expenseCategories   ExpenseCategory[]
   expenseTags         ExpenseTag[]
@@ -612,9 +613,15 @@ model Invoice {
   dueDate            DateTime
   paymentTerms       String        @default("Net 30") // e.g., "Net 30", "Due on receipt"
   poNumber           String? // Purchase Order Number
+  locale             String        @default("en") // Document/email language (en, ar, ...)
   subtotal           Decimal       @db.Decimal(12, 2)
+  // Invoice-level tax (editable label/rate, can be toggled off per invoice)
+  taxEnabled         Boolean       @default(true)
+  taxLabel           String        @default("Tax") // e.g., VAT, GST, Sales Tax
+  taxRate            Decimal       @default(0) @db.Decimal(5, 2) // Percentage applied to taxable base
+  taxRegistrationId  String? // Optional tax/registration ID shown on the document
   taxAmount          Decimal       @db.Decimal(12, 2)
-  discountAmount     Decimal       @db.Decimal(12, 2)
+  discountAmount     Decimal       @db.Decimal(12, 2) // Invoice-level fixed discount
   shippingAmount     Decimal       @default(0) @db.Decimal(12, 2)
   totalAmount        Decimal       @db.Decimal(12, 2)
   paidAmount         Decimal       @default(0) @db.Decimal(12, 2)
@@ -622,8 +629,10 @@ model Invoice {
   notes              String?
   internalNotes      String? // Private notes not visible to customer
   termsAndConditions String?
+  paymentInstructions String? // Free-text bank/IBAN/SWIFT/PayPal/Wise block
   footer             String? // Footer text for invoice
   logoUrl            String? // Company logo URL
+  publicToken        String?       @unique // Tokenized no-login share link
   sentAt             DateTime? // When invoice was sent
   viewedAt           DateTime? // When customer viewed invoice
   lastReminder       DateTime? // Last payment reminder sent
@@ -644,6 +653,53 @@ model Invoice {
   @@index([customerEmail])
   @@index([issueDate])
   @@index([dueDate])
+}
+
+// Per-organization invoicing configuration. All values are overridable per invoice.
+model InvoiceSettings {
+  id             String @id @default(cuid())
+  organizationId String @unique
+
+  // Business identity (the "from" block on the document)
+  businessName    String?
+  businessEmail   String?
+  businessPhone   String?
+  businessAddress String?
+  businessWebsite String?
+  logoUrl         String?
+
+  // Defaults applied when creating a new invoice
+  defaultCurrency           String  @default("USD")
+  defaultLocale             String  @default("en")
+  defaultTaxEnabled         Boolean @default(true)
+  defaultTaxLabel           String  @default("Tax")
+  defaultTaxRate            Decimal @default(0) @db.Decimal(5, 2)
+  taxRegistrationId         String?
+  defaultPaymentTerms       String  @default("Net 30")
+  paymentInstructions       String?
+  defaultNotes              String?
+  defaultTermsAndConditions String?
+
+  // Sequential, customizable invoice numbering
+  invoicePrefix         String @default("INV")
+  invoiceNumberFormat   String @default("{prefix}-{YYYY}-{seq}") // tokens: {prefix} {YYYY} {MM} {seq}
+  invoiceSequenceNext   Int    @default(1)
+  invoiceSequencePadding Int   @default(4)
+
+  // Editable email templates (null => built-in bilingual defaults). Support {variables}.
+  emailInvoiceSubject  String?
+  emailInvoiceBody     String?
+  emailReminderSubject String?
+  emailReminderBody    String?
+  emailReceiptSubject  String?
+  emailReceiptBody     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 enum InvoiceStatus {
