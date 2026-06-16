@@ -20,6 +20,7 @@ RUN bun install --frozen-lockfile
 FROM --platform=linux/amd64 oven/bun:1-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 ARG NEXT_PUBLIC_CLIENTVAR
 # NEXT_PUBLIC_* vars are inlined into the client bundle at build time, so they
 # must be present during `bun run build`. Railway exposes service variables as
@@ -57,6 +58,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3000
 ENV PORT=3000
