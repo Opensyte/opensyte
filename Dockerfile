@@ -31,8 +31,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN bun run db:migrate
-
 # ENV NEXT_TELEMETRY_DISABLED 1
 
 ENV SKIP_ENV_VALIDATION=1
@@ -62,4 +60,4 @@ COPY --from=builder /app/.next/static ./.next/static
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["bun", "server.js"]
+CMD ["sh", "-c", "bunx prisma@5.14.0 migrate deploy && bun server.js"]
