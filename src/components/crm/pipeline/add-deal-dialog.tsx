@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Loader2, PlusCircle, Target } from "lucide-react";
+import { CalendarIcon, PlusCircle } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -27,7 +26,6 @@ import {
 } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { Separator } from "~/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -78,14 +76,6 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddDealDialogProps {
   organizationId: string;
   userId: string;
-}
-
-function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      {children}
-    </p>
-  );
 }
 
 export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
@@ -187,207 +177,40 @@ export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
           Add Deal
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-[620px]">
-        <DialogHeader className="space-y-0 border-b p-6">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Target className="h-5 w-5" />
-            </div>
-            <div className="space-y-1">
-              <DialogTitle>Add New Deal</DialogTitle>
-              <DialogDescription>
-                Create a new deal in your sales pipeline.
-              </DialogDescription>
-            </div>
-          </div>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Add New Deal</DialogTitle>
+          <DialogDescription>
+            Create a new deal in your sales pipeline.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="space-y-6 p-6">
-              {/* Deal details */}
-              <section className="space-y-3">
-                <SectionLabel>Deal</SectionLabel>
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Deal Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter deal title" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="customerId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a customer" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {customers.map(customer => (
-                              <SelectItem key={customer.id} value={customer.id}>
-                                {customer.firstName} {customer.lastName} -{" "}
-                                {customer.company}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="value"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Value ($)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            placeholder="Enter deal value"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </section>
-
-              <Separator />
-
-              {/* Pipeline */}
-              <section className="space-y-3">
-                <SectionLabel>Pipeline</SectionLabel>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="IDENTIFIED">Identified</SelectItem>
-                            <SelectItem value="CONNECTION_SENT">
-                              Connection Sent
-                            </SelectItem>
-                            <SelectItem value="CONNECTED">Connected</SelectItem>
-                            <SelectItem value="MESSAGED">Messaged</SelectItem>
-                            <SelectItem value="IN_CONVERSATION">
-                              In Conversation
-                            </SelectItem>
-                            <SelectItem value="CALL_BOOKED">
-                              Call Booked
-                            </SelectItem>
-                            <SelectItem value="PROPOSAL_SENT">
-                              Proposal Sent
-                            </SelectItem>
-                            <SelectItem value="WON">Won</SelectItem>
-                            <SelectItem value="LOST">Lost</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="probability"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Win Probability (%)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            placeholder="Enter probability"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="expectedCloseDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col sm:col-span-2">
-                        <FormLabel>Expected Close Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </section>
-
-              <Separator />
-
-              {/* Description */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid gap-4 py-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="description"
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Deal Title</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Enter deal description"
-                        className="h-24"
+                      <Input placeholder="Enter deal title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Value ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="Enter deal value"
                         {...field}
                       />
                     </FormControl>
@@ -395,8 +218,147 @@ export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="customerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a customer" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {customers.map(customer => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.firstName} {customer.lastName} -{" "}
+                            {customer.company}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="IDENTIFIED">Identified</SelectItem>
+                        <SelectItem value="CONNECTION_SENT">
+                          Connection Sent
+                        </SelectItem>
+                        <SelectItem value="CONNECTED">Connected</SelectItem>
+                        <SelectItem value="MESSAGED">Messaged</SelectItem>
+                        <SelectItem value="IN_CONVERSATION">
+                          In Conversation
+                        </SelectItem>
+                        <SelectItem value="CALL_BOOKED">Call Booked</SelectItem>
+                        <SelectItem value="PROPOSAL_SENT">
+                          Proposal Sent
+                        </SelectItem>
+                        <SelectItem value="WON">Won</SelectItem>
+                        <SelectItem value="LOST">Lost</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="probability"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Win Probability (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        placeholder="Enter probability"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="expectedCloseDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Expected Close Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-            <DialogFooter className="flex flex-col gap-2 border-t p-4 sm:flex-row sm:justify-end sm:gap-2 sm:p-6">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter deal description"
+                      className="h-24"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
               <Button
                 type="button"
                 variant="outline"
@@ -411,9 +373,6 @@ export function AddDealDialog({ organizationId, userId }: AddDealDialogProps) {
                 className="w-full sm:w-auto"
                 disabled={createDeal.isPending}
               >
-                {createDeal.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
                 {createDeal.isPending ? "Adding Deal..." : "Add Deal"}
               </Button>
             </DialogFooter>

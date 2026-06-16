@@ -1,9 +1,9 @@
 "use client";
-import { Globe, Clock, RotateCcw, Calendar, MessageSquare } from "lucide-react";
+import React from "react";
+import { Globe, Clock, RotateCcw, Calendar } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { Separator } from "~/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -34,54 +34,48 @@ export function ViewInteractionDialog({
   if (!interaction) return null;
 
   // Get the badge color based on interaction type using centralized mapping
-  const getInteractionTypeColor = (type: string) =>
-    interactionTypeColors[type as keyof typeof interactionTypeColors] ??
-    "bg-muted text-muted-foreground";
+  const getInteractionTypeColor = (type: string) => {
+    return (
+      interactionTypeColors[type as keyof typeof interactionTypeColors] ??
+      "bg-gray-100 text-gray-800"
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <MessageSquare className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn("font-medium", getInteractionTypeColor(interaction.type))}
-                >
-                  {interaction.type}
-                </Badge>
-                <DialogTitle className="text-lg">
-                  {interaction.subject ?? "No Subject"}
-                </DialogTitle>
-              </div>
-              <DialogDescription>
-                Interaction with {getCustomerName(interaction.customerId)}
-              </DialogDescription>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              className={cn(
+                "font-medium",
+                getInteractionTypeColor(interaction.type)
+              )}
+            >
+              {interaction.type}
+            </Badge>
+            <DialogTitle className="text-xl">
+              {interaction.subject ?? "No Subject"}
+            </DialogTitle>
           </div>
+          <DialogDescription>
+            Interaction with {getCustomerName(interaction.customerId)}
+          </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Meta */}
-          <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-4">
+        <div className="grid gap-4 py-4">
+          <div className="text-muted-foreground flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
             <div className="flex items-center gap-1.5">
               <Globe className="h-4 w-4" />
               <span>
                 Medium:{" "}
-                <span className="font-medium text-foreground">
-                  {interaction.medium}
-                </span>
+                <span className="font-medium">{interaction.medium}</span>
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
               <span>
                 Created:{" "}
-                <span className="font-medium text-foreground">
+                <span className="font-medium">
                   {formatDate(interaction.createdAt)}
                 </span>
               </span>
@@ -90,7 +84,7 @@ export function ViewInteractionDialog({
               <RotateCcw className="h-4 w-4" />
               <span>
                 Updated:{" "}
-                <span className="font-medium text-foreground">
+                <span className="font-medium">
                   {formatDate(interaction.updatedAt)}
                 </span>
               </span>
@@ -98,14 +92,14 @@ export function ViewInteractionDialog({
           </div>
 
           {(interaction.scheduledAt ?? interaction.completedAt) && (
-            <div className="grid gap-4 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2">
+            <div className="bg-muted/30 grid gap-4 rounded-md p-3 sm:grid-cols-2">
               {interaction.scheduledAt && (
                 <div>
                   <h4 className="mb-1 flex items-center gap-1.5 text-sm font-medium">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Calendar className="h-4 w-4" />
                     Scheduled At
                   </h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm">
                     {formatDate(interaction.scheduledAt)}
                   </p>
                 </div>
@@ -113,10 +107,10 @@ export function ViewInteractionDialog({
               {interaction.completedAt && (
                 <div>
                   <h4 className="mb-1 flex items-center gap-1.5 text-sm font-medium">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Calendar className="h-4 w-4" />
                     Completed At
                   </h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm">
                     {formatDate(interaction.completedAt)}
                   </p>
                 </div>
@@ -124,20 +118,17 @@ export function ViewInteractionDialog({
             </div>
           )}
 
-          <Separator />
-
           <div>
-            <h4 className="mb-2 text-sm font-medium">Content</h4>
-            <div className="max-h-[220px] overflow-y-auto whitespace-pre-line rounded-lg border bg-muted/40 p-4 text-sm leading-relaxed">
+            <h4 className="mb-1 text-sm font-medium">Content</h4>
+            <div className="bg-muted/30 max-h-[200px] overflow-y-auto rounded-md border p-4 whitespace-pre-line">
               {interaction.content ?? "No content available."}
             </div>
           </div>
         </div>
-
-        <DialogFooter>
+        <DialogFooter className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:space-y-0">
           <Button
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+            className="w-full sm:order-1 sm:w-auto"
           >
             Close
           </Button>

@@ -543,7 +543,6 @@ export function CRMImportWizard() {
     !validatePreview.isPending;
   const canCommit =
     validationResult?.summary.status === "READY_TO_IMPORT" &&
-    (validationResult?.summary.validRows ?? 0) > 0 &&
     !commitImport.isPending &&
     sessionId !== null;
 
@@ -1459,10 +1458,8 @@ export function CRMImportWizard() {
                   Summary snapshot
                 </AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground">
-                  We validated {validationResult.summary.totalRows} rows —{" "}
-                  {validationResult.summary.validRows} ready to import. Rows with
-                  errors are skipped automatically; fix them in your file and
-                  re-run the preview to include them.
+                  We validated {validationResult.summary.totalRows} rows.
+                  Resolve any errors below and re-run the preview if needed.
                 </AlertDescription>
               </Alert>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -1598,7 +1595,7 @@ export function CRMImportWizard() {
                 </Table>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:gap-0">
                 <Button
                   variant="ghost"
                   onClick={() => setStep("mapping")}
@@ -1607,31 +1604,20 @@ export function CRMImportWizard() {
                   <ArrowLeft className="size-4" />
                   Adjust mapping
                 </Button>
-                <div className="flex flex-col items-stretch gap-1 sm:items-end">
-                  <Button
-                    onClick={handleCommit}
-                    disabled={!canCommit}
-                    className="w-full sm:w-auto"
-                  >
-                    {commitImport.isPending ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="size-4 animate-spin" />
-                        Importing...
-                      </span>
-                    ) : (
-                      `Import ${validationResult.summary.validRows} row${
-                        validationResult.summary.validRows === 1 ? "" : "s"
-                      }`
-                    )}
-                  </Button>
-                  {validationResult.summary.failedRows > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {validationResult.summary.failedRows} row
-                      {validationResult.summary.failedRows === 1 ? "" : "s"} with
-                      errors will be skipped
+                <Button
+                  onClick={handleCommit}
+                  disabled={!canCommit}
+                  className="w-full sm:w-auto"
+                >
+                  {commitImport.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      Importing...
                     </span>
+                  ) : (
+                    "Commit import"
                   )}
-                </div>
+                </Button>
               </div>
             </CardContent>
           </Card>

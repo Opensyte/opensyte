@@ -1012,14 +1012,10 @@ export const crmImportRouter = createTRPCRouter({
         mappedData: row.mappedData,
       }));
 
-      // Ready to import as long as there is at least one importable row (or
-      // nothing actually failed). Rows with errors are skipped at commit time
-      // rather than blocking the whole import — only block when there is
-      // genuinely nothing to import.
       const sessionStatus =
-        totals.valid > 0 || totals.failed === 0
-          ? IMPORT_STATUS_READY
-          : IMPORT_STATUS_VALIDATION_FAILED;
+        totals.failed > 0
+          ? IMPORT_STATUS_VALIDATION_FAILED
+          : IMPORT_STATUS_READY;
 
       await ctx.db.$transaction(async tx => {
         await tx.importRowIssue.deleteMany({
@@ -1150,13 +1146,6 @@ export const crmImportRouter = createTRPCRouter({
         for (const row of session.rows) {
           if (row.status === ROW_STATUS_SKIPPED) {
             skippedCount += 1;
-            continue;
-          }
-
-          // Rows that failed validation are never imported — count them as
-          // failed and move on so the valid rows still import.
-          if (row.status === ROW_STATUS_FAILED) {
-            failureCount += 1;
             continue;
           }
 
