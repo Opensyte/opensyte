@@ -17,6 +17,19 @@ export const currencies = [
   { code: "SEK", name: "Swedish Krona", symbol: "kr" },
   { code: "NOK", name: "Norwegian Krone", symbol: "kr" },
   { code: "DKK", name: "Danish Krone", symbol: "kr" },
+  { code: "SAR", name: "Saudi Riyal", symbol: "﷼" },
+  { code: "AED", name: "UAE Dirham", symbol: "د.إ" },
+  { code: "QAR", name: "Qatari Riyal", symbol: "﷼" },
+  { code: "KWD", name: "Kuwaiti Dinar", symbol: "د.ك" },
+  { code: "BHD", name: "Bahraini Dinar", symbol: ".د.ب" },
+  { code: "OMR", name: "Omani Rial", symbol: "﷼" },
+  { code: "JOD", name: "Jordanian Dinar", symbol: "د.ا" },
+  { code: "EGP", name: "Egyptian Pound", symbol: "£" },
+  { code: "TRY", name: "Turkish Lira", symbol: "₺" },
+  { code: "ZAR", name: "South African Rand", symbol: "R" },
+  { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$" },
+  { code: "PLN", name: "Polish Zloty", symbol: "zł" },
+  { code: "NGN", name: "Nigerian Naira", symbol: "₦" },
 ] as const;
 
 export type CurrencyCode = (typeof currencies)[number]["code"];

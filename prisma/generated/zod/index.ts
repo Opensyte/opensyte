@@ -112,7 +112,9 @@ export const ProjectResourceScalarFieldEnumSchema = z.enum(['projectId','assigne
 
 export const TimeEntryScalarFieldEnumSchema = z.enum(['id','projectId','taskId','userId','description','startTime','endTime','duration','billable','invoiced','invoiceId','createdAt','updatedAt']);
 
-export const InvoiceScalarFieldEnumSchema = z.enum(['id','organizationId','customerId','customerEmail','customerName','customerAddress','customerPhone','invoiceNumber','status','issueDate','dueDate','paymentTerms','poNumber','subtotal','taxAmount','discountAmount','shippingAmount','totalAmount','paidAmount','currency','notes','internalNotes','termsAndConditions','footer','logoUrl','sentAt','viewedAt','lastReminder','createdById','createdAt','updatedAt']);
+export const InvoiceScalarFieldEnumSchema = z.enum(['id','organizationId','customerId','customerEmail','customerName','customerAddress','customerPhone','invoiceNumber','status','issueDate','dueDate','paymentTerms','poNumber','locale','subtotal','taxEnabled','taxLabel','taxRate','taxRegistrationId','taxAmount','discountAmount','shippingAmount','totalAmount','paidAmount','currency','notes','internalNotes','termsAndConditions','paymentInstructions','footer','logoUrl','publicToken','sentAt','viewedAt','lastReminder','createdById','createdAt','updatedAt']);
+
+export const InvoiceSettingsScalarFieldEnumSchema = z.enum(['id','organizationId','businessName','businessEmail','businessPhone','businessAddress','businessWebsite','logoUrl','defaultCurrency','defaultLocale','defaultTaxEnabled','defaultTaxLabel','defaultTaxRate','taxRegistrationId','defaultPaymentTerms','paymentInstructions','defaultNotes','defaultTermsAndConditions','invoicePrefix','invoiceNumberFormat','invoiceSequenceNext','invoiceSequencePadding','emailInvoiceSubject','emailInvoiceBody','emailReminderSubject','emailReminderBody','emailReceiptSubject','emailReceiptBody','createdAt','updatedAt']);
 
 export const InvoiceItemScalarFieldEnumSchema = z.enum(['id','invoiceId','productId','description','quantity','unitPrice','taxRate','discountRate','subtotal','sortOrder','createdAt','updatedAt']);
 
@@ -844,7 +846,12 @@ export const InvoiceSchema = z.object({
   dueDate: z.coerce.date(),
   paymentTerms: z.string(),
   poNumber: z.string().nullable(),
+  locale: z.string(),
   subtotal: z.instanceof(Prisma.Decimal, { message: "Field 'subtotal' must be a Decimal. Location: ['Models', 'Invoice']"}),
+  taxEnabled: z.boolean(),
+  taxLabel: z.string(),
+  taxRate: z.instanceof(Prisma.Decimal, { message: "Field 'taxRate' must be a Decimal. Location: ['Models', 'Invoice']"}),
+  taxRegistrationId: z.string().nullable(),
   taxAmount: z.instanceof(Prisma.Decimal, { message: "Field 'taxAmount' must be a Decimal. Location: ['Models', 'Invoice']"}),
   discountAmount: z.instanceof(Prisma.Decimal, { message: "Field 'discountAmount' must be a Decimal. Location: ['Models', 'Invoice']"}),
   shippingAmount: z.instanceof(Prisma.Decimal, { message: "Field 'shippingAmount' must be a Decimal. Location: ['Models', 'Invoice']"}),
@@ -854,8 +861,10 @@ export const InvoiceSchema = z.object({
   notes: z.string().nullable(),
   internalNotes: z.string().nullable(),
   termsAndConditions: z.string().nullable(),
+  paymentInstructions: z.string().nullable(),
   footer: z.string().nullable(),
   logoUrl: z.string().nullable(),
+  publicToken: z.string().nullable(),
   sentAt: z.coerce.date().nullable(),
   viewedAt: z.coerce.date().nullable(),
   lastReminder: z.coerce.date().nullable(),
@@ -865,6 +874,45 @@ export const InvoiceSchema = z.object({
 })
 
 export type Invoice = z.infer<typeof InvoiceSchema>
+
+/////////////////////////////////////////
+// INVOICE SETTINGS SCHEMA
+/////////////////////////////////////////
+
+export const InvoiceSettingsSchema = z.object({
+  id: z.string().cuid(),
+  organizationId: z.string(),
+  businessName: z.string().nullable(),
+  businessEmail: z.string().nullable(),
+  businessPhone: z.string().nullable(),
+  businessAddress: z.string().nullable(),
+  businessWebsite: z.string().nullable(),
+  logoUrl: z.string().nullable(),
+  defaultCurrency: z.string(),
+  defaultLocale: z.string(),
+  defaultTaxEnabled: z.boolean(),
+  defaultTaxLabel: z.string(),
+  defaultTaxRate: z.instanceof(Prisma.Decimal, { message: "Field 'defaultTaxRate' must be a Decimal. Location: ['Models', 'InvoiceSettings']"}),
+  taxRegistrationId: z.string().nullable(),
+  defaultPaymentTerms: z.string(),
+  paymentInstructions: z.string().nullable(),
+  defaultNotes: z.string().nullable(),
+  defaultTermsAndConditions: z.string().nullable(),
+  invoicePrefix: z.string(),
+  invoiceNumberFormat: z.string(),
+  invoiceSequenceNext: z.number().int(),
+  invoiceSequencePadding: z.number().int(),
+  emailInvoiceSubject: z.string().nullable(),
+  emailInvoiceBody: z.string().nullable(),
+  emailReminderSubject: z.string().nullable(),
+  emailReminderBody: z.string().nullable(),
+  emailReceiptSubject: z.string().nullable(),
+  emailReceiptBody: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type InvoiceSettings = z.infer<typeof InvoiceSettingsSchema>
 
 /////////////////////////////////////////
 // INVOICE ITEM SCHEMA
