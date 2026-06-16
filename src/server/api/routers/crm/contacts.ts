@@ -236,6 +236,32 @@ export const contactsCrmRoutes = createTRPCRouter({
       }
     }),
 
+  // Bulk delete contacts (scoped to the organization for safety)
+  deleteContacts: createPermissionProcedure(PERMISSIONS.CRM_WRITE)
+    .input(
+      z.object({
+        ids: z.array(z.string().cuid()).min(1),
+        organizationId: z.string().cuid(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        await ctx.requirePermission(input.organizationId);
+
+        const result = await db.customer.deleteMany({
+          where: {
+            id: { in: input.ids },
+            organizationId: input.organizationId,
+          },
+        });
+
+        return { success: true, deletedCount: result.count };
+      } catch (error) {
+        console.error("Failed to delete contacts:", error);
+        throw new Error("Failed to delete contacts");
+      }
+    }),
+
   // Get contacts by organization
   getContactsByOrganization: createAnyPermissionProcedure([
     PERMISSIONS.CRM_READ,

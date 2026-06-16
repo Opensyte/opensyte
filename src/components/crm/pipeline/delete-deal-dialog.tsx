@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
 import { toast } from "sonner";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,13 +54,23 @@ export function DeleteDealDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Deal</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete the deal &quot;{dealTitle}&quot;?
-            This action cannot be undone.
-          </AlertDialogDescription>
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <AlertDialogTitle>Delete deal</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete{" "}
+                <span className="font-medium text-foreground">
+                  {dealTitle}
+                </span>
+                ? This action cannot be undone.
+              </AlertDialogDescription>
+            </div>
+          </div>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+        <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:gap-2">
           <AlertDialogCancel
             disabled={deleteDealMutation.isPending}
             className="w-full sm:w-auto"
@@ -70,8 +80,11 @@ export function DeleteDealDialog({
           <AlertDialogAction
             onClick={handleDelete}
             disabled={deleteDealMutation.isPending}
-            className="w-full sm:w-auto"
+            className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto"
           >
+            {deleteDealMutation.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
             {deleteDealMutation.isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>

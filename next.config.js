@@ -7,9 +7,10 @@ import "./src/env.js";
 const config = {
   output: "standalone",
   reactStrictMode: true,
-  // Keep @react-pdf/renderer out of the server bundle; it renders invoice PDFs
-  // to a Buffer (renderToBuffer) on the Node runtime.
-  serverExternalPackages: ["@react-pdf/renderer"],
+  // @react-pdf/renderer is ESM-only; let Next bundle/transpile it (both the
+  // client PDFViewer and the server-side renderToBuffer) rather than treating
+  // it as an external require, which breaks the standalone build.
+  transpilePackages: ["@react-pdf/renderer"],
   eslint: {
     ignoreDuringBuilds: true,
   },
